@@ -1,0 +1,159 @@
+{
+  "common": {
+    "app_title": "AgentOS VideoProcessor - Intelligente Videobearbeitung",
+    "app_description": "Erstelle professionelle Video-Clips mit KI-Technologie",
+    "app_name": "AgentOS VideoProcessor",
+    "upload": "Hochladen",
+    "download": "Herunterladen",
+    "cancel": "Abbrechen",
+    "continue": "Weiter",
+    "back": "Zurück",
+    "next": "Weiter",
+    "done": "Fertig",
+    "loading": "Lädt...",
+    "error": "Fehler",
+    "success": "Erfolg",
+    "warning": "Warnung",
+    "info": "Info",
+    "close": "Schließen",
+    "save": "Speichern",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "share": "Teilen",
+    "copy": "Kopieren",
+    "paste": "Einfügen",
+    "clear": "Löschen",
+    "reset": "Zurücksetzen",
+    "settings": "Einstellungen",
+    "help": "Hilfe",
+    "about": "Über",
+    "contact": "Kontakt",
+    "privacy": "Datenschutz",
+    "terms": "Bedingungen"
+  },
+  "intent": {
+    "title": "Was willst du mit deinem Video machen?",
+    "subtitle": "Wähle, was du aus deinem Video machen willst",
+    "short_clips": {
+      "title": "Kurze Videos",
+      "description": "Mache kurze Videos für TikTok und Instagram",
+      "features": ["15-60 Sekunden", "Beste Teile", "Lustige Momente"]
+    },
+    "key_moments": {
+      "title": "Highlights",
+      "description": "Hole die besten und spannendsten Momente raus",
+      "features": ["1-3 Minuten", "Spannende Teile", "Top-Momente"]
+    },
+    "smart_summary": {
+      "title": "Video Kürzen",
+      "description": "Mache dein langes Video viel kürzer",
+      "features": ["2-5 Minuten", "Wichtigste Teile", "Klare Geschichte"]
+    },
+    "visual_clips": {
+      "title": "Visuelle Clips",
+      "description": "Erstelle visuell ansprechende Clips für soziale Medien",
+      "features": ["Optimiert für Instagram", "Auffällige Momente", "Perfekte Übergänge"]
+    },
+    "smart_content": {
+      "title": "Smart Content",
+      "description": "Intelligente Inhaltsanalyse und -optimierung",
+      "features": ["KI-gesteuert", "Automatische Highlights", "Professionelle Qualität"]
+    },
+    "tips": {
+      "short_clips": "💡 Tipp: Längere Videos (5+ Minuten) sind besser",
+      "key_moments": "💡 Tipp: Videos mit viel Action funktionieren am besten",
+      "smart_summary": "💡 Tipp: Lange Videos geben die besten Zusammenfassungen"
+    }
+  },
+  "upload": {
+    "title_prefix": "Video hochladen",
+    "drop_zone": "Video hier hinziehen",
+    "click_to_select": "Oder klicken um Datei zu wählen",
+    "url_placeholder": "YouTube oder anderen Video-Link hier einfügen...",
+    "or": "oder",
+    "validation": {
+      "file_too_large": "Datei ist zu groß (max {maxSize})",
+      "invalid_format": "Dateiformat wird nicht unterstützt",
+      "invalid_url": "Ungültige URL",
+      "upload_failed": "Upload fehlgeschlagen, bitte erneut versuchen",
+      "url_not_accessible": "URL nicht erreichbar"
+    },
+    "progress": {
+      "uploading": "Hochladen... {progress}%",
+      "processing": "Verarbeiten...",
+      "analyzing": "Analysieren...",
+      "extracting": "Audio-Extraktion...",
+      "transcribing": "Transkript erstellen..."
+    },
+    "feedback": {
+      "upload_success": "{fileName} erfolgreich hochgeladen! Verarbeitung gestartet...",
+      "upload_failed": "Upload fehlgeschlagen",
+      "upload_started": "Hochladen {fileName}...",
+      "upload_retry": "Erneut versuchen oder andere Datei wählen"
+    }
+  },
+  "processing": {
+    "title_prefix": "Arbeiten an deinem Video:",
+    "subtitle": "Unsere KI findet die besten Teile",
+    "detecting_moment": "Gute Teile finden",
+    "emotional_peak": "Ton prüfen",
+    "action_moment": "Video anschauen",
+    "time_estimate": "Das dauert etwa 4-6 Sekunden",
+    "steps": {
+      "analyzing": {
+        "title": "Video Anschauen",
+        "description": "Video und Ton prüfen"
+      },
+      "extracting": {
+        "title": "Beste Teile Finden",
+        "description": "Gute Momente auswählen"
+      },
+      "creating": {
+        "title": "Deine Videos Machen",
+        "description": "Finale Clips erstellen"
+      }
+    },
+    "time_estimate": "Bitte warten, wir verarbeiten dein Video",
+    "time_remaining": "Bitte warten, wir verarbeiten dein Video",
+    "time_units": {
+      "second": "Sekunde",
+      "seconds": "Sekunden",
+      "minute": "Minute", 
+      "minutes": "Minuten",
+      "hours": "Stunden"
+    },
+    "confirm_cancel": "Möchten Sie die Verarbeitung wirklich stoppen?",
+    "cancelled_by_user": "Verarbeitung vom Benutzer abgebrochen",
+    "cancel_error": "Fehler beim Abbrechen der Verarbeitung",
+    "interesting_moment": "Interessanter Moment"
+  },
+  "results": {
+    "title_prefix": "Deine Videos sind fertig!",
+    "title_suffix": "🎉",
+    "subtitle_prefix": "Wir haben",
+    "subtitle_suffix": "tolle Clips für dich gefunden",
+    "clip_title": "Clip",
+    "ai_score": "KI-Bewertung",
+    "optimized_segment": "Optimiertes Segment",
+    "download_segment": "Herunterladen",
+    "share_clip": "Teilen",
+    "play_video": "Abspielen",
+    "pause_video": "Pause",
+    "video_not_supported": "Video wird nicht unterstützt",
+    "video_error": "Video kann nicht geladen werden",
+    "download_started": "Download gestartet",
+    "download_failed": "Download fehlgeschlagen",
+    "all_downloads_started": "Alle Downloads gestartet",
+    "no_clips_to_download": "Keine Clips zum Herunterladen",
+    "share_title": "Schau dir diesen Clip an",
+    "share_text": "Schau dir diesen tollen Clip an!",
+    "link_copied": "Link in Zwischenablage kopiert",
+    "share_failed": "Teilen fehlgeschlagen",
+    "download_selected": "{count} ausgewählte herunterladen",
+    "try_again": "Erneut versuchen",
+    "actions": {
+      "download_all": "Alle downloaden",
+      "new_video": "Anderes Video probieren"
+    }
+  }
+}

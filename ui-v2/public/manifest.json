@@ -1,0 +1,20 @@
+{
+  "name": "AgentOS VideoProcessor",
+  "short_name": "VideoProcessor",
+  "description": "Intelligente video bewerking met AI-technologie",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4C6EF5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./assets/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["productivity", "multimedia"],
+  "lang": "nl",
+  "dir": "ltr"
+}

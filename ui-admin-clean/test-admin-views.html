@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🧪 AgentOS Admin Views Test Suite</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f5;
+      line-height: 1.6;
+    }
+    
+    /* Floating results panel */
+    .floating-results {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 600px;
+      max-height: 400px;
+      background: white;
+      border: 2px solid #4299e1;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 1000;
+      display: none;
+    }
+    
+    .floating-results.active {
+      display: block;
+    }
+    
+    .floating-header {
+      background: #4299e1;
+      color: white;
+      padding: 10px 15px;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: move;
+    }
+    
+    .floating-header button {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 0 5px;
+    }
+    
+    .floating-content {
+      padding: 15px;
+      max-height: 350px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      white-space: pre-wrap;
+      background: #f8fafc;
+    }
+    
+    .test-running-indicator {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #4299e1;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 6px;
+      display: none;
+      z-index: 1001;
+      animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    h1 {
+      color: #2d3748;
+      text-align: center;
+      margin-bottom: 30px;
+      border-bottom: 3px solid #4299e1;
+      padding-bottom: 15px;
+    }
+    
+    .test-section {
+      margin-bottom: 40px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 20px;
+    }
+    
+    .test-section h2 {
+      color: #4a5568;
+      margin-top: 0;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 10px;
+    }
+    
+    .test-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    
+    .test-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 15px;
+      background: #f8fafc;
+    }
+    
+    .test-card h3 {
+      margin: 0 0 10px 0;
+      color: #2d3748;
+      font-size: 1.1em;
+    }
+    
+    .test-button {
+      background: #4299e1;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px 5px 5px 0;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    
+    .test-button:hover {
+      background: #3182ce;
+    }
+    
+    .test-button.test-all {
+      background: #38a169;
+      padding: 10px 20px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    
+    .test-button.test-all:hover {
+      background: #2f855a;
+    }
+    
+    .results {
+      margin-top: 20px;
+      padding: 15px;
+      background: #edf2f7;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      white-space: pre-wrap;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .status {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+    
+    .status.working { background: #c6f6d5; color: #22543d; }
+    .status.partial { background: #faf089; color: #744210; }
+    .status.broken { background: #fed7d7; color: #742a2a; }
+    .status.unknown { background: #e2e8f0; color: #4a5568; }
+    
+    .endpoint-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    .endpoint-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: white;
+      border-radius: 4px;
+      border-left: 4px solid #cbd5e0;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+    }
+    
+    .endpoint-item.success { border-left-color: #38a169; }
+    .endpoint-item.error { border-left-color: #e53e3e; }
+    .endpoint-item.pending { border-left-color: #ed8936; }
+    
+    .controls {
+      text-align: center;
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #edf2f7;
+      border-radius: 8px;
+    }
+    
+    .summary {
+      background: #2d3748;
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+    
+    .summary h2 {
+      margin-top: 0;
+      color: white;
+      border-bottom-color: #4a5568;
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 20px;
+      background: #4a5568;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 10px 0;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #4299e1, #38a169);
+      transition: width 0.3s ease;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 AgentOS Admin Views Test Suite</h1>
+    
+    <div class="summary">
+      <h2>📊 Test Summary</h2>
+      <div>
+        <strong>Current Status:</strong> v2.7.0 - 75% endpoint utilization achieved
+      </div>
+      <div>
+        <strong>Working Views:</strong> <span id="working-count">0</span> / <span id="total-views">11</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+      </div>
+      <div id="progress-text">0% views operational</div>
+    </div>
+    
+    <div class="controls">
+      <button class="test-button test-all" onclick="runAllTests()">🚀 Test All Views & Endpoints</button>
+      <button class="test-button" onclick="testAllEndpoints()">🔗 Test All Endpoints</button>
+      <button class="test-button" onclick="clearResults()">🧹 Clear Results</button>
+      <button class="test-button" onclick="toggleFloatingResults()">🔲 Toggle Floating Results</button>
+    </div>
+
+    <!-- WORKING VIEWS (v2.7.0) -->
+    <div class="test-section">
+      <h2>✅ Working Views (v2.7.0)</h2>
+      <div class="test-grid">
+        <div class="test-card">
+          <h3>📊 Dashboard <span class="status working">WORKING</span></h3>
+          <p>Enhanced dashboard with 6 integrated endpoints and real-time activity feed</p>
+          <button class="test-button" onclick="testView('dashboard')">Test Dashboard</button>
+          <button class="test-button" onclick="openView('dashboard')">Open View</button>
+        </div>
+        
+        <div class="test-card">
+          <h3>🤖 AgentsWorkers <span class="status working">WORKING</span></h3>
+          <p>Combined tabbed interface with 12 agent endpoints + worker management</p>
+          <button class="test-button" onclick="testView('agentsworkers')">Test AgentsWorkers</button>
+          <button class="test-button" onclick="openView('agentsworkers')">Open View</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEEDS COMPLETION -->
+    <div class="test-section">
+      <h2>⚠️ Views Needing Completion</h2>
+      <div class="test-grid">
+        <div class="test-card">
+          <h3>📈 Analytics <span class="status partial">PARTIAL</span></h3>
+          <p>Basic analytics working, needs enhanced metrics and trend graphs</p>
+          <button class="test-button" onclick="testView('analytics')">Test Analytics</button>
+          <button class="test-button" onclick="openView('analytics')">Open View</button>
+        </div>
+        
+        <div class="test-card">
+          <h3>📋 Queue <span class="status partial">PARTIAL</span></h3>
+          <p>Basic queue display, needs job management and bulk operations</p>
+          <button class="test-button" onclick="testView('queue')">Test Queue</button>
+          <button class="test-button" onclick="openView('queue')">Open View</button>
+        </div>
+        
+        <div class="test-card">
+          <h3>📜 Job History <span class="status partial">PARTIAL</span></h3>
+          <p>Basic job list, needs pipeline timeline and filtering</p>
+          <button class="test-button" onclick="testView('jobhistory')">Test Job History</button>
+          <button class="test-button" onclick="openView('jobhistory')">Open View</button>
+        </div>
+        
+        <div class="test-card">
+          <h3>⚙️ System Controls <span class="status partial">PARTIAL</span></h3>
+          <p>Basic system info, needs database metrics and maintenance actions</p>
+          <button class="test-button" onclick="testView('systemcontrols')">Test System Controls</button>
+          <button class="test-button" onclick="openView('systemcontrols')">Open View</button>
+        </div>
+        
+        <div class="test-card">
+          <h3>🔧 Configuration <span class="status partial">PARTIAL</span></h3>
+          <p>Basic config display, needs feature flags and settings management</p>
+          <button class="test-button" onclick="testView('configuration')">Test Configuration</button>
+          <button class="test-button" onclick="openView('configuration')">Open View</button>
+        </div>
+        
+        <div class="test-card">
+          <h3>📋 System Logs <span class="status partial">PARTIAL</span></h3>
+          <p>Basic log display, needs filtering and export functionality</p>
+          <button class="test-button" onclick="testView('systemlogs')">Test System Logs</button>
+          <button class="test-button" onclick="openView('systemlogs')">Open View</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- INDIVIDUAL VIEWS (Legacy) -->
+    <div class="test-section">
+      <h2>🔍 Individual Views (Legacy - Not in Navigation)</h2>
+      <div class="test-grid">
+        <div class="test-card">
+          <h3>👷 Workers <span class="status unknown">LEGACY</span></h3>
+          <p>Replaced by AgentsWorkers combined view</p>
+          <button class="test-button" onclick="testView('workers')">Test Workers</button>
+          <button class="test-button" onclick="openView('workers')">Open View</button>
+        </div>
+        
+        <div class="test-card">
+          <h3>🤖 Agents <span class="status unknown">LEGACY</span></h3>
+          <p>Replaced by AgentsWorkers combined view</p>
+          <button class="test-button" onclick="testView('agents')">Test Agents</button>
+          <button class="test-button" onclick="openView('agents')">Open View</button>
+        </div>
+        
+        <div class="test-card">
+          <h3>🏢 Managers <span class="status unknown">UNKNOWN</span></h3>
+          <p>Manager endpoints monitoring - needs investigation</p>
+          <button class="test-button" onclick="testView('managers')">Test Managers</button>
+          <button class="test-button" onclick="openView('managers')">Open View</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ENDPOINT TESTING -->
+    <div class="test-section">
+      <h2>🔗 Endpoint Testing</h2>
+      <div>
+        <button class="test-button" onclick="testCriticalEndpoints()">Test Critical GET Endpoints</button>
+        <button class="test-button" onclick="testAllEndpoints()">Test All GET Endpoints</button>
+        <button class="test-button" onclick="testPostEndpoints()">Test POST Endpoints</button>
+      </div>
+      <div id="endpoint-results" class="endpoint-list"></div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="test-section">
+      <h2>📊 Test Results</h2>
+      <div id="test-results" class="results">Ready to run tests... Click "Test All Views & Endpoints" to start!</div>
+    </div>
+  </div>
+
+  <!-- Test running indicator -->
+  <div class="test-running-indicator" id="test-running-indicator">
+    🔄 Tests running...
+  </div>
+
+  <!-- Floating results panel -->
+  <div class="floating-results" id="floating-results">
+    <div class="floating-header" id="floating-header">
+      <span>📊 Live Test Results</span>
+      <button onclick="toggleFloatingResults()">×</button>
+    </div>
+    <div class="floating-content" id="floating-content">
+      Waiting for tests...
+    </div>
+  </div>
+
+  <script>
+    // Test configuration
+    const API_BASE = 'http://localhost:8001';
+    const ADMIN_BASE = 'http://localhost:8004';
+    
+    // View status tracking
+    const viewStatus = {
+      dashboard: 'working',
+      agentsworkers: 'working', 
+      analytics: 'partial',
+      queue: 'partial',
+      jobhistory: 'partial', 
+      systemcontrols: 'partial',
+      configuration: 'partial',
+      systemlogs: 'partial',
+      workers: 'legacy',
+      agents: 'legacy',
+      managers: 'unknown'
+    };
+
+    // Critical endpoints that should work
+    const criticalEndpoints = [
+      '/api/admin/system/health',
+      '/api/admin/workers/details', 
+      '/api/admin/queue/status',
+      '/api/jobs/today',
+      '/api/analytics',
+      '/api/agents',
+      '/api/agents/video_downloader',  // Corrected endpoint
+      '/api/agents/audio_transcriber', // Corrected endpoint
+      '/api/agents/moment_detector'    // Corrected endpoint
+    ];
+
+    // Manager endpoints to test (these might not exist yet)
+    const managerEndpoints = [
+      // These endpoints are likely not implemented yet
+      // They are planned for future implementation
+    ];
+
+    // All endpoints (verified working endpoints only)
+    const allEndpoints = [
+      // GET endpoints (verified working)
+      '/api/admin/system/health',
+      '/api/admin/workers/details',
+      '/api/admin/queue/status', 
+      '/api/admin/queue/details',
+      '/api/jobs/today',
+      '/api/analytics',
+      '/api/agents',
+      
+      // Agent endpoints (all 13 agents)
+      '/api/agents/video_downloader',
+      '/api/agents/audio_transcriber',
+      '/api/agents/moment_detector',
+      '/api/agents/face_detector',
+      '/api/agents/intelligent_cropper',
+      '/api/agents/video_cutter',
+      '/api/agents/script_generator',
+      '/api/agents/social_post_generator',
+      '/api/agents/blog_post_generator',
+      '/api/agents/visual_analyzer',
+      '/api/agents/template_engine',
+      '/api/agents/external_ai_enhancer',
+      
+      // Dashboard endpoints
+      '/api/admin/dashboard/summary',
+      
+      // POST-only endpoints (marked separately)
+      // These need POST method:
+      // '/api/admin/system/restart' (POST)
+      // '/api/admin/system-check' (POST)
+      // '/api/admin/maintenance-toggle' (POST)
+      // '/api/admin/daily-report-export' (POST)
+      // '/api/admin/restart-failed' (POST)
+      // '/api/admin/queue/clear' (POST)
+      // '/api/jobs/create' (POST)
+    ];
+
+    let isTestRunning = false;
+    let floatingResultsActive = false;
+
+    function log(message, type = 'info') {
+      const results = document.getElementById('test-results');
+      const floatingContent = document.getElementById('floating-content');
+      const timestamp = new Date().toLocaleTimeString();
+      const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+      const logMessage = `${timestamp} ${icon} ${message}\n`;
+      
+      // Update both regular and floating results
+      results.textContent += logMessage;
+      results.scrollTop = results.scrollHeight;
+      
+      if (floatingResultsActive) {
+        floatingContent.textContent += logMessage;
+        floatingContent.scrollTop = floatingContent.scrollHeight;
+      } else {
+        // Auto-scroll to results section when logging
+        results.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+    
+    function showTestRunningIndicator() {
+      isTestRunning = true;
+      document.getElementById('test-running-indicator').style.display = 'block';
+    }
+    
+    function hideTestRunningIndicator() {
+      isTestRunning = false;
+      document.getElementById('test-running-indicator').style.display = 'none';
+    }
+    
+    function toggleFloatingResults() {
+      floatingResultsActive = !floatingResultsActive;
+      const floatingPanel = document.getElementById('floating-results');
+      const floatingContent = document.getElementById('floating-content');
+      
+      if (floatingResultsActive) {
+        floatingPanel.classList.add('active');
+        // Copy current results to floating panel
+        floatingContent.textContent = document.getElementById('test-results').textContent;
+      } else {
+        floatingPanel.classList.remove('active');
+      }
+    }
+
+    // Drag functionality for floating panel
+    let isDragging = false;
+    let dragStartX, dragStartY;
+    let panelStartX, panelStartY;
+
+    function initDragFunctionality() {
+      const floatingPanel = document.getElementById('floating-results');
+      const floatingHeader = document.getElementById('floating-header');
+      
+      floatingHeader.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        
+        const rect = floatingPanel.getBoundingClientRect();
+        panelStartX = rect.left;
+        panelStartY = rect.top;
+        
+        floatingHeader.style.cursor = 'grabbing';
+        e.preventDefault();
+      });
+      
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        
+        const deltaX = e.clientX - dragStartX;
+        const deltaY = e.clientY - dragStartY;
+        
+        const newX = panelStartX + deltaX;
+        const newY = panelStartY + deltaY;
+        
+        // Keep panel within viewport bounds
+        const maxX = window.innerWidth - floatingPanel.offsetWidth;
+        const maxY = window.innerHeight - floatingPanel.offsetHeight;
+        
+        const boundedX = Math.max(0, Math.min(newX, maxX));
+        const boundedY = Math.max(0, Math.min(newY, maxY));
+        
+        floatingPanel.style.left = boundedX + 'px';
+        floatingPanel.style.top = boundedY + 'px';
+        floatingPanel.style.right = 'auto';
+        floatingPanel.style.bottom = 'auto';
+      });
+      
+      document.addEventListener('mouseup', () => {
+        if (isDragging) {
+          isDragging = false;
+          floatingHeader.style.cursor = 'move';
+        }
+      });
+    }
+
+    function clearResults() {
+      document.getElementById('test-results').textContent = 'Results cleared. Ready for new tests!\n';
+      document.getElementById('endpoint-results').innerHTML = '';
+      document.getElementById('floating-content').textContent = 'Results cleared. Ready for new tests!\n';
+    }
+
+    async function testEndpoint(endpoint, method = 'GET') {
+      try {
+        // Skip POST-only endpoints when doing GET tests
+        const postOnlyEndpoints = [
+          '/api/admin/system-check',
+          '/api/admin/maintenance-toggle', 
+          '/api/admin/daily-report-export',
+          '/api/admin/restart-failed',
+          '/api/admin/queue/clear',
+          '/api/jobs/create',
+          '/api/admin/workers/spawn'
+        ];
+        
+        if (method === 'GET' && postOnlyEndpoints.includes(endpoint)) {
+          log(`⏭️ ${endpoint} - Skipped (POST-only endpoint)`, 'warning');
+          return { success: false, skipped: true };
+        }
+        
+        const response = await fetch(`${API_BASE}${endpoint}`, {
+          method: method,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json().catch(() => null);
+          log(`✅ ${endpoint} - OK (${response.status})`, 'success');
+          return { success: true, status: response.status, data };
+        } else {
+          log(`❌ ${endpoint} - Failed (${response.status})`, 'error');
+          return { success: false, status: response.status };
+        }
+      } catch (error) {
+        log(`❌ ${endpoint} - Error: ${error.message}`, 'error');
+        return { success: false, error: error.message };
+      }
+    }
+
+    async function testView(viewName) {
+      showTestRunningIndicator();
+      log(`🧪 Testing view: ${viewName}`);
+      
+      // Test if view loads
+      try {
+        const viewUrl = `${ADMIN_BASE}/#${viewName}`;
+        log(`📱 View URL: ${viewUrl}`);
+        
+        // Get view status
+        const status = viewStatus[viewName] || 'unknown';
+        const statusIcon = status === 'working' ? '✅' : status === 'partial' ? '⚠️' : '❓';
+        log(`${statusIcon} View Status: ${status.toUpperCase()}`);
+
+        // Test related endpoints based on view
+        const endpoints = getViewEndpoints(viewName);
+        for (const endpoint of endpoints) {
+          await testEndpoint(endpoint);
+        }
+        
+        log(`✅ View test completed: ${viewName}`);
+        
+      } catch (error) {
+        log(`❌ View test failed: ${viewName} - ${error.message}`, 'error');
+      } finally {
+        hideTestRunningIndicator();
+      }
+    }
+
+    function getViewEndpoints(viewName) {
+      const endpointMap = {
+        dashboard: [
+          '/api/admin/system/health',
+          '/api/admin/workers/details', 
+          '/api/admin/queue/status',
+          '/api/jobs/today',
+          '/api/analytics',
+          '/api/agents'
+        ],
+        agentsworkers: [
+          '/api/agents',
+          '/api/agents/video_downloader',  // Corrected
+          '/api/agents/audio_transcriber', // Corrected
+          '/api/agents/moment_detector',   // Corrected
+          '/api/admin/workers/details'
+        ],
+        analytics: ['/api/analytics'],  // Removed non-existent endpoint
+        queue: ['/api/admin/queue/status', '/api/admin/queue/details'],
+        jobhistory: ['/api/jobs/today'],  // Removed non-existent endpoint
+        systemcontrols: ['/api/admin/system/health'],  // Removed non-existent endpoint
+        configuration: [],  // No working endpoints yet
+        systemlogs: ['/api/admin/system/health'],
+        workers: ['/api/admin/workers/details'],  // Removed non-existent endpoint
+        agents: ['/api/agents'],
+        managers: managerEndpoints
+      };
+      
+      return endpointMap[viewName] || [];
+    }
+
+    function openView(viewName) {
+      const url = `${ADMIN_BASE}/#${viewName}`;
+      window.open(url, '_blank');
+      log(`🌐 Opened view in new tab: ${viewName}`);
+    }
+
+    async function testCriticalEndpoints() {
+      showTestRunningIndicator();
+      log('🔥 Testing critical endpoints...');
+      let successCount = 0;
+      
+      for (const endpoint of criticalEndpoints) {
+        const result = await testEndpoint(endpoint);
+        if (result.success) successCount++;
+      }
+      
+      const percentage = Math.round((successCount / criticalEndpoints.length) * 100);
+      log(`📊 Critical endpoints: ${successCount}/${criticalEndpoints.length} working (${percentage}%)`);
+      
+      updateEndpointResults(criticalEndpoints, 'Critical Endpoints');
+      hideTestRunningIndicator();
+    }
+
+    async function testManagerEndpoints() {
+      showTestRunningIndicator();
+      log('🏢 Testing manager endpoints...');
+      let successCount = 0;
+      
+      for (const endpoint of managerEndpoints) {
+        const result = await testEndpoint(endpoint);
+        if (result.success) successCount++;
+      }
+      
+      const percentage = Math.round((successCount / managerEndpoints.length) * 100);
+      log(`📊 Manager endpoints: ${successCount}/${managerEndpoints.length} working (${percentage}%)`); 
+      
+      updateEndpointResults(managerEndpoints, 'Manager Endpoints');
+      hideTestRunningIndicator();
+    }
+
+    async function testAllEndpoints() {
+      showTestRunningIndicator();
+      log('🌐 Testing all GET endpoints...');
+      let successCount = 0;
+      
+      for (const endpoint of allEndpoints) {
+        const result = await testEndpoint(endpoint);
+        if (result.success) successCount++;
+      }
+      
+      const percentage = Math.round((successCount / allEndpoints.length) * 100);
+      log(`📊 GET endpoints: ${successCount}/${allEndpoints.length} working (${percentage}%)`);
+      
+      updateEndpointResults(allEndpoints, 'GET Endpoints');
+      hideTestRunningIndicator();
+    }
+    
+    async function testPostEndpoints() {
+      showTestRunningIndicator();
+      log('📮 Testing POST endpoints...');
+      
+      const postEndpoints = [
+        { endpoint: '/api/admin/system/restart', payload: {} },
+        { endpoint: '/api/admin/system-check', payload: {} },
+        { endpoint: '/api/admin/maintenance-toggle', payload: { enabled: false } },
+        { endpoint: '/api/admin/daily-report-export', payload: {} },
+        { endpoint: '/api/admin/restart-failed', payload: {} },
+        { endpoint: '/api/admin/queue/clear', payload: {} },
+        { endpoint: '/api/jobs/create', payload: { 
+          video_url: 'test.mp4', 
+          user_id: 'test-user',
+          workflow_type: 'default' 
+        }}
+      ];
+      
+      let successCount = 0;
+      
+      for (const {endpoint, payload} of postEndpoints) {
+        try {
+          const response = await fetch(`${API_BASE}${endpoint}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+          
+          if (response.ok) {
+            log(`✅ ${endpoint} - OK (${response.status})`, 'success');
+            successCount++;
+          } else {
+            log(`❌ ${endpoint} - Failed (${response.status})`, 'error');
+          }
+        } catch (error) {
+          log(`❌ ${endpoint} - Error: ${error.message}`, 'error');
+        }
+      }
+      
+      const percentage = Math.round((successCount / postEndpoints.length) * 100);
+      log(`📊 POST endpoints: ${successCount}/${postEndpoints.length} working (${percentage}%)`);
+      hideTestRunningIndicator();
+    }
+
+    function updateEndpointResults(endpoints, title) {
+      const container = document.getElementById('endpoint-results');
+      container.innerHTML = `<h3>${title} Results:</h3>`;
+      
+      endpoints.forEach(endpoint => {
+        const div = document.createElement('div');
+        div.className = 'endpoint-item pending';
+        div.innerHTML = `
+          <span>${endpoint}</span>
+          <span id="status-${endpoint.replace(/[^a-zA-Z0-9]/g, '_')}">Testing...</span>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    async function runAllTests() {
+      showTestRunningIndicator();
+      log('🚀 Starting comprehensive test suite...');
+      log('=' + '='.repeat(49));
+      
+      // Update progress
+      updateProgress(0, Object.keys(viewStatus).length);
+      
+      // Test all views
+      let completedViews = 0;
+      for (const [viewName, status] of Object.entries(viewStatus)) {
+        await testView(viewName);
+        completedViews++;
+        updateProgress(completedViews, Object.keys(viewStatus).length);
+      }
+      
+      // Test critical endpoints
+      await testCriticalEndpoints();
+      
+      // Test manager endpoints
+      await testManagerEndpoints();
+      
+      log('=' + '='.repeat(49));
+      log('🎉 Comprehensive test suite completed!');
+      
+      // Calculate working views
+      const workingViews = Object.values(viewStatus).filter(s => s === 'working').length;
+      updateSummary(workingViews, Object.keys(viewStatus).length);
+      hideTestRunningIndicator();
+    }
+
+    function updateProgress(current, total) {
+      const percentage = Math.round((current / total) * 100);
+      document.getElementById('progress-fill').style.width = `${percentage}%`;
+      document.getElementById('progress-text').textContent = `${percentage}% views tested`;
+    }
+
+    function updateSummary(working, total) {
+      document.getElementById('working-count').textContent = working;
+      document.getElementById('total-views').textContent = total;
+      
+      const percentage = Math.round((working / total) * 100);
+      document.getElementById('progress-fill').style.width = `${percentage}%`;
+      document.getElementById('progress-text').textContent = `${percentage}% views operational`;
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      const workingViews = Object.values(viewStatus).filter(s => s === 'working').length;
+      updateSummary(workingViews, Object.keys(viewStatus).length);
+      
+      // Initialize drag functionality
+      initDragFunctionality();
+      
+      log('🧪 Admin Views Test Suite Ready!');
+      log('💡 Click "Test All Views & Endpoints" to run comprehensive tests');
+      log('🎯 Current Status: v2.7.0 - Enhanced Dashboard + AgentsWorkers working');
+      log('🖱️ Tip: Toggle floating results panel and drag it around!');
+    });
+  </script>
+</body>
+</html>

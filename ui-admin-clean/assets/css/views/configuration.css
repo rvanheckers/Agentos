@@ -1,0 +1,522 @@
+/**
+ * Configuration Management View Styles
+ * Extends existing components for system settings management
+ */
+
+/* =================================================================
+   CONFIGURATION LAYOUT
+   ================================================================= */
+
+.configuration-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-6);
+}
+
+/* Configuration specific page header styling */
+.configuration-view .page-header {
+  text-align: center;
+  padding: var(--space-8) 0;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.configuration-view .page-header__title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.configuration-view .page-header__icon {
+  font-size: var(--text-2xl);
+}
+
+/* =================================================================
+   CONFIGURATION NAVIGATION
+   ================================================================= */
+
+.config-nav {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  overflow-x: auto;
+  padding: var(--space-2);
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.config-nav__item {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius);
+  background: white;
+  color: var(--gray-700);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.config-nav__item:hover {
+  border-color: var(--primary-400);
+  color: var(--primary-600);
+  transform: translateY(-1px);
+}
+
+.config-nav__item.active {
+  background: var(--primary-500);
+  color: white;
+  border-color: var(--primary-500);
+}
+
+/* =================================================================
+   CONFIGURATION SECTIONS
+   ================================================================= */
+
+.config-content {
+  flex: 1;
+}
+
+.config-section {
+  display: block;
+}
+
+.config-section.hidden {
+  display: none;
+}
+
+.config-section__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.config-section__title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--gray-900);
+  margin: 0;
+}
+
+.config-section__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* =================================================================
+   CONFIGURATION GRID
+   ================================================================= */
+
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: var(--space-5);
+}
+
+/* Extend metric-card for config cards */
+.config-card {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition);
+}
+
+.config-card:hover {
+  box-shadow: var(--shadow);
+}
+
+.config-card__header {
+  background: var(--gray-50);
+  border-bottom: 1px solid var(--gray-200);
+  padding: var(--space-4);
+}
+
+.config-card__title {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--gray-900);
+  margin: 0;
+}
+
+.config-card__content {
+  padding: var(--space-5);
+}
+
+/* =================================================================
+   CONFIGURATION FORMS
+   ================================================================= */
+
+.config-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.config-form__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.config-form__label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--gray-700);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.config-form__input,
+.config-form__select {
+  padding: var(--space-3);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  background: white;
+  transition: all var(--transition);
+}
+
+.config-form__input:focus,
+.config-form__select:focus {
+  outline: none;
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.1);
+}
+
+/* =================================================================
+   TOGGLE SWITCHES
+   ================================================================= */
+
+.config-toggle {
+  position: relative;
+  display: inline-block;
+}
+
+.config-toggle__input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.config-toggle__label {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+  background: var(--gray-300);
+  border-radius: 24px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.config-toggle__label::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  transition: all var(--transition);
+  box-shadow: var(--shadow-sm);
+}
+
+.config-toggle__input:checked + .config-toggle__label {
+  background: var(--primary-500);
+}
+
+.config-toggle__input:checked + .config-toggle__label::after {
+  transform: translateX(24px);
+}
+
+.config-toggle__input:focus + .config-toggle__label {
+  box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.2);
+}
+
+/* =================================================================
+   PATH INPUTS
+   ================================================================= */
+
+.config-path-input {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.config-path-input .config-form__input {
+  flex: 1;
+}
+
+/* =================================================================
+   AGENT CONFIGURATION
+   ================================================================= */
+
+.agents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-4);
+}
+
+.agent-card {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  transition: all var(--transition);
+}
+
+.agent-card:hover {
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+
+.agent-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-3);
+}
+
+.agent-card__info {
+  flex: 1;
+}
+
+.agent-card__name {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--gray-900);
+  margin: 0 0 var(--space-1) 0;
+}
+
+.agent-card__id {
+  font-size: var(--text-xs);
+  font-family: monospace;
+  color: var(--gray-500);
+  background: var(--gray-100);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.agent-card__status {
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-3);
+}
+
+.agent-status {
+  font-weight: var(--font-medium);
+}
+
+.agent-status--active {
+  color: var(--success-600);
+}
+
+.agent-status--disabled {
+  color: var(--gray-500);
+}
+
+.agent-card__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* =================================================================
+   BACKUP & RESTORE
+   ================================================================= */
+
+.backup-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.backup-btn {
+  flex: 1;
+}
+
+.backup-info {
+  font-size: var(--text-sm);
+  color: var(--gray-600);
+  line-height: 1.5;
+}
+
+.backup-info p {
+  margin: 0 0 var(--space-2) 0;
+}
+
+.restore-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.file-upload {
+  position: relative;
+}
+
+.file-upload__input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.file-upload__label {
+  display: inline-block;
+  padding: var(--space-3) var(--space-4);
+  border: 2px dashed var(--gray-300);
+  border-radius: var(--radius);
+  background: var(--gray-50);
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: center;
+  width: 100%;
+}
+
+.file-upload__label:hover {
+  border-color: var(--primary-400);
+  background: var(--primary-50);
+  color: var(--primary-600);
+}
+
+.restore-warning {
+  font-size: var(--text-sm);
+  color: var(--warning-600);
+  background: var(--warning-50);
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  border-left: 3px solid var(--warning-500);
+}
+
+.restore-warning p {
+  margin: 0;
+}
+
+/* =================================================================
+   CONFIGURATION ACTIONS
+   ================================================================= */
+
+.config-actions {
+  position: sticky;
+  bottom: 0;
+  background: white;
+  border-top: 1px solid var(--gray-200);
+  padding: var(--space-4);
+  margin-top: var(--space-6);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+}
+
+.config-actions__status {
+  flex: 1;
+}
+
+.config-status {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+}
+
+.config-status--clean {
+  color: var(--success-600);
+}
+
+.config-status--dirty {
+  color: var(--warning-600);
+}
+
+.config-actions__buttons {
+  display: flex;
+  gap: var(--space-3);
+}
+
+/* =================================================================
+   RESPONSIVE DESIGN
+   ================================================================= */
+
+@media (max-width: 1024px) {
+  .configuration-view {
+    padding: var(--space-4);
+  }
+  
+  .config-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .config-nav {
+    flex-wrap: wrap;
+  }
+  
+  .agents-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .config-section__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+  
+  .config-actions {
+    flex-direction: column;
+    gap: var(--space-3);
+    align-items: stretch;
+  }
+  
+  .config-actions__buttons {
+    justify-content: center;
+  }
+  
+  .backup-actions {
+    flex-direction: column;
+  }
+  
+  .config-path-input {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .configuration-view {
+    padding: var(--space-2);
+  }
+  
+  .config-nav {
+    padding: var(--space-1);
+    gap: var(--space-1);
+  }
+  
+  .config-nav__item {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-xs);
+  }
+  
+  .config-card__content {
+    padding: var(--space-4);
+  }
+  
+  .agent-card {
+    padding: var(--space-4);
+  }
+  
+  .agent-card__actions {
+    flex-direction: column;
+  }
+}

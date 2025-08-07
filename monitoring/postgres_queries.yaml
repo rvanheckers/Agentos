@@ -1,0 +1,116 @@
+pg_database:
+  query: "SELECT pg_database.datname, pg_database_size(pg_database.datname) as size FROM pg_database"
+  master: true
+  cache_seconds: 30
+  metrics:
+    - datname:
+        usage: "LABEL"
+        description: "Name of the database"
+    - size:
+        usage: "GAUGE"
+        description: "Disk space used by the database"
+
+pg_stat_user_tables:
+  query: "SELECT schemaname, tablename, n_tup_ins, n_tup_upd, n_tup_del, n_live_tup, n_dead_tup FROM pg_stat_user_tables"
+  master: true
+  cache_seconds: 30
+  metrics:
+    - schemaname:
+        usage: "LABEL"
+        description: "Name of the schema"
+    - tablename:
+        usage: "LABEL"
+        description: "Name of the table"
+    - n_tup_ins:
+        usage: "COUNTER"
+        description: "Number of tuples inserted"
+    - n_tup_upd:
+        usage: "COUNTER"
+        description: "Number of tuples updated"
+    - n_tup_del:
+        usage: "COUNTER"
+        description: "Number of tuples deleted"
+    - n_live_tup:
+        usage: "GAUGE"
+        description: "Number of live tuples"
+    - n_dead_tup:
+        usage: "GAUGE"
+        description: "Number of dead tuples"
+
+pg_stat_activity:
+  query: "SELECT state, count(*) as count FROM pg_stat_activity WHERE state IS NOT NULL GROUP BY state"
+  master: true
+  cache_seconds: 30
+  metrics:
+    - state:
+        usage: "LABEL"
+        description: "Connection state"
+    - count:
+        usage: "GAUGE"
+        description: "Number of connections in this state"
+
+pg_locks:
+  query: "SELECT mode, count(*) as count FROM pg_locks GROUP BY mode"
+  master: true
+  cache_seconds: 30
+  metrics:
+    - mode:
+        usage: "LABEL"
+        description: "Lock mode"
+    - count:
+        usage: "GAUGE"
+        description: "Number of locks in this mode"
+
+pg_stat_bgwriter:
+  query: "SELECT checkpoints_timed, checkpoints_req, checkpoint_write_time, checkpoint_sync_time, buffers_checkpoint, buffers_clean, buffers_backend FROM pg_stat_bgwriter"
+  master: true
+  cache_seconds: 30
+  metrics:
+    - checkpoints_timed:
+        usage: "COUNTER"
+        description: "Number of scheduled checkpoints"
+    - checkpoints_req:
+        usage: "COUNTER"
+        description: "Number of requested checkpoints"
+    - checkpoint_write_time:
+        usage: "COUNTER"
+        description: "Time spent writing checkpoint files"
+    - checkpoint_sync_time:
+        usage: "COUNTER"
+        description: "Time spent syncing checkpoint files"
+    - buffers_checkpoint:
+        usage: "COUNTER"
+        description: "Buffers written during checkpoints"
+    - buffers_clean:
+        usage: "COUNTER"
+        description: "Buffers written by background writer"
+    - buffers_backend:
+        usage: "COUNTER"
+        description: "Buffers written directly by backends"
+
+agentos_jobs_by_status:
+  query: "SELECT status, count(*) as count FROM jobs GROUP BY status"
+  master: true
+  cache_seconds: 30
+  metrics:
+    - status:
+        usage: "LABEL"
+        description: "Job status"
+    - count:
+        usage: "GAUGE"
+        description: "Number of jobs with this status"
+
+agentos_processing_performance:
+  query: "SELECT agent_name, AVG(duration_seconds) as avg_duration, COUNT(*) as step_count FROM processing_steps WHERE completed_at > NOW() - INTERVAL '1 hour' GROUP BY agent_name"
+  master: true
+  cache_seconds: 60
+  metrics:
+    - agent_name:
+        usage: "LABEL"
+        description: "Name of the processing agent"
+    - avg_duration:
+        usage: "GAUGE"
+        description: "Average processing duration in seconds"
+    - step_count:
+        usage: "GAUGE"
+        description: "Number of processing steps in the last hour"

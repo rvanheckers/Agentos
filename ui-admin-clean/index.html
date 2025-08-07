@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentOS Admin - Clean Architecture</title>
+    <meta name="description" content="Clean AgentOS administrative dashboard with modular architecture">
+    
+    <!-- Prevent DevTools inspection issues -->
+    <meta name="theme-color" content="#ffffff">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <!-- Cache busting for development -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <!-- Single CSS file with proper imports -->
+    <link rel="stylesheet" href="./assets/css/main.css">
+    <!-- Help Modal CSS -->
+    <link rel="stylesheet" href="./assets/css/help-modal.css">
+    
+    <!-- Chart.js for Analytics View -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+</head>
+<body>
+    <!-- Loading state -->
+    <div id="loading" class="loading-screen">
+        <div class="loading-spinner"></div>
+        <p>Loading AgentOS Admin...</p>
+    </div>
+
+    <!-- Main app container -->
+    <div id="app" class="app hidden">
+        <!-- Content will be rendered by JavaScript -->
+    </div>
+
+    <!-- Single JavaScript entry point -->
+    <script type="module" src="./assets/js/main.js"></script>
+    
+    <!-- Fallback for browsers without module support -->
+    <script nomodule>
+        document.getElementById('loading').innerHTML = `
+            <div style="text-align: center; padding: 2rem;">
+                <h2>Browser Not Supported</h2>
+                <p>This dashboard requires a modern browser with ES6 module support.</p>
+                <p>Please use Chrome 61+, Firefox 60+, Safari 10.1+, or Edge 16+</p>
+            </div>
+        `;
+    </script>
+</body>
+</html>

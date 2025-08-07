@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help System Test - AgentOS</title>
+    <link rel="stylesheet" href="assets/css/main.css">
+    <style>
+        body {
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-button {
+            margin: 10px;
+        }
+        .console-output {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🆘 Help System Test</h1>
+        
+        <div class="page-header__actions">
+            <button class="btn btn-info help-toggle" id="test-help-toggle">
+                <span class="btn__icon">💡</span>
+                Show Help
+            </button>
+        </div>
+        
+        <div class="test-controls">
+            <button class="btn btn-primary test-button" onclick="testHelpService()">Test HelpService</button>
+            <button class="btn btn-secondary test-button" onclick="testHelpPanel()">Test HelpPanel</button>
+            <button class="btn btn-success test-button" onclick="testProvider()">Test Provider</button>
+            <button class="btn btn-danger test-button" onclick="clearOutput()">Clear Output</button>
+        </div>
+        
+        <div id="console-output" class="console-output">Ready for testing...</div>
+    </div>
+
+    <script type="module">
+        import { HelpService } from './assets/js/services/HelpService.js';
+        import { HelpPanel } from './assets/js/components/HelpPanel.js';
+        import { ManagersHelpProvider } from './assets/js/help-providers/ManagersHelpProvider.js';
+        
+        // Make available globally for testing
+        window.HelpService = HelpService;
+        window.HelpPanel = HelpPanel;
+        window.ManagersHelpProvider = ManagersHelpProvider;
+        
+        // Initialize help system
+        HelpService.registerProvider('managers', ManagersHelpProvider);
+        const helpPanel = new HelpPanel('managers');
+        window.helpPanel = helpPanel;
+        
+        // Setup help toggle
+        const helpToggle = document.getElementById('test-help-toggle');
+        helpToggle.addEventListener('click', () => {
+            const isVisible = helpPanel.isVisible;
+            
+            if (isVisible) {
+                helpPanel.hide();
+                helpToggle.innerHTML = '<span class="btn__icon">💡</span>Show Help';
+            } else {
+                helpPanel.show();
+                helpToggle.innerHTML = '<span class="btn__icon">💡</span>Hide Help';
+            }
+        });
+        
+        // Test functions
+        window.testHelpService = function() {
+            const output = document.getElementById('console-output');
+            try {
+                output.textContent += '\\n=== HelpService Test ===\\n';
+                output.textContent += 'Registered Views: ' + JSON.stringify(HelpService.getRegisteredViews()) + '\\n';
+                output.textContent += 'Current User Level: ' + HelpService.getUserLevel() + '\\n';
+                output.textContent += 'Has help for admin_data: ' + HelpService.hasHelp('admin_data', 'managers') + '\\n';
+                output.textContent += '✅ HelpService working!\\n';
+            } catch (error) {
+                output.textContent += '❌ HelpService Error: ' + error.message + '\\n';
+            }
+        };
+        
+        window.testHelpPanel = function() {
+            const output = document.getElementById('console-output');
+            try {
+                output.textContent += '\\n=== HelpPanel Test ===\\n';
+                output.textContent += 'Panel created: ' + (helpPanel !== null) + '\\n';
+                output.textContent += 'Panel visible: ' + helpPanel.isVisible + '\\n';
+                helpPanel.show();
+                output.textContent += '✅ HelpPanel working! Check right side of screen.\\n';
+            } catch (error) {
+                output.textContent += '❌ HelpPanel Error: ' + error.message + '\\n';
+            }
+        };
+        
+        window.testProvider = function() {
+            const output = document.getElementById('console-output');
+            try {
+                output.textContent += '\\n=== Provider Test ===\\n';
+                const help = ManagersHelpProvider.getHelp('admin_data');
+                output.textContent += 'Got help data: ' + (help !== null) + '\\n';
+                if (help && help.admin_data) {
+                    output.textContent += 'Beginner title: ' + help.admin_data.beginner.title + '\\n';
+                    output.textContent += 'Intermediate title: ' + help.admin_data.intermediate.title + '\\n';
+                }
+                output.textContent += '✅ Provider working!\\n';
+            } catch (error) {
+                output.textContent += '❌ Provider Error: ' + error.message + '\\n';
+            }
+        };
+        
+        window.clearOutput = function() {
+            document.getElementById('console-output').textContent = 'Ready for testing...';
+        };
+        
+        console.log('🆘 Help System Test Page Loaded');
+    </script>
+</body>
+</html>

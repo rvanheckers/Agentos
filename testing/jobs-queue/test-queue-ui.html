@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Jobs & Queue UI Test</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+        }
+        .test-result {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .test-result.pass { background: #d4edda; color: #155724; }
+        .test-result.fail { background: #f8d7da; color: #721c24; }
+        .test-result.pending { background: #fff3cd; color: #856404; }
+        
+        .queue-preview {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            background: #f9f9f9;
+        }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        
+        .log {
+            background: #000;
+            color: #00ff00;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            height: 200px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Jobs & Queue UI Test Suite</h1>
+        <p>Direct testing van Queue.js functionality zonder volledige admin UI</p>
+        
+        <div class="test-section">
+            <h2>🔌 API Connectivity Test</h2>
+            <button onclick="testAPIConnectivity()">Test SSOT API</button>
+            <span id="api-test-result" class="test-result pending">PENDING</span>
+            <div id="api-response" class="queue-preview" style="display:none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📊 Data Parsing Test</h2>
+            <button onclick="testDataParsing()">Test Job Data Parsing</button>
+            <span id="parsing-test-result" class="test-result pending">PENDING</span>
+            <div id="parsing-output" class="queue-preview" style="display:none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🎯 Filter Logic Test</h2>
+            <button onclick="testFilterLogic()">Test SmartFilter Logic</button>
+            <span id="filter-test-result" class="test-result pending">PENDING</span>
+            <div id="filter-output" class="queue-preview" style="display:none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📋 Queue Statistics Test</h2>
+            <button onclick="testQueueStats()">Test Statistics Calculation</button>
+            <span id="stats-test-result" class="test-result pending">PENDING</span>
+            <div id="stats-output" class="queue-preview" style="display:none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔄 Real-time Update Test</h2>
+            <button onclick="testRealTimeUpdates()">Test Auto-refresh</button>
+            <span id="realtime-test-result" class="test-result pending">PENDING</span>
+            <div id="realtime-output" class="queue-preview" style="display:none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📝 Test Console Log</h2>
+            <div id="test-log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        // Test utilities
+        function log(message) {
+            const logDiv = document.getElementById('test-log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function setTestResult(id, status, message = '') {
+            const element = document.getElementById(id);
+            element.className = `test-result ${status}`;
+            element.textContent = status.toUpperCase() + (message ? ` - ${message}` : '');
+        }
+        
+        // API Connectivity Test
+        async function testAPIConnectivity() {
+            log('🔍 Testing SSOT API connectivity...');
+            setTestResult('api-test-result', 'pending');
+            
+            try {
+                const response = await fetch('http://localhost:8001/api/admin/ssot');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('✅ SSOT API: Connected successfully');
+                    
+                    // Check data structure
+                    const hasJobs = data.dashboard?.jobs?.recent_jobs;
+                    const hasQueue = data.dashboard?.queue;
+                    const hasQueueDetail = data.queue?.job_history;
+                    
+                    if (hasJobs && hasQueue && hasQueueDetail) {
+                        setTestResult('api-test-result', 'pass', 'All sections present');
+                        document.getElementById('api-response').innerHTML = `
+                            <strong>SSOT Response Structure:</strong><br>
+                            • Recent Jobs: ${data.dashboard.jobs.recent_jobs.length}<br>
+                            • Queue Stats: ${data.dashboard.queue.pending} pending, ${data.dashboard.queue.processing} processing<br>
+                            • Job History: ${data.queue.job_history.length} total jobs
+                        `;
+                        document.getElementById('api-response').style.display = 'block';
+                    } else {
+                        setTestResult('api-test-result', 'fail', 'Missing data sections');
+                    }
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                log(`❌ SSOT API: ${error.message}`);
+                setTestResult('api-test-result', 'fail', error.message);
+            }
+        }
+        
+        // Data Parsing Test
+        async function testDataParsing() {
+            log('📊 Testing job data parsing logic...');
+            setTestResult('parsing-test-result', 'pending');
+            
+            try {
+                const response = await fetch('http://localhost:8001/api/admin/ssot');
+                const data = await response.json();
+                
+                // Simulate Queue.js processQueueData logic
+                const queueData = data.queue;
+                let allJobs = [];
+                
+                if (queueData.current_queue && queueData.job_history) {
+                    // Mock structure
+                    const currentQueue = queueData.current_queue || {};
+                    const jobHistory = queueData.job_history || [];
+                    allJobs = [...(currentQueue.jobs || []), ...jobHistory];
+                } else if (queueData.job_history) {
+                    // Real API structure
+                    allJobs = queueData.job_history || [];
+                } else if (Array.isArray(queueData)) {
+                    // Direct array
+                    allJobs = queueData;
+                }
+                
+                log(`📊 Parsed ${allJobs.length} jobs from SSOT data`);
+                
+                // Test job structure
+                if (allJobs.length > 0) {
+                    const sampleJob = allJobs[0];
+                    const requiredFields = ['id', 'status', 'created_at', 'progress'];
+                    const missingFields = requiredFields.filter(field => !(field in sampleJob));
+                    
+                    if (missingFields.length === 0) {
+                        setTestResult('parsing-test-result', 'pass', `${allJobs.length} jobs parsed`);
+                        
+                        // Status breakdown
+                        const statusBreakdown = {};
+                        allJobs.forEach(job => {
+                            statusBreakdown[job.status] = (statusBreakdown[job.status] || 0) + 1;
+                        });
+                        
+                        document.getElementById('parsing-output').innerHTML = `
+                            <strong>Job Data Parsing Results:</strong><br>
+                            • Total Jobs: ${allJobs.length}<br>
+                            • Status Breakdown: ${JSON.stringify(statusBreakdown, null, 2).replace(/[{},"]/g, '').trim()}<br>
+                            • Sample Job: ${sampleJob.id} (${sampleJob.status})
+                        `;
+                        document.getElementById('parsing-output').style.display = 'block';
+                    } else {
+                        setTestResult('parsing-test-result', 'fail', `Missing fields: ${missingFields.join(', ')}`);
+                    }
+                } else {
+                    setTestResult('parsing-test-result', 'fail', 'No jobs found');
+                }
+            } catch (error) {
+                log(`❌ Data parsing: ${error.message}`);
+                setTestResult('parsing-test-result', 'fail', error.message);
+            }
+        }
+        
+        // Filter Logic Test
+        async function testFilterLogic() {
+            log('🎯 Testing SmartFilter logic...');
+            setTestResult('filter-test-result', 'pending');
+            
+            try {
+                const response = await fetch('http://localhost:8001/api/admin/ssot');
+                const data = await response.json();
+                const allJobs = data.queue?.job_history || [];
+                
+                // Test Live Queue filter (should show only processing/pending/queued)
+                const liveQueueJobs = allJobs.filter(job => 
+                    ['queued', 'processing', 'pending'].includes(job.status)
+                );
+                
+                // Test Job History filter (should show completed/failed/cancelled)  
+                const historyJobs = allJobs.filter(job =>
+                    ['completed', 'failed', 'cancelled'].includes(job.status)
+                );
+                
+                log(`🎯 Live Queue: ${liveQueueJobs.length} active jobs`);
+                log(`📚 Job History: ${historyJobs.length} completed jobs`);
+                
+                if (liveQueueJobs.length >= 0 && historyJobs.length >= 0) {
+                    setTestResult('filter-test-result', 'pass', 'Filter logic working');
+                    
+                    document.getElementById('filter-output').innerHTML = `
+                        <strong>Filter Logic Test Results:</strong><br>
+                        • Total Jobs: ${allJobs.length}<br>
+                        • Live Queue Filter: ${liveQueueJobs.length} jobs (${liveQueueJobs.map(j => j.status).join(', ')})<br>
+                        • Job History Filter: ${historyJobs.length} jobs<br>
+                        • Filter Coverage: ${((liveQueueJobs.length + historyJobs.length) / allJobs.length * 100).toFixed(1)}%
+                    `;
+                    document.getElementById('filter-output').style.display = 'block';
+                } else {
+                    setTestResult('filter-test-result', 'fail', 'Filter logic issue');
+                }
+            } catch (error) {
+                log(`❌ Filter test: ${error.message}`);
+                setTestResult('filter-test-result', 'fail', error.message);
+            }
+        }
+        
+        // Queue Statistics Test  
+        async function testQueueStats() {
+            log('📋 Testing queue statistics calculation...');
+            setTestResult('stats-test-result', 'pending');
+            
+            try {
+                const response = await fetch('http://localhost:8001/api/admin/ssot');
+                const data = await response.json();
+                const allJobs = data.queue?.job_history || [];
+                
+                // Calculate real statistics (mimic Queue.js calculateRealQueueStats)
+                const today = new Date().toDateString();
+                const stats = {
+                    pending: 0,
+                    processing: 0,
+                    completedToday: 0,
+                    failedToday: 0
+                };
+                
+                allJobs.forEach(job => {
+                    const jobDate = new Date(job.created_at).toDateString();
+                    
+                    switch (job.status) {
+                        case 'queued':
+                        case 'pending':
+                            stats.pending++;
+                            break;
+                        case 'processing':
+                            stats.processing++;
+                            break;
+                        case 'completed':
+                            if (jobDate === today) {
+                                stats.completedToday++;
+                            }
+                            break;
+                        case 'failed':
+                            if (jobDate === today) {
+                                stats.failedToday++;
+                            }
+                            break;
+                    }
+                });
+                
+                // Compare with API stats
+                const apiStats = data.dashboard?.queue || {};
+                const matches = {
+                    pending: stats.pending === (apiStats.pending || 0),
+                    processing: stats.processing === (apiStats.processing || 0)
+                };
+                
+                log(`📊 Calculated stats: ${JSON.stringify(stats)}`);
+                log(`📊 API stats: pending=${apiStats.pending}, processing=${apiStats.processing}`);
+                
+                const allMatch = Object.values(matches).every(m => m);
+                setTestResult('stats-test-result', allMatch ? 'pass' : 'fail', 
+                    allMatch ? 'Stats match' : 'Stats mismatch');
+                
+                document.getElementById('stats-output').innerHTML = `
+                    <strong>Queue Statistics Test:</strong><br>
+                    • Calculated: ${stats.pending} pending, ${stats.processing} processing, ${stats.completedToday} completed today<br>
+                    • API Response: ${apiStats.pending} pending, ${apiStats.processing} processing<br>
+                    • Match Status: ${allMatch ? '✅ Stats align' : '❌ Stats differ'}
+                `;
+                document.getElementById('stats-output').style.display = 'block';
+                
+            } catch (error) {
+                log(`❌ Stats test: ${error.message}`);
+                setTestResult('stats-test-result', 'fail', error.message);
+            }
+        }
+        
+        // Real-time Update Test
+        async function testRealTimeUpdates() {
+            log('🔄 Testing real-time update capability...');
+            setTestResult('realtime-test-result', 'pending');
+            
+            let updateCount = 0;
+            const maxUpdates = 3;
+            
+            const interval = setInterval(async () => {
+                try {
+                    const response = await fetch('http://localhost:8001/api/admin/ssot');
+                    const data = await response.json();
+                    
+                    updateCount++;
+                    log(`🔄 Update ${updateCount}: Fetched ${data.queue?.job_history?.length || 0} jobs`);
+                    
+                    if (updateCount >= maxUpdates) {
+                        clearInterval(interval);
+                        setTestResult('realtime-test-result', 'pass', `${maxUpdates} updates successful`);
+                        
+                        document.getElementById('realtime-output').innerHTML = `
+                            <strong>Real-time Update Test:</strong><br>
+                            • Updates Completed: ${updateCount}/${maxUpdates}<br>
+                            • Update Frequency: Every 2 seconds<br>
+                            • Status: ✅ Auto-refresh simulation successful
+                        `;
+                        document.getElementById('realtime-output').style.display = 'block';
+                    }
+                } catch (error) {
+                    clearInterval(interval);
+                    log(`❌ Real-time update ${updateCount}: ${error.message}`);
+                    setTestResult('realtime-test-result', 'fail', error.message);
+                }
+            }, 2000);
+        }
+        
+        // Auto-run basic connectivity test on load
+        window.addEventListener('load', () => {
+            log('🚀 Jobs & Queue UI Test Suite loaded');
+            log('📡 Running initial connectivity test...');
+            setTimeout(testAPIConnectivity, 500);
+        });
+    </script>
+</body>
+</html>

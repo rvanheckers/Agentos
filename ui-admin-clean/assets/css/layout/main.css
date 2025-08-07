@@ -1,0 +1,71 @@
+/**
+ * Main Layout Component
+ * Main content area styling
+ */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main {
+  margin-top: var(--header-height);
+  margin-left: var(--sidebar-width);
+  padding: var(--space-8);
+  background: var(--gray-100);
+  min-height: calc(100vh - var(--header-height));
+  transition: margin-left var(--transition);
+}
+
+.main__content {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.page-header {
+  margin-bottom: var(--space-8);
+}
+
+.page-header__title {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  color: var(--gray-900);
+  margin-bottom: var(--space-2);
+}
+
+.page-header__description {
+  font-size: var(--text-lg);
+  color: var(--gray-600);
+}
+
+/* Tablet/DevTools responsiveness */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .main {
+    /* Keep sidebar space when DevTools is open */
+    margin-left: var(--sidebar-width);
+    padding: var(--space-6);
+  }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 767px) {
+  .main {
+    margin-left: 0;
+    padding: var(--space-6);
+  }
+}
+
+@media (max-width: 767px) {
+  .main {
+    padding: var(--space-4);
+  }
+  
+  .page-header__title {
+    font-size: var(--text-2xl);
+  }
+  
+  .page-header__description {
+    font-size: var(--text-base);
+  }
+}

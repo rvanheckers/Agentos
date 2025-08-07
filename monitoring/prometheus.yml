@@ -1,0 +1,52 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  # AgentOS API Server
+  - job_name: 'agentos-api'
+    static_configs:
+      - targets: ['host.docker.internal:8001']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # PostgreSQL Database
+  - job_name: 'postgresql'
+    static_configs:
+      - targets: ['postgres_exporter:9187']
+    scrape_interval: 30s
+
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Node exporter for system metrics (optional)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['host.docker.internal:9100']  # If node_exporter is running
+    scrape_interval: 30s
+
+  # AgentOS WebSocket Server
+  - job_name: 'agentos-websocket'
+    static_configs:
+      - targets: ['host.docker.internal:8765']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Redis metrics (if redis exporter is available)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['host.docker.internal:9121']  # If redis_exporter is running
+    scrape_interval: 30s
+
+# Alerting rules (can be added later)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093

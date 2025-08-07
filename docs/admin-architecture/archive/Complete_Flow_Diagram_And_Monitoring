@@ -1,0 +1,146 @@
+ 📊 Je Monitoring Stack - Prometheus + Grafana
+
+  🎯 Wat het voor je doet:
+
+  Prometheus (Data Collector):
+  - Verzamelt metrics van al je services elke 15-30 seconden
+  - Monitort: API performance, database health, job processing, system resources
+  - Slaat tijdreeks data op (hoeveel jobs per minuut, response times, etc.)
+
+  Grafana (Visualisatie Dashboard):
+  - Mooie dashboards met grafieken en alerts
+  - Real-time monitoring van je AgentOS performance
+  - Alert systeem voor problemen (te veel failed jobs, database overload)
+
+  🔧 Wat wordt gemonitord:
+
+  1. AgentOS API (port 8001) - Response times, error rates
+  2. PostgreSQL (port 9187) - Query performance, connections, job counts
+  3. WebSocket (port 8765) - Real-time connection metrics
+  4. Redis (port 9121) - Queue performance, memory usage
+  5. System (port 9100) - CPU, memory, disk usage
+
+  🎯 Complete AgentOS Data Flow (Updated)
+
+  🎬 USER INTERACTION
+      ↓
+  ┌─────────────────────────────────────────────────────────────┐
+  │                    FRONTEND LAYER                           │
+  ├─────────────────────────────────────────────────────────────┤
+  │ UI-v2 (8000) ← Manual Upload                               │
+  │ Admin UI (8004) ← Jobs & Queue Management                  │
+  │    ↓                                                        │
+  │ Central Data Service (SSOT Pattern)                        │
+  │    ↓                                                        │
+  │ WebSocket Service ← Real-time updates                      │
+  └─────────────────────────────────────────────────────────────┘
+      ↓
+  ┌─────────────────────────────────────────────────────────────┐
+  │                     API GATEWAY                             │
+  ├─────────────────────────────────────────────────────────────┤
+  │FastAPI Server (8001) ← 39 endpoints ✅                    │
+  │ ├── Authentication & Authorization                          │
+  │ ├── Rate Limiting & Validation                             │
+  │ ├── Prometheus Metrics Export (/metrics)                   │
+  │ └── SSOT Endpoint (/api/admin/ssot)                        │
+  └─────────────────────────────────────────────────────────────┘
+      ↓
+  ┌─────────────────────────────────────────────────────────────┐
+  │                   SERVICE LAYER                             │
+  ├─────────────────────────────────────────────────────────────┤
+  │ AdminDataManager ← SSOT Controller                         │
+  │ JobsService ← Business Logic                               │
+  │ ├── File validation & processing                           │
+  │ ├── Job creation & status management                       │
+  │ ├── User permission checks                                 │
+  │ └── Progress tracking                                       │
+  │    ↓                                                        │
+  │ QueueService ← Distributed Task Management                 │
+  │ ├── Celery task queuing                                    │
+  │ ├── Worker assignment & load balancing                     │
+  │ ├── Retry logic & error handling                           │
+  │ └── Performance monitoring                                  │
+  └─────────────────────────────────────────────────────────────┘
+      ↓
+  ┌─────────────────────────────────────────────────────────────┐
+  │                  PROCESSING LAYER                           │
+  ├─────────────────────────────────────────────────────────────┤
+  │ Celery Workers (Multiple instances)                        │
+  │ ├── video_downloader ← File acquisition                    │
+  │ ├── audio_transcriber ← Speech to text (Whisper)          │
+  │ ├── moment_detector ← Viral moment AI (Claude)            │
+  │ ├── face_detector ← Computer vision                        │
+  │ ├── intelligent_cropper ← Platform optimization           │
+  │ └── video_cutter ← Final clip generation                   │
+  │    ↓                                                        │
+  │ Redis Queue ← Task coordination                            │
+  │ ├── Job prioritization                                     │
+  │ ├── Worker health monitoring                               │
+  │ └── Real-time progress updates                             │
+  └─────────────────────────────────────────────────────────────┘
+      ↓
+  ┌─────────────────────────────────────────────────────────────┐
+  │                    DATA LAYER                               │
+  ├─────────────────────────────────────────────────────────────┤
+  │ PostgreSQL Database ← Production data store                │
+  │ ├── Jobs table (status, progress, metadata)               │
+  │ ├── Users table (authentication, credits)                 │
+  │ ├── Clips table (generated videos, analytics)             │
+  │ ├── Processing steps (audit trail)                        │
+  │ └── System logs (debugging, monitoring)                   │
+  │    ↓                                                        │
+  │ File System ← Media storage                                │
+  │ ├── ./io/input/ ← Uploaded videos                         │
+  │ └── ./io/output/ ← Generated clips                         │
+  └─────────────────────────────────────────────────────────────┘
+      ↓
+  ┌─────────────────────────────────────────────────────────────┐
+  │                 MONITORING LAYER                            │
+  ├─────────────────────────────────────────────────────────────┤
+  │ Prometheus (9090) ← Metrics collection                     │
+  │ ├── API performance (response times, error rates)         │
+  │ ├── Database health (connections, query performance)      │
+  │ ├── Job processing (throughput, success rates)            │
+  │ ├── Worker performance (task completion, failures)        │
+  │ └── System resources (CPU, memory, disk)                  │
+  │    ↓                                                        │
+  │ Grafana (3000) ← Visualization & alerting                 │
+  │ ├── Real-time dashboards                                   │
+  │ ├── Performance trend analysis                             │
+  │ ├── Alert notifications (Slack, email)                    │
+  │ └── Business intelligence reports                          │
+  └─────────────────────────────────────────────────────────────┘
+      ↓
+  🎯 USER RECEIVES PROCESSED CLIPS
+
+  🚀 Hoe je Monitoring gebruikt:
+
+  📈 Grafana Dashboards:
+
+  # Access Grafana
+  http://localhost:3000
+
+  # Key dashboards:
+  - AgentOS Performance Overview
+  - PostgreSQL Database Health
+  - Job Processing Analytics
+  - System Resource Monitoring
+
+  🔍 Prometheus Queries:
+
+  # Access Prometheus
+  http://localhost:9090
+
+  # Example queries:
+  - agentos_jobs_by_status_count  # Job status breakdown
+  - rate(http_requests_total[5m])  # API request rate
+  - pg_stat_activity_count        # Database connections
+
+  ⚠️ Alerts Setup:
+
+  - High job failure rate → Slack notification
+  - Database connection limit → Email alert
+  - API response time > 2s → Dashboard warning
+  - Disk space < 10% → Critical alert
+
+  Dit geeft je enterprise-grade monitoring van je hele video processing pipeline! 📊🚀
