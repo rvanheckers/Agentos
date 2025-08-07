@@ -1,0 +1,69 @@
+/**
+ * DevTools Inspect Mode Fix
+ * Prevents menu items from becoming unresponsive when inspected
+ */
+
+/* Prevent DevTools highlighter from blocking interactions */
+.sidebar__nav-item {
+  /* Force element to not capture DevTools highlighting */
+  position: relative !important;
+  z-index: 1 !important;
+  /* Prevent highlight overlay from blocking */
+  isolation: isolate !important;
+}
+
+/* Override any DevTools injected styles */
+.sidebar__nav-item[style*="pointer-events"] {
+  pointer-events: auto !important;
+}
+
+/* Ensure sidebar stays interactive during inspection */
+.sidebar {
+  /* Prevent DevTools from making sidebar inactive */
+  will-change: auto !important;
+  contain: layout !important;
+}
+
+/* Force menu items to remain clickable */
+.sidebar__nav-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Prevent blur effect during DevTools inspection */
+.sidebar:has(.sidebar__nav-item:hover) {
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+/* Override any DevTools-injected opacity/filter */
+body:has(.sidebar__nav-item:hover) * {
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+/* Specific fix for the blur/disabled state */
+.sidebar__nav-item:focus-visible,
+.sidebar__nav-item:focus-within {
+  outline: 2px solid var(--primary-500) !important;
+  outline-offset: -2px !important;
+  /* Prevent DevTools from disabling the element */
+  pointer-events: auto !important;
+  user-select: auto !important;
+}
+
+/* Emergency override for DevTools inspection mode */
+@media (hover: hover) {
+  .sidebar__nav-item {
+    /* Use touch-action to prevent DevTools interference */
+    touch-action: manipulation !important;
+    /* Ensure clicks work even when inspected */
+    -webkit-tap-highlight-color: transparent !important;
+  }
+}

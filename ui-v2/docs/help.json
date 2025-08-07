@@ -1,0 +1,208 @@
+{
+  "nl": {
+    "welcome": {
+      "title": "Welkom bij AgentOS Video Processor",
+      "description": "Een krachtige video processing tool met AI-ondersteuning voor het maken van clips, highlights en samenvattingen."
+    },
+    "intents": {
+      "title": "Verwerkingsmodi",
+      "description": "Kies uit verschillende verwerkingsmodi afhankelijk van wat je wilt bereiken:",
+      "modes": {
+        "short_clips": {
+          "title": "Korte Clips",
+          "description": "Maak korte, scherpe clips voor sociale media"
+        },
+        "key_moments": {
+          "title": "Belangrijke Momenten",
+          "description": "Vind automatisch de beste momenten in je video"
+        },
+        "smart_summary": {
+          "title": "Slimme Samenvatting",
+          "description": "Creëer een intelligente samenvatting van je content"
+        }
+      }
+    },
+    "upload": {
+      "title": "Video Uploaden",
+      "description": "Upload je video bestanden of geef een URL op. Ondersteunde formaten: MP4, MOV, AVI, MKV."
+    },
+    "processing": {
+      "title": "Verwerking",
+      "description": "De AI analyseert je video en maakt de gewenste output. Dit kan enkele minuten duren."
+    },
+    "results": {
+      "title": "Resultaten",
+      "description": "Bekijk en download je gegenereerde clips. Elk clip heeft een kwaliteitsscore van de AI."
+    },
+    "troubleshooting": {
+      "title": "Problemen Oplossen",
+      "description": "Veelvoorkomende problemen en oplossingen:",
+      "issues": {
+        "upload_fails": "Upload mislukt: Controleer je internetverbinding en bestandsgrootte",
+        "processing_slow": "Verwerking duurt lang: Grote bestanden kunnen meer tijd kosten",
+        "no_clips": "Geen clips gegenereerd: Probeer een andere verwerkingsmodus"
+      }
+    },
+    "managers": {
+      "title": "Service Managers - De Bazen van AgentOS",
+      "description": "Elke manager is een slimme baas die een deel van het systeem runt. Ze werken samen om video's te verwerken.",
+      "jobs": {
+        "title": "👔 Jobs Manager - De Werkbaas",
+        "description": "Ik ben de baas van alle video jobs. Als iemand een video wil bewerken, kom ik in actie!",
+        "what_does": "Ik maak nieuwe jobs aan, houd bij waar ze mee bezig zijn, en zorg dat ze klaar komen.",
+        "why_important": "Zonder mij weet niemand welke video's er verwerkt moeten worden. Ik ben het geheugen van het systeem.",
+        "works_with": "Ik werk samen met Queue Manager (voor de rij) en Workers Manager (voor de werkers).",
+        "health_means": "Als ik gezond ben, kunnen jobs worden aangemaakt en bijgehouden. Rood betekent dat er iets mis is met de database."
+      },
+      "workers": {
+        "title": "👷 Workers Manager - De Uitvoerder",
+        "description": "Ik zorg ervoor dat er genoeg werkers zijn om video's te verwerken. Denk aan mij als de voorman op een bouwplaats.",
+        "what_does": "Ik start nieuwe werkers, stop kapotte werkers, en houd bij wie wat doet.",
+        "why_important": "Zonder werkers gebeurt er niks! Ik zorg dat er altijd iemand is om video's te bewerken.",
+        "works_with": "Ik werk samen met Jobs Manager (voor opdrachten) en Queue Manager (voor de werklijst).",
+        "health_means": "Groen = genoeg werkers actief. Geel = te weinig werkers. Rood = alle werkers zijn gestopt."
+      },
+      "queue": {
+        "title": "📋 Queue Manager - De Planner",
+        "description": "Ik ben de slimme planner die jobs in de juiste volgorde zet. Net als de rij bij de bakker!",
+        "what_does": "Ik zet nieuwe jobs achteraan de rij en geef ze door aan beschikbare werkers.",
+        "why_important": "Zonder mij is het chaos! Iedereen zou door elkaar heen werken en jobs zouden verloren gaan.",
+        "works_with": "Ik ben de brug tussen Jobs Manager (opdrachten) en Workers Manager (uitvoerders).",
+        "health_means": "Groen = rij loopt goed. Geel = rij loopt vol. Rood = rij is vastgelopen."
+      },
+      "upload": {
+        "title": "📤 Upload Manager - De Ontvanger",
+        "description": "Ik neem alle video's aan die mensen uploaden. Ik ben de portier van AgentOS!",
+        "what_does": "Ik controleer of video's geldig zijn, sla ze veilig op, en maak ze klaar voor verwerking.",
+        "why_important": "Zonder mij kunnen mensen geen video's toevoegen. Ik ben de eerste stap van het hele proces.",
+        "works_with": "Na het uploaden geef ik de video door aan Jobs Manager om een job te maken.",
+        "health_means": "Groen = kan uploads ontvangen. Rood = upload systeem werkt niet."
+      },
+      "agents": {
+        "title": "🤖 Agents Manager - De AI Coordinator",
+        "description": "Ik coördineer alle slimme AI agents die het echte werk doen. Denk aan mij als de dirigent van een orkest!",
+        "what_does": "Ik start de juiste AI agents, geef ze opdrachten, en zorg dat ze samenwerken.",
+        "why_important": "De AI agents doen het echte werk: video downloaden, gezichten detecteren, clips maken. Ik zorg dat ze het goed doen.",
+        "works_with": "Ik werk voor Workers Manager en gebruik alle beschikbare AI agents.",
+        "health_means": "Groen = alle AI agents werken. Geel = sommige agents hebben problemen. Rood = AI systeem werkt niet."
+      },
+      "analytics": {
+        "title": "📊 Analytics Manager - De Boekhouder",
+        "description": "Ik houd alle statistieken bij. Hoeveel jobs zijn er vandaag? Welke gingen goed? Ik weet het allemaal!",
+        "what_does": "Ik tel jobs, bereken success rates, en maak rapporten voor de admin.",
+        "why_important": "Zonder mij weet niemand hoe goed het systeem werkt. Ik help problemen te vinden en verbeteringen te maken.",
+        "works_with": "Ik kijk naar alles wat andere managers doen en maak er rapporten van.",
+        "health_means": "Groen = statistieken worden bijgehouden. Rood = geen nieuwe data beschikbaar."
+      },
+      "tips": {
+        "title": "💡 Manager Tips",
+        "healthy_system": "Een gezond systeem heeft alle 6 managers groen. Als er één rood is, kijk dan wat er mis is.",
+        "performance": "Kijk naar response times: onder 50ms is uitstekend, boven 200ms is langzaam.",
+        "troubleshooting": "Als Jobs Manager rood is: database probleem. Als Workers rood is: geen werkers actief. Als Queue rood is: Redis probleem."
+      }
+    }
+  },
+  "en": {
+    "welcome": {
+      "title": "Welcome to AgentOS Video Processor",
+      "description": "A powerful video processing tool with AI support for creating clips, highlights, and summaries."
+    },
+    "intents": {
+      "title": "Processing Modes",
+      "description": "Choose from different processing modes depending on what you want to achieve:",
+      "modes": {
+        "short_clips": {
+          "title": "Short Clips",
+          "description": "Create short, sharp clips for social media"
+        },
+        "key_moments": {
+          "title": "Key Moments",
+          "description": "Automatically find the best moments in your video"
+        },
+        "smart_summary": {
+          "title": "Smart Summary",
+          "description": "Create an intelligent summary of your content"
+        }
+      }
+    },
+    "upload": {
+      "title": "Video Upload",
+      "description": "Upload your video files or provide a URL. Supported formats: MP4, MOV, AVI, MKV."
+    },
+    "processing": {
+      "title": "Processing",
+      "description": "The AI analyzes your video and creates the desired output. This may take several minutes."
+    },
+    "results": {
+      "title": "Results",
+      "description": "View and download your generated clips. Each clip has a quality score from the AI."
+    },
+    "troubleshooting": {
+      "title": "Troubleshooting",
+      "description": "Common issues and solutions:",
+      "issues": {
+        "upload_fails": "Upload fails: Check your internet connection and file size",
+        "processing_slow": "Processing is slow: Large files may take more time",
+        "no_clips": "No clips generated: Try a different processing mode"
+      }
+    },
+    "managers": {
+      "title": "Service Managers - The Bosses of AgentOS",
+      "description": "Each manager is a smart boss that runs part of the system. They work together to process videos.",
+      "jobs": {
+        "title": "👔 Jobs Manager - The Work Boss",
+        "description": "I'm the boss of all video jobs. When someone wants to edit a video, I spring into action!",
+        "what_does": "I create new jobs, track their progress, and make sure they get finished.",
+        "why_important": "Without me, nobody knows which videos need processing. I'm the system's memory.",
+        "works_with": "I work with Queue Manager (for the queue) and Workers Manager (for the workers).",
+        "health_means": "When I'm healthy, jobs can be created and tracked. Red means there's a database problem."
+      },
+      "workers": {
+        "title": "👷 Workers Manager - The Executor",
+        "description": "I make sure there are enough workers to process videos. Think of me as the foreman on a construction site.",
+        "what_does": "I start new workers, stop broken workers, and track who's doing what.",
+        "why_important": "Without workers, nothing happens! I ensure there's always someone to process videos.",
+        "works_with": "I work with Jobs Manager (for tasks) and Queue Manager (for the work list).",
+        "health_means": "Green = enough workers active. Yellow = too few workers. Red = all workers stopped."
+      },
+      "queue": {
+        "title": "📋 Queue Manager - The Planner",
+        "description": "I'm the smart planner who puts jobs in the right order. Just like the line at the bakery!",
+        "what_does": "I put new jobs at the back of the line and give them to available workers.",
+        "why_important": "Without me it's chaos! Everyone would work through each other and jobs would get lost.",
+        "works_with": "I'm the bridge between Jobs Manager (orders) and Workers Manager (executors).",
+        "health_means": "Green = queue running smoothly. Yellow = queue filling up. Red = queue stuck."
+      },
+      "upload": {
+        "title": "📤 Upload Manager - The Receiver",
+        "description": "I receive all videos that people upload. I'm the doorman of AgentOS!",
+        "what_does": "I check if videos are valid, store them safely, and prepare them for processing.",
+        "why_important": "Without me, people can't add videos. I'm the first step of the entire process.",
+        "works_with": "After uploading, I pass the video to Jobs Manager to create a job.",
+        "health_means": "Green = can receive uploads. Red = upload system not working."
+      },
+      "agents": {
+        "title": "🤖 Agents Manager - The AI Coordinator",
+        "description": "I coordinate all the smart AI agents that do the real work. Think of me as the conductor of an orchestra!",
+        "what_does": "I start the right AI agents, give them tasks, and make sure they work together.",
+        "why_important": "The AI agents do the real work: download videos, detect faces, make clips. I make sure they do it right.",
+        "works_with": "I work for Workers Manager and use all available AI agents.",
+        "health_means": "Green = all AI agents working. Yellow = some agents have issues. Red = AI system not working."
+      },
+      "analytics": {
+        "title": "📊 Analytics Manager - The Bookkeeper",
+        "description": "I keep track of all statistics. How many jobs today? Which ones went well? I know it all!",
+        "what_does": "I count jobs, calculate success rates, and make reports for the admin.",
+        "why_important": "Without me, nobody knows how well the system is working. I help find problems and make improvements.",
+        "works_with": "I watch everything other managers do and make reports about it.",
+        "health_means": "Green = statistics being tracked. Red = no new data available."
+      },
+      "tips": {
+        "title": "💡 Manager Tips",
+        "healthy_system": "A healthy system has all 6 managers green. If one is red, investigate what's wrong.",
+        "performance": "Watch response times: under 50ms is excellent, over 200ms is slow.",
+        "troubleshooting": "If Jobs Manager is red: database problem. If Workers red: no active workers. If Queue red: Redis problem."
+      }
+    }
+  }
+}

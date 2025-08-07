@@ -1,0 +1,508 @@
+{
+  "common": {
+    "app_title": "AgentOS VideoProcessor - Smart Video Editing",
+    "app_description": "Make professional video clips with AI technology",
+    "app_name": "AgentOS VideoProcessor",
+    "upload": "Upload",
+    "download": "Download",
+    "cancel": "Cancel",
+    "continue": "Continue",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Info",
+    "close": "Close",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "share": "Share",
+    "copy": "Copy",
+    "paste": "Paste",
+    "clear": "Clear",
+    "reset": "Reset",
+    "settings": "Settings",
+    "help": "Help",
+    "about": "About",
+    "contact": "Contact",
+    "privacy": "Privacy",
+    "terms": "Terms"
+  },
+  "navigation": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "library": "Library",
+    "analytics": "Analytics",
+    "profile": "Profile",
+    "logout": "Logout"
+  },
+  "intent": {
+    "title": "What do you want to do with your video?",
+    "subtitle": "Choose what you want to make from your video",
+    "short_clips": {
+      "title": "Short Clips",
+      "description": "Make short videos for TikTok and Instagram",
+      "features": ["15-60 seconds", "Best parts", "Fun moments"]
+    },
+    "key_moments": {
+      "title": "Highlights ⭐",
+      "description": "Quick extraction of best moments without editing",
+      "features": ["Minimal Processing", "Original Format", "Fast Result"]
+    },
+    "smart_summary": {
+      "title": "Make Video Shorter", 
+      "description": "Make your long video much shorter",
+      "features": ["2-5 minutes", "Most important parts", "Clear story"]
+    },
+    "tips": {
+      "short_clips": "💡 Tip: Longer videos (5+ minutes) work better",
+      "key_moments": "💡 Tip: Videos with lots of action work best",
+      "smart_summary": "💡 Tip: Long videos give the best summaries"
+    },
+    "visual_clips": {
+      "title": "Visual Clips 📹",
+      "description": "Smart clips with face detection & 9:16 cropping",
+      "features": ["AI Face Detection", "Smart Cropping", "TikTok/Reels Ready"]
+    },
+    "smart_content": {
+      "title": "Smart Content 🤖",
+      "description": "AI-generated scripts, captions & social posts",
+      "features": ["AI Scripts", "Auto Captions", "Social Posts"]
+    },
+    "podcasts": {
+      "title": "Podcast Clips",
+      "description": "Best parts of your podcast",
+      "features": ["Quote highlights", "Discussion moments", "Funny segments"]
+    },
+    "tutorials": {
+      "title": "Tutorial Segments",
+      "description": "Break your tutorial into steps",
+      "features": ["Step-by-step", "Key tips", "Practical examples"]
+    },
+    "presentations": {
+      "title": "Presentation Clips",
+      "description": "Key points from your presentation",
+      "features": ["Slide transitions", "Important points", "Q&A moments"]
+    }
+  },
+  "upload": {
+    "title_prefix": "Upload your video",
+    "subtitle": "Drag your video here or click to select",
+    "drop_zone": "Drop your video here",
+    "click_to_select": "Or click to choose a file",
+    "url_placeholder": "Paste a YouTube or other video link here...",
+    "supported_formats": "Supported formats",
+    "or": "or",
+    "tips": {
+      "viral_clips": "💡 Tip: Longer videos (5+ minutes) work better for multiple clips",
+      "highlights": "💡 Tip: Videos with lots of action give better results",
+      "summary": "💡 Tip: Structured content works best for summaries",
+      "podcasts": "💡 Tip: Conversations with multiple speakers give the best clips",
+      "tutorials": "💡 Tip: Clear steps make better segments",
+      "presentations": "💡 Tip: Slides with text are automatically detected"
+    },
+    "validation": {
+      "file_too_large": "File is too large (max {maxSize})",
+      "invalid_format": "File format not supported",
+      "invalid_url": "Invalid URL",
+      "upload_failed": "Upload failed, please try again",
+      "url_not_accessible": "URL not accessible"
+    },
+    "progress": {
+      "uploading": "Uploading... {progress}%",
+      "processing": "Processing...",
+      "analyzing": "Analyzing...",
+      "extracting": "Extracting audio...",
+      "transcribing": "Creating transcript..."
+    },
+    "feedback": {
+      "upload_success": "{fileName} uploaded successfully! Processing started...",
+      "upload_failed": "Upload failed",
+      "upload_started": "Uploading {fileName}...",
+      "upload_retry": "Try again or choose another file"
+    }
+  },
+  "processing": {
+    "title_prefix": "Working on your video:",
+    "subtitle": "Our AI is finding the best parts",
+    "detecting_moment": "Finding good parts",
+    "emotional_peak": "Checking sound",
+    "action_moment": "Looking at video",
+    "time_estimate": "This will take about 4-6 seconds",
+    "steps": {
+      "analyzing": {
+        "title": "Looking at Video",
+        "description": "Checking video and sound"
+      },
+      "extracting": {
+        "title": "Finding Best Parts",
+        "description": "Picking the good moments"
+      },
+      "creating": {
+        "title": "Making Your Videos",
+        "description": "Creating the final clips"
+      },
+      "optimizing": {
+        "title": "Optimizing",
+        "description": "Enhancing clips for {platform}"
+      },
+      "finalizing": {
+        "title": "Finalizing",
+        "description": "Final touches and export"
+      }
+    },
+    "status": {
+      "queued": "Queued...",
+      "starting": "Starting...",
+      "in_progress": "In progress...",
+      "finishing": "Finishing...",
+      "completed": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "time_estimate": "Please wait while we process your video",
+    "time_remaining": "Please wait while we process your video",
+    "time_units": {
+      "second": "second",
+      "seconds": "seconds",
+      "minute": "minute", 
+      "minutes": "minutes",
+      "hours": "hours"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "pause": "Pause",
+      "resume": "Resume",
+      "adjust_settings": "Adjust settings",
+      "view_details": "View details"
+    },
+    "confirm_cancel": "Are you sure you want to stop processing?",
+    "cancelled_by_user": "Processing cancelled by user",
+    "cancel_error": "Error cancelling processing"
+  },
+  "results": {
+    "title_prefix": "Your videos are ready!",
+    "title_suffix": "🎉",
+    "subtitle_prefix": "We found",
+    "subtitle_suffix": "great clips for you",
+    "no_results": "No clips found",
+    "no_results_description": "Try different settings or another video",
+    "clip_title": "Clip",
+    "ai_score": "AI Score", 
+    "optimized_segment": "Optimized segment",
+    "download_segment": "Download Segment",
+    "share_clip": "Share Clip",
+    "play_video": "Play",
+    "pause_video": "Pause",
+    "video_not_supported": "Video not supported",
+    "video_error": "Video cannot be loaded",
+    "download_started": "Download started",
+    "download_failed": "Download failed",
+    "all_downloads_started": "All downloads started",
+    "no_clips_to_download": "No clips to download",
+    "share_title": "Check out this clip",
+    "share_text": "Check out this amazing clip!",
+    "link_copied": "Link copied to clipboard",
+    "share_failed": "Sharing failed",
+    "download_selected": "Download {count} selected",
+    "try_again": "Try again",
+    "clip_types": {
+      "best_moment": "Best moment",
+      "funny_moment": "Funny moment",
+      "emotional_peak": "Emotional peak",
+      "action_scene": "Action scene",
+      "key_point": "Key point",
+      "quote": "Quote",
+      "reaction": "Reaction",
+      "transition": "Transition",
+      "intro": "Intro",
+      "outro": "Outro",
+      "summary": "Summary"
+    },
+    "clip_metadata": {
+      "duration": "Duration",
+      "timestamp": "Timestamp",
+      "confidence": "Confidence",
+      "type": "Type",
+      "energy": "Energy",
+      "sentiment": "Sentiment",
+      "tags": "Tags"
+    },
+    "actions": {
+      "download_all": "Download all clips",
+      "new_video": "Try another video",
+      "download": "Download",
+      "edit": "Edit",
+      "share": "Share",
+      "preview": "Preview",
+      "copy_link": "Copy link",
+      "add_to_project": "Add to project",
+      "export_all": "Export all",
+      "create_collection": "Create collection"
+    },
+    "bulk_actions": {
+      "select_all": "Select all",
+      "deselect_all": "Deselect all",
+      "download_selected": "Download selected",
+      "delete_selected": "Delete selected",
+      "export_selected": "Export selected"
+    },
+    "clips": {
+      "viral_moment": "Viral Moment",
+      "key_highlight": "Key Highlight",
+      "smart_summary": "Smart Summary"
+    },
+    "export_options": {
+      "format": "Format",
+      "quality": "Quality",
+      "resolution": "Resolution",
+      "frame_rate": "Frame rate",
+      "audio_quality": "Audio quality",
+      "include_subtitles": "Include subtitles",
+      "watermark": "Watermark"
+    },
+    "sharing": {
+      "copy_link": "Copy link",
+      "download_link": "Download link",
+      "embed_code": "Embed code",
+      "social_media": "Social media",
+      "email": "Email",
+      "qr_code": "QR code"
+    }
+  },
+  "editing": {
+    "title": "Edit clip",
+    "subtitle": "Adjust your clip as needed",
+    "timeline": {
+      "title": "Timeline",
+      "zoom_in": "Zoom in",
+      "zoom_out": "Zoom out",
+      "fit_to_screen": "Fit to screen",
+      "split": "Split",
+      "trim": "Trim",
+      "extend": "Extend",
+      "move": "Move"
+    },
+    "tools": {
+      "trim": "Trim",
+      "split": "Split",
+      "merge": "Merge",
+      "speed": "Speed",
+      "volume": "Volume",
+      "fade": "Fade",
+      "transition": "Transition",
+      "effect": "Effect",
+      "filter": "Filter",
+      "text": "Text",
+      "subtitle": "Subtitles"
+    },
+    "properties": {
+      "start_time": "Start time",
+      "end_time": "End time",
+      "duration": "Duration",
+      "speed": "Speed",
+      "volume": "Volume",
+      "opacity": "Opacity",
+      "position": "Position",
+      "scale": "Scale",
+      "rotation": "Rotation"
+    },
+    "presets": {
+      "social_media": "Social media",
+      "square": "Square (1:1)",
+      "portrait": "Portrait (9:16)",
+      "landscape": "Landscape (16:9)",
+      "story": "Story (9:16)",
+      "tiktok": "TikTok (9:16)",
+      "instagram": "Instagram (1:1)",
+      "youtube": "YouTube (16:9)",
+      "twitter": "Twitter (16:9)"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Customize your preferences",
+    "sections": {
+      "general": "General",
+      "processing": "Processing",
+      "export": "Export",
+      "advanced": "Advanced",
+      "account": "Account",
+      "billing": "Billing",
+      "integrations": "Integrations"
+    },
+    "general": {
+      "language": "Language",
+      "theme": "Theme",
+      "timezone": "Timezone",
+      "date_format": "Date format",
+      "time_format": "Time format",
+      "auto_save": "Auto save",
+      "notifications": "Notifications",
+      "sound_effects": "Sound effects"
+    },
+    "processing": {
+      "default_intent": "Default intent",
+      "quality": "Quality",
+      "speed": "Speed",
+      "parallel_processing": "Parallel processing",
+      "gpu_acceleration": "GPU acceleration",
+      "memory_limit": "Memory limit",
+      "temp_directory": "Temp directory"
+    },
+    "export": {
+      "default_format": "Default format",
+      "default_quality": "Default quality",
+      "default_resolution": "Default resolution",
+      "include_metadata": "Include metadata",
+      "watermark": "Watermark",
+      "naming_convention": "Naming convention"
+    },
+    "themes": {
+      "light": "Light",
+      "dark": "Dark",
+      "auto": "Auto",
+      "system": "System"
+    }
+  },
+  "projects": {
+    "title": "Projects",
+    "subtitle": "Manage your video projects",
+    "create_new": "New project",
+    "search_placeholder": "Search projects...",
+    "sort_by": "Sort by",
+    "filter_by": "Filter by",
+    "sort_options": {
+      "name": "Name",
+      "created": "Created",
+      "modified": "Modified",
+      "size": "Size",
+      "duration": "Duration"
+    },
+    "filter_options": {
+      "all": "All",
+      "recent": "Recent",
+      "favorites": "Favorites",
+      "shared": "Shared",
+      "archived": "Archived"
+    },
+    "project_actions": {
+      "open": "Open",
+      "rename": "Rename",
+      "duplicate": "Duplicate",
+      "archive": "Archive",
+      "delete": "Delete",
+      "share": "Share",
+      "export": "Export",
+      "favorite": "Favorite",
+      "unfavorite": "Unfavorite"
+    },
+    "project_info": {
+      "created": "Created",
+      "modified": "Modified",
+      "clips": "Clips",
+      "duration": "Duration",
+      "size": "Size",
+      "format": "Format",
+      "quality": "Quality"
+    }
+  },
+  "analytics": {
+    "title": "Analytics",
+    "subtitle": "Insights into your video performance",
+    "metrics": {
+      "total_videos": "Total videos",
+      "total_clips": "Total clips",
+      "processing_time": "Processing time",
+      "success_rate": "Success rate",
+      "avg_clip_duration": "Average clip duration",
+      "most_popular_intent": "Most popular intent",
+      "total_downloads": "Total downloads",
+      "storage_used": "Storage used"
+    },
+    "charts": {
+      "daily_activity": "Daily activity",
+      "intent_distribution": "Intent distribution",
+      "clip_duration_distribution": "Clip duration distribution",
+      "success_rate_over_time": "Success rate over time",
+      "processing_time_trends": "Processing time trends",
+      "popular_formats": "Popular formats"
+    },
+    "time_ranges": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "last_7_days": "Last 7 days",
+      "last_30_days": "Last 30 days",
+      "last_90_days": "Last 90 days",
+      "last_year": "Last year",
+      "all_time": "All time"
+    }
+  },
+  "errors": {
+    "generic": "An error occurred",
+    "network": "Network error",
+    "server": "Server error",
+    "timeout": "Timeout",
+    "not_found": "Not found",
+    "forbidden": "Forbidden",
+    "unauthorized": "Unauthorized",
+    "validation": "Validation error",
+    "file_too_large": "File too large",
+    "invalid_format": "Invalid format",
+    "processing_failed": "Processing failed",
+    "upload_failed": "Upload failed",
+    "download_failed": "Download failed",
+    "save_failed": "Save failed",
+    "load_failed": "Load failed",
+    "connection_lost": "Connection lost",
+    "session_expired": "Session expired",
+    "quota_exceeded": "Quota exceeded",
+    "rate_limit": "Rate limit exceeded",
+    "maintenance": "Maintenance",
+    "try_again": "Try again",
+    "contact_support": "Contact support",
+    "refresh_page": "Refresh page",
+    "check_connection": "Check connection"
+  },
+  "success": {
+    "generic": "Successfully completed",
+    "upload": "Upload successful",
+    "download": "Download successful",
+    "save": "Saved",
+    "delete": "Deleted",
+    "copy": "Copied",
+    "share": "Shared",
+    "export": "Exported",
+    "import": "Imported",
+    "sync": "Synchronized",
+    "backup": "Backup created",
+    "restore": "Restored",
+    "update": "Updated",
+    "create": "Created",
+    "duplicate": "Duplicated",
+    "archive": "Archived",
+    "unarchive": "Unarchived"
+  },
+  "tooltips": {
+    "upload_file": "Drag a file here or click to select",
+    "paste_url": "Paste a video URL from YouTube, Vimeo or other platforms",
+    "processing_quality": "Higher quality takes longer but gives better results",
+    "clip_confidence": "How confident the AI is that this is a good clip",
+    "edit_clip": "Adjust the start and end time of the clip",
+    "download_clip": "Download the clip to your device",
+    "share_clip": "Share the clip with others",
+    "copy_link": "Copy a link to the clip",
+    "add_to_project": "Add to a project for later",
+    "full_screen": "Full screen",
+    "loop": "Loop clip",
+    "mute": "Mute",
+    "speed": "Playback speed",
+    "quality": "Video quality",
+    "subtitles": "Subtitles on/off",
+    "picture_in_picture": "Picture-in-picture mode"
+  }
+}

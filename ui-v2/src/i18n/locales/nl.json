@@ -1,0 +1,518 @@
+{
+  "common": {
+    "app_title": "AgentOS VideoProcessor - Intelligente Video Bewerking",
+    "app_description": "Maak professionele video clips, hoogtepunten en samenvattingen met AI-technologie",
+    "app_name": "AgentOS VideoProcessor",
+    "upload": "Uploaden",
+    "download": "Downloaden",
+    "cancel": "Annuleren",
+    "continue": "Doorgaan",
+    "back": "Terug",
+    "next": "Volgende",
+    "done": "Klaar",
+    "loading": "Laden...",
+    "error": "Fout",
+    "success": "Succes",
+    "warning": "Waarschuwing",
+    "info": "Informatie",
+    "close": "Sluiten",
+    "save": "Opslaan",
+    "edit": "Bewerken",
+    "delete": "Verwijderen",
+    "share": "Delen",
+    "copy": "Kopiëren",
+    "paste": "Plakken",
+    "clear": "Wissen",
+    "reset": "Resetten",
+    "settings": "Instellingen",
+    "help": "Help",
+    "about": "Over",
+    "contact": "Contact",
+    "privacy": "Privacy",
+    "terms": "Voorwaarden"
+  },
+  "navigation": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "projects": "Projecten",
+    "library": "Bibliotheek",
+    "analytics": "Analytics",
+    "profile": "Profiel",
+    "logout": "Uitloggen"
+  },
+  "intent": {
+    "title": "Wat wil je met je video doen?",
+    "subtitle": "Kies wat je wilt maken van je video",
+    "short_clips": {
+      "title": "Korte Stukjes",
+      "description": "Maak korte filmpjes voor TikTok en Instagram",
+      "features": ["15-60 seconden", "Beste delen", "Leuke momenten"]
+    },
+    "key_moments": {
+      "title": "Hoogtepunten ⭐",
+      "description": "Snelle extractie van beste momenten zonder bewerking",
+      "features": ["Minimale Processing", "Origineel Formaat", "Snel Resultaat"]
+    },
+    "smart_summary": {
+      "title": "Hele Video Inkorten",
+      "description": "Maak je lange video veel korter",
+      "features": ["2-5 minuten", "Belangrijkste delen", "Logisch verhaal"]
+    },
+    "tips": {
+      "short_clips": "💡 Tip: Langere video's (5+ minuten) zijn beter",
+      "key_moments": "💡 Tip: Video's met veel actie werken het beste",
+      "smart_summary": "💡 Tip: Lange video's geven de beste samenvattingen",
+      "visual_clips": "💡 Tip: Video's met gezichten geven de beste resultaten"
+    },
+    "visual_clips": {
+      "title": "Visuele Clips 📹",
+      "description": "Slimme clips met gezichtsherkenning & 9:16 cropping",
+      "features": ["AI Gezichtsdetectie", "Smart Cropping", "TikTok/Reels Ready"]
+    },
+    "smart_content": {
+      "title": "Slimme Content 🤖",
+      "description": "AI-gegenereerde scripts, captions & social posts",
+      "features": ["AI Scripts", "Auto Captions", "Social Posts"]
+    },
+    "podcasts": {
+      "title": "Podcast Clips",
+      "description": "Beste delen van je podcast",
+      "features": ["Quote highlights", "Discussie momenten", "Grappige fragmenten"]
+    },
+    "tutorials": {
+      "title": "Tutorial Segmenten",
+      "description": "Opdeel je tutorial in stappen",
+      "features": ["Stap-voor-stap", "Belangrijke tips", "Praktische voorbeelden"]
+    },
+    "presentations": {
+      "title": "Presentatie Clips",
+      "description": "Kernpunten van je presentatie",
+      "features": ["Slide overgangen", "Belangrijke punten", "Q&A momenten"]
+    }
+  },
+  "upload": {
+    "title_prefix": "Upload je video",
+    "subtitle": "Sleep je video hierheen of klik om te selecteren",
+    "drop_zone": "Sleep je video hierheen",
+    "click_to_select": "Of klik om een bestand te kiezen",
+    "url_placeholder": "Plak hier een YouTube of andere video link...",
+    "or": "of",
+    "supported_formats": "Ondersteunde formaten",
+    "tips": {
+      "viral_clips": "💡 Tip: Langere videos (5+ minuten) werken beter voor meerdere clips",
+      "highlights": "💡 Tip: Videos met veel actie geven betere resultaten",
+      "summary": "💡 Tip: Gestructureerde content werkt het beste voor samenvattingen",
+      "podcasts": "💡 Tip: Gesprekken met meerdere sprekers geven de beste clips",
+      "tutorials": "💡 Tip: Duidelijke stappen maken betere segmenten",
+      "presentations": "💡 Tip: Slides met veel tekst worden automatisch gedetecteerd"
+    },
+    "validation": {
+      "file_too_large": "Bestand is te groot (max {maxSize})",
+      "invalid_format": "Bestandsformaat wordt niet ondersteund",
+      "invalid_url": "Ongeldige URL",
+      "upload_failed": "Upload mislukt, probeer opnieuw",
+      "url_not_accessible": "URL niet toegankelijk"
+    },
+    "progress": {
+      "uploading": "Uploaden... {progress}%",
+      "processing": "Verwerken...",
+      "analyzing": "Analyseren...",
+      "extracting": "Audio extractie...",
+      "transcribing": "Transcriptie maken..."
+    },
+    "feedback": {
+      "upload_success": "{fileName} succesvol geüpload! Verwerking gestart...",
+      "upload_failed": "Upload mislukt",
+      "upload_started": "Uploaden {fileName}...",
+      "upload_retry": "Probeer opnieuw of kies een ander bestand"
+    }
+  },
+  "processing": {
+    "title_prefix": "AI-verwerking actief:",
+    "subtitle": "Intelligente content-analyse voor optimale resultaten",
+    "detecting_moment": "Engagement detectie",
+    "emotional_peak": "Audio analyse",
+    "action_moment": "Visuele focus",
+    "time_estimate": "Verwachte verwerkingstijd: 4-6 seconden",
+    "steps": {
+      "analyzing": {
+        "title": "Multi-modale Analyse",
+        "description": "AI-gestuurde audio-, video- en tekstanalyse"
+      },
+      "extracting": {
+        "title": "Segment Extractie",
+        "description": "Optimale tijdspannen bepalen en markeren"
+      },
+      "creating": {
+        "title": "Output Generatie",
+        "description": "Finale video segmenten renderen en optimaliseren"
+      },
+      "optimizing": {
+        "title": "Optimaliseren",
+        "description": "Clips verbeteren voor {platform}"
+      },
+      "finalizing": {
+        "title": "Afronden",
+        "description": "Laatste aanpassingen en export"
+      }
+    },
+    "status": {
+      "queued": "In wachtrij...",
+      "starting": "Starten...",
+      "in_progress": "Bezig...",
+      "finishing": "Afronden...",
+      "completed": "Voltooid",
+      "failed": "Mislukt",
+      "cancelled": "Geannuleerd"
+    },
+    "time_estimate": "Even geduld, we verwerken je video",
+    "time_remaining": "Even geduld, we verwerken je video",
+    "time_units": {
+      "second": "seconde",
+      "seconds": "seconden", 
+      "minute": "minuut",
+      "minutes": "minuten",
+      "hours": "uren"
+    },
+    "actions": {
+      "cancel": "Annuleren",
+      "pause": "Pauzeren",
+      "resume": "Hervatten",
+      "adjust_settings": "Instellingen aanpassen",
+      "view_details": "Details bekijken"
+    },
+    "confirm_cancel": "Weet je zeker dat je de verwerking wilt stoppen?",
+    "cancelled_by_user": "Verwerking geannuleerd door gebruiker",
+    "cancel_error": "Fout bij annuleren van verwerking",
+    "interesting_moment": "Interessant moment"
+  },
+  "results": {
+    "title_prefix": "Verwerking voltooid!",
+    "title_suffix": "beschikbaar 🎯",
+    "subtitle_prefix": "AI-analyse heeft",
+    "subtitle_suffix": "optimale segmenten geïdentificeerd",
+    "no_results": "Geen clips gevonden",
+    "no_results_description": "Probeer andere instellingen of een andere video",
+    "no_clips_found": "Geen clips gevonden",
+    "clip_title": "Clip",
+    "ai_score": "AI Score",
+    "optimized_segment": "Geoptimaliseerd segment",
+    "download_segment": "Download Segment",
+    "play_video": "Afspelen",
+    "pause_video": "Pauzeren",
+    "share_clip": "Deel Clip",
+    "video_not_supported": "Video wordt niet ondersteund",
+    "video_error": "Video kan niet worden geladen",
+    "download_started": "Download gestart",
+    "download_failed": "Download mislukt",
+    "all_downloads_started": "Alle downloads gestart",
+    "no_clips_to_download": "Geen clips om te downloaden",
+    "share_title": "Bekijk deze clip",
+    "share_text": "Check deze geweldige clip!",
+    "link_copied": "Link gekopieerd naar klembord",
+    "share_failed": "Delen mislukt",
+    "download_selected": "{count} geselecteerde downloaden",
+    "try_again": "Probeer opnieuw",
+    "clip_types": {
+      "best_moment": "Beste moment",
+      "funny_moment": "Grappig moment",
+      "emotional_peak": "Emotionele piek",
+      "action_scene": "Actie scène",
+      "key_point": "Kernpunt",
+      "quote": "Citaat",
+      "reaction": "Reactie",
+      "transition": "Overgang",
+      "intro": "Intro",
+      "outro": "Outro",
+      "summary": "Samenvatting"
+    },
+    "clip_metadata": {
+      "duration": "Duur",
+      "timestamp": "Tijdstip",
+      "confidence": "Betrouwbaarheid",
+      "type": "Type",
+      "energy": "Energie",
+      "sentiment": "Sentiment",
+      "tags": "Tags"
+    },
+    "actions": {
+      "download_all": "Alle segmenten downloaden",
+      "new_video": "Nieuwe verwerking",
+      "download": "Downloaden",
+      "edit": "Bewerken",
+      "share": "Delen",
+      "preview": "Bekijken",
+      "copy_link": "Link kopiëren",
+      "add_to_project": "Toevoegen aan project",
+      "export_all": "Alles exporteren",
+      "create_collection": "Collectie maken"
+    },
+    "bulk_actions": {
+      "select_all": "Alles selecteren",
+      "deselect_all": "Alles deselecteren",
+      "download_selected": "Geselecteerde downloaden",
+      "delete_selected": "Geselecteerde verwijderen",
+      "export_selected": "Geselecteerde exporteren"
+    },
+    "clips": {
+      "viral_moment": "Viraal Moment",
+      "key_highlight": "Hoogtepunt", 
+      "smart_summary": "Slimme Samenvatting"
+    },
+    "export_options": {
+      "format": "Formaat",
+      "quality": "Kwaliteit",
+      "resolution": "Resolutie",
+      "frame_rate": "Frame rate",
+      "audio_quality": "Audio kwaliteit",
+      "include_subtitles": "Ondertitels toevoegen",
+      "watermark": "Watermerk"
+    },
+    "sharing": {
+      "copy_link": "Link kopiëren",
+      "download_link": "Download link",
+      "embed_code": "Embed code",
+      "social_media": "Social media",
+      "email": "E-mail",
+      "qr_code": "QR code"
+    }
+  },
+  "editing": {
+    "title": "Clip bewerken",
+    "subtitle": "Pas je clip aan naar wens",
+    "timeline": {
+      "title": "Timeline",
+      "zoom_in": "Inzoomen",
+      "zoom_out": "Uitzoomen",
+      "fit_to_screen": "Passend maken",
+      "split": "Splitsen",
+      "trim": "Bijknippen",
+      "extend": "Uitbreiden",
+      "move": "Verplaatsen"
+    },
+    "tools": {
+      "trim": "Bijknippen",
+      "split": "Splitsen",
+      "merge": "Samenvoegen",
+      "speed": "Snelheid",
+      "volume": "Volume",
+      "fade": "Fade",
+      "transition": "Overgang",
+      "effect": "Effect",
+      "filter": "Filter",
+      "text": "Tekst",
+      "subtitle": "Ondertitels"
+    },
+    "properties": {
+      "start_time": "Starttijd",
+      "end_time": "Eindtijd",
+      "duration": "Duur",
+      "speed": "Snelheid",
+      "volume": "Volume",
+      "opacity": "Transparantie",
+      "position": "Positie",
+      "scale": "Schaal",
+      "rotation": "Rotatie"
+    },
+    "presets": {
+      "social_media": "Social media",
+      "square": "Vierkant (1:1)",
+      "portrait": "Portret (9:16)",
+      "landscape": "Landschap (16:9)",
+      "story": "Story (9:16)",
+      "tiktok": "TikTok (9:16)",
+      "instagram": "Instagram (1:1)",
+      "youtube": "YouTube (16:9)",
+      "twitter": "Twitter (16:9)"
+    }
+  },
+  "settings": {
+    "title": "Instellingen",
+    "subtitle": "Pas je voorkeuren aan",
+    "sections": {
+      "general": "Algemeen",
+      "processing": "Verwerking",
+      "export": "Export",
+      "advanced": "Geavanceerd",
+      "account": "Account",
+      "billing": "Facturatie",
+      "integrations": "Integraties"
+    },
+    "general": {
+      "language": "Taal",
+      "theme": "Thema",
+      "timezone": "Tijdzone",
+      "date_format": "Datumformaat",
+      "time_format": "Tijdformaat",
+      "auto_save": "Automatisch opslaan",
+      "notifications": "Meldingen",
+      "sound_effects": "Geluidseffecten"
+    },
+    "processing": {
+      "default_intent": "Standaard intentie",
+      "quality": "Kwaliteit",
+      "speed": "Snelheid",
+      "parallel_processing": "Parallel verwerken",
+      "gpu_acceleration": "GPU versnelling",
+      "memory_limit": "Geheugen limiet",
+      "temp_directory": "Tijdelijke map"
+    },
+    "export": {
+      "default_format": "Standaard formaat",
+      "default_quality": "Standaard kwaliteit",
+      "default_resolution": "Standaard resolutie",
+      "include_metadata": "Metadata toevoegen",
+      "watermark": "Watermerk",
+      "naming_convention": "Naamgeving"
+    },
+    "themes": {
+      "light": "Licht",
+      "dark": "Donker",
+      "auto": "Automatisch",
+      "system": "Systeem"
+    }
+  },
+  "projects": {
+    "title": "Projecten",
+    "subtitle": "Beheer je video projecten",
+    "create_new": "Nieuw project",
+    "search_placeholder": "Zoek projecten...",
+    "sort_by": "Sorteren op",
+    "filter_by": "Filteren op",
+    "sort_options": {
+      "name": "Naam",
+      "created": "Aangemaakt",
+      "modified": "Aangepast",
+      "size": "Grootte",
+      "duration": "Duur"
+    },
+    "filter_options": {
+      "all": "Alles",
+      "recent": "Recent",
+      "favorites": "Favorieten",
+      "shared": "Gedeeld",
+      "archived": "Gearchiveerd"
+    },
+    "project_actions": {
+      "open": "Openen",
+      "rename": "Hernoemen",
+      "duplicate": "Dupliceren",
+      "archive": "Archiveren",
+      "delete": "Verwijderen",
+      "share": "Delen",
+      "export": "Exporteren",
+      "favorite": "Favoriet",
+      "unfavorite": "Unfavoriet"
+    },
+    "project_info": {
+      "created": "Aangemaakt",
+      "modified": "Aangepast",
+      "clips": "Clips",
+      "duration": "Duur",
+      "size": "Grootte",
+      "format": "Formaat",
+      "quality": "Kwaliteit"
+    }
+  },
+  "analytics": {
+    "title": "Analytics",
+    "subtitle": "Inzichten in je video prestaties",
+    "metrics": {
+      "total_videos": "Totaal videos",
+      "total_clips": "Totaal clips",
+      "processing_time": "Verwerkingstijd",
+      "success_rate": "Succes percentage",
+      "avg_clip_duration": "Gemiddelde clip duur",
+      "most_popular_intent": "Populairste intentie",
+      "total_downloads": "Totaal downloads",
+      "storage_used": "Opslag gebruikt"
+    },
+    "charts": {
+      "daily_activity": "Dagelijkse activiteit",
+      "intent_distribution": "Intentie verdeling",
+      "clip_duration_distribution": "Clip duur verdeling",
+      "success_rate_over_time": "Succes percentage over tijd",
+      "processing_time_trends": "Verwerkingstijd trends",
+      "popular_formats": "Populaire formaten"
+    },
+    "time_ranges": {
+      "today": "Vandaag",
+      "yesterday": "Gisteren",
+      "last_7_days": "Laatste 7 dagen",
+      "last_30_days": "Laatste 30 dagen",
+      "last_90_days": "Laatste 90 dagen",
+      "last_year": "Laatste jaar",
+      "all_time": "Alle tijd"
+    }
+  },
+  "errors": {
+    "generic": "Er is een fout opgetreden",
+    "network": "Netwerkfout",
+    "server": "Serverfout",
+    "timeout": "Time-out",
+    "not_found": "Niet gevonden",
+    "forbidden": "Geen toegang",
+    "unauthorized": "Niet geautoriseerd",
+    "validation": "Validatiefout",
+    "file_too_large": "Bestand te groot",
+    "invalid_format": "Ongeldig formaat",
+    "processing_failed": "Verwerking mislukt",
+    "upload_failed": "Upload mislukt",
+    "download_failed": "Download mislukt",
+    "save_failed": "Opslaan mislukt",
+    "load_failed": "Laden mislukt",
+    "connection_lost": "Verbinding verloren",
+    "session_expired": "Sessie verlopen",
+    "quota_exceeded": "Quotum overschreden",
+    "rate_limit": "Te veel verzoeken",
+    "maintenance": "Onderhoud",
+    "try_again": "Probeer opnieuw",
+    "contact_support": "Contact opnemen met support",
+    "refresh_page": "Pagina verversen",
+    "check_connection": "Controleer verbinding"
+  },
+  "success": {
+    "generic": "Succesvol voltooid",
+    "upload": "Upload succesvol",
+    "download": "Download succesvol",
+    "save": "Opgeslagen",
+    "delete": "Verwijderd",
+    "copy": "Gekopieerd",
+    "share": "Gedeeld",
+    "export": "Geëxporteerd",
+    "import": "Geïmporteerd",
+    "sync": "Gesynchroniseerd",
+    "backup": "Back-up gemaakt",
+    "restore": "Hersteld",
+    "update": "Bijgewerkt",
+    "create": "Aangemaakt",
+    "duplicate": "Gedupliceerd",
+    "archive": "Gearchiveerd",
+    "unarchive": "Dearchiveerd"
+  },
+  "tooltips": {
+    "upload_file": "Sleep een bestand hierheen of klik om te selecteren",
+    "paste_url": "Plak een video URL van YouTube, Vimeo of andere platforms",
+    "processing_quality": "Hogere kwaliteit duurt langer maar geeft betere resultaten",
+    "clip_confidence": "Hoe zeker de AI is dat dit een goed clip is",
+    "edit_clip": "Pas de start- en eindtijd van het clip aan",
+    "download_clip": "Download het clip naar je apparaat",
+    "share_clip": "Deel het clip met anderen",
+    "copy_link": "Kopieer een link naar het clip",
+    "add_to_project": "Voeg toe aan een project voor later",
+    "full_screen": "Volledig scherm",
+    "loop": "Herhaal clip",
+    "mute": "Dempen",
+    "speed": "Afspeelsnelheid",
+    "quality": "Video kwaliteit",
+    "subtitles": "Ondertitels aan/uit",
+    "picture_in_picture": "Beeld-in-beeld modus"
+  },
+  "clips": {
+    "viral_moment": "Viraal Moment",
+    "key_highlight": "Hoogtepunt", 
+    "smart_summary": "Slimme Samenvatting",
+    "viral_short": "Viraal Moment",
+    "smart_content": "Slimme Content"
+  }
+}

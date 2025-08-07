@@ -1,0 +1,291 @@
+/**
+ * Button Component Styles
+ * Global button styling for consistent UI across all views
+ */
+
+/* Base Button Styles */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  white-space: nowrap;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Button Sizes */
+.btn-xs {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.btn-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.btn-lg {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+}
+
+/* Button Variants */
+.btn-primary {
+  background: var(--primary-500);
+  color: var(--gray-50);
+  border-color: var(--primary-500);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-600);
+  border-color: var(--primary-600);
+}
+
+.btn-secondary {
+  background: var(--gray-500);
+  color: var(--gray-50);
+  border-color: var(--gray-500);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--gray-700);
+  border-color: var(--gray-700);
+}
+
+.btn-outline {
+  background: var(--gray-50);
+  color: var(--gray-700);
+  border-color: var(--gray-300);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: var(--gray-100);
+  border-color: var(--gray-300);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--gray-500);
+  border-color: transparent;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--gray-100);
+  color: var(--gray-700);
+}
+
+.btn-link {
+  background: transparent;
+  color: var(--primary-500);
+  border-color: transparent;
+  text-decoration: underline;
+  padding: 0.25rem 0.5rem;
+}
+
+.btn-link:hover:not(:disabled) {
+  color: var(--primary-600);
+  background: var(--primary-50);
+  text-decoration: none;
+}
+
+/* Status Button Variants */
+.btn-success {
+  background: var(--success-500);
+  color: var(--gray-50);
+  border-color: var(--success-500);
+}
+
+.btn-success:hover:not(:disabled) {
+  background: var(--success-500);
+  border-color: var(--success-500);
+  opacity: 0.9;
+}
+
+.btn-warning {
+  background: var(--warning-500);
+  color: var(--gray-50);
+  border-color: var(--warning-500);
+}
+
+.btn-warning:hover:not(:disabled) {
+  background: var(--warning-500);
+  border-color: var(--warning-500);
+  opacity: 0.9;
+}
+
+.btn-danger {
+  background: var(--danger-500);
+  color: var(--gray-50);
+  border-color: var(--danger-500);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--danger-500);
+  border-color: var(--danger-500);
+  opacity: 0.9;
+}
+
+.btn-info {
+  background: #17a2b8;
+  color: #ffffff;
+  border-color: #17a2b8;
+}
+
+.btn-info:hover:not(:disabled) {
+  background: #138496;
+  border-color: #117a8b;
+}
+
+/* Help Toggle Button Specific Styling */
+.help-toggle {
+  background: #ffc107 !important;
+  color: #212529 !important;
+  border-color: #ffc107 !important;
+  font-weight: 600;
+}
+
+.help-toggle:hover:not(:disabled) {
+  background: #e0a800 !important;
+  border-color: #d39e00 !important;
+  color: #212529 !important;
+}
+
+/* Light variants for subtle actions */
+.btn-success-light {
+  background: var(--gray-100);
+  color: var(--success-500);
+  border-color: var(--gray-200);
+}
+
+.btn-success-light:hover:not(:disabled) {
+  background: var(--gray-200);
+}
+
+.btn-warning-light {
+  background: var(--gray-100);
+  color: var(--warning-500);
+  border-color: var(--gray-200);
+}
+
+.btn-warning-light:hover:not(:disabled) {
+  background: var(--gray-200);
+}
+
+.btn-danger-light {
+  background: var(--gray-100);
+  color: var(--danger-500);
+  border-color: var(--gray-200);
+}
+
+.btn-danger-light:hover:not(:disabled) {
+  background: var(--gray-200);
+}
+
+.btn-info-light {
+  background: var(--gray-100);
+  color: var(--primary-500);
+  border-color: var(--gray-200);
+}
+
+.btn-info-light:hover:not(:disabled) {
+  background: var(--gray-200);
+}
+
+/* Focus States for Accessibility */
+.btn:focus {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+.btn-danger:focus {
+  outline-color: var(--danger-500);
+}
+
+.btn-warning:focus {
+  outline-color: var(--warning-500);
+}
+
+.btn-success:focus {
+  outline-color: var(--success-500);
+}
+
+/* Button Groups */
+.btn-group {
+  display: inline-flex;
+  border-radius: 0.375rem;
+  overflow: hidden;
+}
+
+.btn-group .btn {
+  border-radius: 0;
+  border-right-width: 0;
+}
+
+.btn-group .btn:first-child {
+  border-top-left-radius: 0.375rem;
+  border-bottom-left-radius: 0.375rem;
+}
+
+.btn-group .btn:last-child {
+  border-top-right-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+  border-right-width: 1px;
+}
+
+/* Loading State */
+.btn.loading {
+  position: relative;
+  color: transparent;
+}
+
+.btn.loading::after {
+  content: '';
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: inherit;
+}
+
+@keyframes spin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .btn {
+    border-width: 2px;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+  
+  .btn.loading::after {
+    animation: none;
+  }
+}

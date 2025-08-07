@@ -1,0 +1,213 @@
+/**
+ * Help Modal Styles for Manager Performance View
+ * =============================================
+ */
+
+.help-modal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 9999 !important;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5) !important;
+    pointer-events: auto !important;
+}
+
+.help-modal.show {
+    display: flex !important;
+    visibility: visible !important;
+}
+
+.help-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    cursor: pointer;
+}
+
+.help-modal-content {
+    position: relative !important;
+    background: white !important;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    max-width: 600px;
+    max-height: 80vh;
+    min-height: 400px;
+    width: 90%;
+    display: flex !important;
+    flex-direction: column !important;
+    z-index: 10000 !important;
+}
+
+.help-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #f8f9fa;
+    border-radius: 8px 8px 0 0;
+}
+
+.help-modal-header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.help-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.help-modal-close:hover {
+    color: #333;
+    background: #e9ecef;
+    transform: scale(1.1);
+}
+
+.help-modal-body {
+    padding: 20px !important;
+    overflow-y: auto;
+    flex: 1 !important;
+    min-height: 200px;
+}
+
+.help-modal-footer {
+    padding: 20px;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: flex-end;
+    background: #f8f9fa;
+    border-radius: 0 0 8px 8px;
+}
+
+.help-section {
+    margin-bottom: 24px;
+}
+
+.help-section:last-child {
+    margin-bottom: 0;
+}
+
+.help-section h4 {
+    color: #2c5aa0;
+    margin-bottom: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.help-section p {
+    margin-bottom: 10px;
+    line-height: 1.6;
+    color: #555;
+    font-size: 14px;
+}
+
+.help-section p strong {
+    color: #333;
+    font-weight: 600;
+}
+
+.help-tips {
+    background: #f0f8f0;
+    padding: 16px;
+    border-radius: 6px;
+    margin-top: 20px;
+    border-left: 4px solid #4CAF50;
+}
+
+.help-tips h4 {
+    color: #2d5016;
+    margin-bottom: 12px;
+    font-size: 15px;
+}
+
+.help-tips p {
+    color: #2d5016;
+    font-size: 13px;
+}
+
+.help-btn {
+    background: transparent;
+    color: #999;
+    border: none;
+    border-radius: 50%;
+    padding: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    margin-left: 8px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    opacity: 0.6;
+}
+
+.help-btn:hover {
+    background: #f0f0f0;
+    color: #666;
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.manager-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.health-indicator {
+    font-size: 18px;
+}
+
+/* Button styles */
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+    transform: translateY(-1px);
+}

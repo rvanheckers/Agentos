@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "log_level": "INFO",
+  "log_format": "detailed",
+  "enable_file_logging": true,
+  "enable_console_logging": true,
+  "enable_io_logging": true,
+  "log_directory": "logs",
+  "max_file_size_mb": 50,
+  "backup_count": 5,
+  "date_rotation": true,
+  "performance_logging": true,
+  "component_specific_levels": {
+    "api_server": "INFO",
+    "workers": "INFO",
+    "agents": "WARN",
+    "database": "INFO",
+    "queue": "INFO",
+    "mcp": "INFO",
+    "io": "DEBUG",
+    "performance": "INFO"
+  },
+  "environments": {
+    "development": {
+      "log_level": "DEBUG",
+      "enable_io_logging": true,
+      "enable_console_logging": true
+    },
+    "production": {
+      "log_level": "INFO",
+      "enable_io_logging": false,
+      "enable_console_logging": false
+    },
+    "testing": {
+      "log_level": "ERROR",
+      "enable_file_logging": false,
+      "enable_console_logging": true
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "base_lines": 35000,
+  "max_lines": 45000,
+  "infrastructure_max": 300,
+  "file_limits": {
+    "api/main.py": 500,
+    "api_server.py": 400,
+    "logging_config.py": 300,
+    "database/manager.py": 400,
+    "database/models.py": 350,
+    "api/services/workflow_service.py": 400,
+    "api/services/media_source.py": 300,
+    "api/services/log_reader_service.py": 250,
+    "services/jobs_service.py": 400,
+    "services/workers_service.py": 350,
+    "services/agents_service.py": 350,
+    "services/analytics_service.py": 300,
+    "services/upload_service.py": 300,
+    "workers/video_worker.py": 500,
+    "websockets/websocket_server.py": 400,
+    "agents2/video_cutter.py": 400,
+    "agents2/intelligent_cropper.py": 300,
+    "agents2/face_detector.py": 300,
+    "ui-admin/src/main.js": 400,
+    "ui-v2/src/main.js": 400,
+    "ui-admin-clean/assets/js/main.js": 300,
+    "ui-admin/src/adapters/api/admin-api-client.js": 350,
+    "ui-v2/src/adapters/api/api-client.js": 350,
+    "scripts/dev-monitor.py": 300,
+    "script-monitoring/constraint_enforcer.py": 400
+  }
+}

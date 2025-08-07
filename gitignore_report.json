@@ -1,0 +1,63 @@
+{
+  "timestamp": "2025-08-07T20:36:02.524661",
+  "repo_path": "/mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/AgentOS",
+  "statistics": {
+    "tracked_files": 0,
+    "untracked_files": 0,
+    "ignored_files": 0
+  },
+  "io_folder_issues": {
+    "output": [
+      "io/output/0c43033c-b237-4e9e-b130-a24bf1544784/clip_1.mp4",
+      "io/output/0c43033c-b237-4e9e-b130-a24bf1544784/clip_2.mp4",
+      "io/output/0c43033c-b237-4e9e-b130-a24bf1544784/clip_3.mp4",
+      "io/output/0d6eb649-7fad-4334-87a3-f5ece6460301/clip_1.mp4",
+      "io/output/0d6eb649-7fad-4334-87a3-f5ece6460301/clip_2.mp4",
+      "io/output/0d6eb649-7fad-4334-87a3-f5ece6460301/clip_3.mp4",
+      "io/output/1011f4ef-d608-4fe3-ad8a-018fb79644a7/clip_1.mp4",
+      "io/output/1011f4ef-d608-4fe3-ad8a-018fb79644a7/clip_2.mp4",
+      "io/output/1011f4ef-d608-4fe3-ad8a-018fb79644a7/clip_3.mp4",
+      "io/output/8e1820c8-aa9a-4082-a8ea-c49c60e08364/clip_1.mp4",
+      "io/output/8e1820c8-aa9a-4082-a8ea-c49c60e08364/clip_2.mp4",
+      "io/output/8e1820c8-aa9a-4082-a8ea-c49c60e08364/clip_3.mp4",
+      "io/output/c563f60f-e800-4d97-918c-89b0e3cfba59/clip_1.mp4",
+      "io/output/c563f60f-e800-4d97-918c-89b0e3cfba59/clip_2.mp4",
+      "io/output/c563f60f-e800-4d97-918c-89b0e3cfba59/clip_3.mp4",
+      "io/output/cd2163af-84e3-4cfc-bdd1-c5cbf6101808/clip_1.mp4",
+      "io/output/cd2163af-84e3-4cfc-bdd1-c5cbf6101808/clip_2.mp4",
+      "io/output/f0979842-b452-44fb-9c9a-19217a2dab1e/clip_1.mp4",
+      "io/output/f0979842-b452-44fb-9c9a-19217a2dab1e/clip_2.mp4",
+      "io/output/f0979842-b452-44fb-9c9a-19217a2dab1e/clip_3.mp4",
+      "io/output/f62321e2-fc11-473a-9350-52acdfff3c24/clip_1.mp4",
+      "io/output/f62321e2-fc11-473a-9350-52acdfff3c24/clip_2.mp4",
+      "io/output/f62321e2-fc11-473a-9350-52acdfff3c24/clip_3.mp4"
+    ],
+    "input": [
+      "io/input/test_30sec.mp4",
+      "io/input/video_1752833499.mp4",
+      "io/input/02238c30-a287-4bf9-ba7b-316a7556bb1d/https___example.com_test.mp4.mp4",
+      "io/input/0a81fc6a-7711-4db9-a46a-f9f20d5e51cb/._io_input_test_video_27.mp4.mp4",
+      "io/input/0c43033c-b237-4e9e-b130-a24bf1544784/video_1752833499.mp4",
+      "io/input/1011f4ef-d608-4fe3-ad8a-018fb79644a7/video_1752833499.mp4",
+      "io/input/148f6d88-14a6-4ef8-8689-4f45557996b9/https___example.com_test_video.mp4.mp4",
+      "io/input/29a834f6-f368-429a-83f3-89607347dd41/https___example.com_test_video.mp4.mp4",
+      "io/input/4f0eaad3-a1fb-4b3b-8ab4-d5538aeb2a80/https___example.com_test_video.mp4.mp4",
+      "io/input/55c91740-5bd8-4825-a2e0-edd23be89a08/https___example.com_test_video.mp4.mp4",
+      "io/input/7efdb5eb-536b-41e7-9883-18a41f5f187b/https___example.com_test_video.mp4.mp4",
+      "io/input/8e1820c8-aa9a-4082-a8ea-c49c60e08364/video_1752833499.mp4",
+      "io/input/8e7f945e-0675-4d36-b9c2-d3434f099459/test.mp4",
+      "io/input/97658027-d049-481b-9251-ce528bb2d043/https___example.com_test_video.mp4.mp4",
+      "io/input/c563f60f-e800-4d97-918c-89b0e3cfba59/video_1752833499.mp4",
+      "io/input/cd2163af-84e3-4cfc-bdd1-c5cbf6101808/test_30sec.mp4",
+      "io/input/f0979842-b452-44fb-9c9a-19217a2dab1e/video_1752833499.mp4",
+      "io/input/f5e89365-0b8a-4ebf-a232-89d59fdc2022/https___example.com_test_video.mp4.mp4",
+      "io/input/f62321e2-fc11-473a-9350-52acdfff3c24/video_1752833499.mp4"
+    ]
+  },
+  "gitignore_validation": {
+    "issues": [],
+    "recommendations": [
+      "Missing Python patterns: *.pyc"
+    ]
+  }
+}
