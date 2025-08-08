@@ -3,11 +3,19 @@
  * Single service for all admin actions using the unified action endpoint
  */
 
-import { v4 as uuidv4 } from 'uuid';
+// Browser-compatible UUID generator (no external dependencies)
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
 
 class ActionService {
   constructor() {
-    this.baseUrl = '/api/admin/action';
+    // Use absolute URL to API server (port 8001) since admin UI runs on different port (8004)
+    this.baseUrl = 'http://localhost:8001/api/admin/action';
     this.defaultHeaders = {
       'Content-Type': 'application/json',
       'Accept': 'application/json'
@@ -18,7 +26,7 @@ class ActionService {
    * Generate trace ID for request tracking
    */
   generateTraceId() {
-    return uuidv4();
+    return generateUUID();
   }
 
   /**
@@ -266,7 +274,7 @@ class ActionService {
    */
   async executeBatch(actions) {
     const results = [];
-    const batchId = uuidv4();
+    const batchId = generateUUID();
     
     console.log(`🔄 Executing batch of ${actions.length} actions`, { batchId });
 

@@ -7,7 +7,7 @@ import asyncio
 import json
 import time
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional, Callable
+from typing import Dict, Any, Optional, Callable, List
 from uuid import uuid4
 import logging
 
@@ -16,7 +16,7 @@ from services.jobs_service import JobsService
 from services.queue_service import QueueService
 from services.worker_service import WorkerService
 from services.system_service import SystemService
-from services.cache_service import CacheService
+from services.admin_data_manager import AdminDataManager
 
 # Enterprise features
 from services.idempotency_service import IdempotencyService
@@ -50,7 +50,7 @@ class ActionDispatcher:
         self._queue_service = None
         self._worker_service = None
         self._system_service = None
-        self._cache_service = None
+        self._admin_data_manager = None
         
         # Enterprise services
         self.idempotency = IdempotencyService()
@@ -86,10 +86,10 @@ class ActionDispatcher:
         return self._system_service
     
     @property
-    def cache_service(self):
-        if not self._cache_service:
-            self._cache_service = CacheService()
-        return self._cache_service
+    def admin_data_manager(self):
+        if not self._admin_data_manager:
+            self._admin_data_manager = AdminDataManager()
+        return self._admin_data_manager
     
     # ============ ACTION REGISTRY ============
     
@@ -104,7 +104,7 @@ class ActionDispatcher:
         ActionType.QUEUE_CLEAR: lambda self, p, **kw: self.queue_service.clear_queue(**p, **kw),
         ActionType.QUEUE_PAUSE: lambda self, p, **kw: self.queue_service.pause_processing(**p, **kw),
         ActionType.QUEUE_RESUME: lambda self, p, **kw: self.queue_service.resume_processing(**p, **kw),
-        ActionType.QUEUE_DRAIN: lambda self, p, **kw: self.queue_service.drain_queue(**p, **kw),
+        ActionType.QUEUE_DRAIN: lambda self, p, **kw: self.queue_service.clear_queue(**p, **kw),
         
         # Worker Actions
         ActionType.WORKER_RESTART: lambda self, p, **kw: self.worker_service.restart_worker(**p, **kw),
@@ -115,8 +115,8 @@ class ActionDispatcher:
         # System Actions
         ActionType.SYSTEM_BACKUP: lambda self, p, **kw: self.system_service.create_backup(**p, **kw),
         ActionType.SYSTEM_MAINTENANCE: lambda self, p, **kw: self.system_service.set_maintenance(**p, **kw),
-        ActionType.CACHE_CLEAR: lambda self, p, **kw: self.cache_service.clear_cache(**p, **kw),
-        ActionType.CACHE_WARM: lambda self, p, **kw: self.cache_service.warm_cache(**p, **kw),
+        ActionType.CACHE_CLEAR: lambda self, p, **kw: self.admin_data_manager.clear_cache(**p, **kw),
+        ActionType.CACHE_WARM: lambda self, p, **kw: self.admin_data_manager.warm_cache(**p, **kw),
     }
     
     # ============ ACTION CONFIGURATION ============
@@ -342,7 +342,9 @@ class ActionDispatcher:
             timeout = config.get("timeout", 30)
             
             if config.get("circuit_breaker", True):
-                with CircuitBreaker(f"action:{action}"):
+                # Create circuit breaker instance and use its context manager
+                circuit_breaker = CircuitBreaker(f"action:{action}")
+                with circuit_breaker():
                     result = await asyncio.wait_for(
                         self._execute_handler(handler, payload, user=user, trace_id=trace_id, **options),
                         timeout=timeout
@@ -434,9 +436,15 @@ class ActionDispatcher:
         try:
             # Call handler with payload and options
             if asyncio.iscoroutinefunction(handler):
-                return await handler(self, payload, **kwargs)
+                result = await handler(self, payload, **kwargs)
             else:
-                return handler(self, payload, **kwargs)
+                result = handler(self, payload, **kwargs)
+            
+            # If result is a coroutine (from lambda calling async method), await it
+            if asyncio.iscoroutine(result):
+                result = await result
+                
+            return result
         except Exception as e:
             logger.error(f"Handler execution failed: {e}")
             raise
