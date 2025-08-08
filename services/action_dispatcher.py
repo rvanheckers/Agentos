@@ -104,7 +104,7 @@ class ActionDispatcher:
         ActionType.QUEUE_CLEAR: lambda self, p, **kw: self.queue_service.clear_queue(**p, **kw),
         ActionType.QUEUE_PAUSE: lambda self, p, **kw: self.queue_service.pause_processing(**p, **kw),
         ActionType.QUEUE_RESUME: lambda self, p, **kw: self.queue_service.resume_processing(**p, **kw),
-        ActionType.QUEUE_DRAIN: lambda self, p, **kw: self.queue_service.drain_queue(**p, **kw),
+        ActionType.QUEUE_DRAIN: lambda self, p, **kw: self.queue_service.clear_queue(**p, **kw),
         
         # Worker Actions
         ActionType.WORKER_RESTART: lambda self, p, **kw: self.worker_service.restart_worker(**p, **kw),
@@ -436,9 +436,15 @@ class ActionDispatcher:
         try:
             # Call handler with payload and options
             if asyncio.iscoroutinefunction(handler):
-                return await handler(self, payload, **kwargs)
+                result = await handler(self, payload, **kwargs)
             else:
-                return handler(self, payload, **kwargs)
+                result = handler(self, payload, **kwargs)
+            
+            # If result is a coroutine (from lambda calling async method), await it
+            if asyncio.iscoroutine(result):
+                result = await result
+                
+            return result
         except Exception as e:
             logger.error(f"Handler execution failed: {e}")
             raise
