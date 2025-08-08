@@ -1,0 +1,12 @@
+# Ignore all MD files in root directory
+/*.md
+
+# Ignore all subdirectories except current/
+/Temp/
+/archive/
+/help/
+/refactorendpointcalls/
+
+# Include only current/ directory with its MD files
+!/current/
+!/current/*.md

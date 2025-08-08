@@ -9,6 +9,7 @@ import { getCentralDataService } from '../services/central-data-service.js';
 import { HelpService } from '../services/HelpService.js';
 import { HelpPanel } from '../components/HelpPanel.js';
 import { JobsQueueHelpProvider } from '../help-providers/JobsQueueHelpProvider.js';
+import { actionService } from '../../../src/services/ActionService.js';
 
 export class JobHistory {
   constructor(apiClient, container) {
@@ -368,6 +369,29 @@ export class JobHistory {
       if (e.target.classList.contains('job-link')) {
         e.preventDefault();
         this.showJobDetails(e.target.dataset.jobId);
+      }
+    });
+
+    // Queue management actions
+    document.addEventListener('click', (e) => {
+      // Manual refresh button
+      if (e.target.closest('#manual-refresh')) {
+        this.handleManualRefresh();
+      }
+      
+      // Toggle monitoring/queue pause button
+      if (e.target.closest('#toggle-monitoring')) {
+        this.handleToggleMonitoring();
+      }
+      
+      // Refresh analytics button
+      if (e.target.closest('#refresh-analytics')) {
+        this.updateQueueAnalytics();
+      }
+      
+      // Refresh workers button
+      if (e.target.closest('#refresh-workers')) {
+        this.updateWorkerHealth();
       }
     });
   }
@@ -2111,8 +2135,15 @@ export class JobHistory {
   
   async retryJob(jobId) {
     try {
-      // For now, simulate retry action
-      console.log(`🔄 Retrying job ${jobId}...`);
+      console.log(`🔄 Retrying job ${jobId} using ActionService...`);
+      
+      // Show loading state
+      this.showActionLoading(jobId, 'retry');
+      
+      // Call the unified action endpoint
+      const result = await actionService.retryJob(jobId);
+      
+      console.log(`✅ Job ${jobId} retry request successful:`, result);
       
       // Update job status locally for immediate feedback
       const job = this.jobs.find(j => j.id === jobId);
@@ -2125,16 +2156,29 @@ export class JobHistory {
       // Re-render to show updated status
       this.renderCurrentView();
       
-      console.log(`✅ Job ${jobId} queued for retry`);
+      // Show success message
+      this.showActionSuccess(`Job ${jobId} has been queued for retry`);
+      
     } catch (error) {
       console.error(`❌ Failed to retry job ${jobId}:`, error);
+      this.showActionError(`Failed to retry job ${jobId}: ${error.message}`);
       throw error;
+    } finally {
+      this.hideActionLoading(jobId);
     }
   }
   
   async cancelJob(jobId) {
     try {
-      console.log(`⏹️ Cancelling job ${jobId}...`);
+      console.log(`⏹️ Cancelling job ${jobId} using ActionService...`);
+      
+      // Show loading state
+      this.showActionLoading(jobId, 'cancel');
+      
+      // Call the unified action endpoint
+      const result = await actionService.cancelJob(jobId);
+      
+      console.log(`✅ Job ${jobId} cancel request successful:`, result);
       
       // Update job status locally for immediate feedback
       const job = this.jobs.find(j => j.id === jobId);
@@ -2146,10 +2190,15 @@ export class JobHistory {
       // Re-render to show updated status
       this.renderCurrentView();
       
-      console.log(`✅ Job ${jobId} cancelled`);
+      // Show success message
+      this.showActionSuccess(`Job ${jobId} has been cancelled`);
+      
     } catch (error) {
       console.error(`❌ Failed to cancel job ${jobId}:`, error);
+      this.showActionError(`Failed to cancel job ${jobId}: ${error.message}`);
       throw error;
+    } finally {
+      this.hideActionLoading(jobId);
     }
   }
 
@@ -2233,6 +2282,197 @@ export class JobHistory {
   showError(message) {
     console.error(message);
     // TODO: Implement proper error notification system
+  }
+
+  // =============================================================================
+  // QUEUE MANAGEMENT ACTIONS
+  // =============================================================================
+
+  async handleManualRefresh() {
+    try {
+      console.log('🔄 Manual refresh triggered');
+      this.showTemporaryNotification('Refreshing job data...', 'info');
+      await this.loadJobHistory();
+    } catch (error) {
+      console.error('❌ Manual refresh failed:', error);
+      this.showActionError('Failed to refresh job data');
+    }
+  }
+
+  async handleToggleMonitoring() {
+    try {
+      const button = document.getElementById('toggle-monitoring');
+      if (!button) return;
+
+      const isPaused = this.isMonitoringPaused;
+      const action = isPaused ? 'resume' : 'pause';
+      
+      console.log(`${action === 'pause' ? '⏸️' : '▶️'} ${action} queue monitoring`);
+      
+      // Show loading state
+      button.disabled = true;
+      button.querySelector('.btn__icon').textContent = '⏳';
+      
+      if (action === 'pause') {
+        // Use ActionService to pause queue
+        await actionService.pauseQueue('default');
+        
+        this.isMonitoringPaused = true;
+        button.querySelector('.btn__icon').textContent = '▶️';
+        button.innerHTML = `<span class="btn__icon">▶️</span> Resume Queue`;
+        
+        this.showActionSuccess('Queue processing has been paused');
+        
+        // Stop auto-refresh
+        if (this.refreshTimer) {
+          clearInterval(this.refreshTimer);
+        }
+        
+      } else {
+        // Use ActionService to resume queue
+        await actionService.resumeQueue('default');
+        
+        this.isMonitoringPaused = false;
+        button.querySelector('.btn__icon').textContent = '⏸️';
+        button.innerHTML = `<span class="btn__icon">⏸️</span> Pause Queue`;
+        
+        this.showActionSuccess('Queue processing has been resumed');
+        
+        // Restart auto-refresh
+        this.startAutoRefresh();
+      }
+      
+    } catch (error) {
+      console.error('❌ Failed to toggle queue monitoring:', error);
+      this.showActionError(`Failed to ${this.isMonitoringPaused ? 'resume' : 'pause'} queue: ${error.message}`);
+    } finally {
+      // Re-enable button
+      const button = document.getElementById('toggle-monitoring');
+      if (button) {
+        button.disabled = false;
+      }
+    }
+  }
+
+  // =============================================================================
+  // ACTION UI FEEDBACK METHODS
+  // =============================================================================
+
+  showActionLoading(jobId, action) {
+    const actionBtn = document.querySelector(`[data-job-id="${jobId}"].action-btn--${action}`);
+    if (actionBtn) {
+      actionBtn.disabled = true;
+      actionBtn.textContent = action === 'retry' ? '🔄 Retrying...' : '⏹️ Cancelling...';
+      actionBtn.classList.add('action-btn--loading');
+    }
+  }
+
+  hideActionLoading(jobId) {
+    const actionBtns = document.querySelectorAll(`[data-job-id="${jobId}"].action-btn`);
+    actionBtns.forEach(btn => {
+      btn.disabled = false;
+      btn.classList.remove('action-btn--loading');
+      
+      // Reset button text based on type
+      if (btn.classList.contains('action-btn--retry')) {
+        btn.textContent = '🔄';
+        btn.title = 'Retry';
+      } else if (btn.classList.contains('action-btn--cancel')) {
+        btn.textContent = '⏹️';
+        btn.title = 'Cancel';
+      }
+    });
+  }
+
+  showActionSuccess(message) {
+    console.log(`✅ ${message}`);
+    // Create temporary success notification
+    this.showTemporaryNotification(message, 'success');
+  }
+
+  showActionError(message) {
+    console.error(`❌ ${message}`);
+    // Create temporary error notification
+    this.showTemporaryNotification(message, 'error');
+  }
+
+  showTemporaryNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `action-notification action-notification--${type}`;
+    notification.innerHTML = `
+      <div class="notification-content">
+        <span class="notification-icon">${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+        <span class="notification-message">${message}</span>
+      </div>
+    `;
+
+    // Add to page header actions
+    const headerActions = document.querySelector('.page-header__actions');
+    if (headerActions) {
+      headerActions.appendChild(notification);
+    }
+
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 3000);
+
+    // Add CSS if not already added
+    if (!document.getElementById('action-notifications-css')) {
+      const style = document.createElement('style');
+      style.id = 'action-notifications-css';
+      style.textContent = `
+        .action-notification {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          z-index: 1000;
+          padding: 0.75rem 1rem;
+          border-radius: 6px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+          animation: slideInRight 0.3s ease-out;
+        }
+        .action-notification--success {
+          background: #d4edda;
+          color: #155724;
+          border: 1px solid #c3e6cb;
+        }
+        .action-notification--error {
+          background: #f8d7da;
+          color: #721c24;
+          border: 1px solid #f5c6cb;
+        }
+        .action-notification--info {
+          background: #d1ecf1;
+          color: #0c5460;
+          border: 1px solid #bee5eb;
+        }
+        .notification-content {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        .notification-icon {
+          font-size: 1rem;
+        }
+        .notification-message {
+          font-size: 0.9rem;
+          font-weight: 500;
+        }
+        @keyframes slideInRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        .action-btn--loading {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+      `;
+      document.head.appendChild(style);
+    }
   }
 
   // Removed auto-refresh - job history doesn't need real-time updates
