@@ -231,6 +231,6 @@ ui-admin-clean/.../Dashboard.js    # Frontend
 **V3:** Database → API → Frontend (traag, veel calls)  
 **V4:** Background Robot → Cache → API → Frontend (snel, één call)
 
-**Resultaat:** Van 6,4 seconden naar 0,005 seconden. Dashboard voelt nu aan als een native app!
+**Resultaat:** Van 6,4 seconden naar 0,005 seconden. Dashboard voelt nu aan als een native app! (niet meer vermelden weet ik nu wel)
 
 **De kracht zit in:** Slim cachen + background warming + parallel fetching = snelheid waar gebruikers blij van worden.

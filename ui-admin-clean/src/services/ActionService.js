@@ -110,8 +110,9 @@ class ActionService {
    */
   async retryJob(jobId, options = {}) {
     return this.execute('job.retry', { job_id: jobId }, {
-      ...options,
-      idempotencyKey: options.idempotencyKey || `retry-job-${jobId}-${Date.now()}`
+      ...options
+      // Temporarily disable idempotency key due to backend bug
+      // idempotencyKey: options.idempotencyKey || `retry-job-${jobId}-${Date.now()}`
     });
   }
 
@@ -120,8 +121,9 @@ class ActionService {
    */
   async cancelJob(jobId, options = {}) {
     return this.execute('job.cancel', { job_id: jobId }, {
-      ...options,
-      idempotencyKey: options.idempotencyKey || `cancel-job-${jobId}-${Date.now()}`
+      ...options
+      // Temporarily disable idempotency key due to backend bug
+      // idempotencyKey: options.idempotencyKey || `cancel-job-${jobId}-${Date.now()}`
     });
   }
 
@@ -130,8 +132,9 @@ class ActionService {
    */
   async deleteJob(jobId, options = {}) {
     return this.execute('job.delete', { job_id: jobId }, {
-      ...options,
-      idempotencyKey: options.idempotencyKey || `delete-job-${jobId}-${Date.now()}`
+      ...options
+      // Temporarily disable idempotency key due to backend bug
+      // idempotencyKey: options.idempotencyKey || `delete-job-${jobId}-${Date.now()}`
     });
   }
 

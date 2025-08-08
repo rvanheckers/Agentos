@@ -115,7 +115,7 @@ class JobsService:
                 return True
             return False
     
-    def delete_job(self, job_id: str, user_id: Optional[str] = None, is_admin: bool = False) -> bool:
+    def delete_job(self, job_id: str, user_id: Optional[str] = None, is_admin: bool = False, **kwargs) -> Dict[str, Any]:
         """Delete a job
         Only admin or job owner can delete"""
         with self.db.get_session() as session:
@@ -131,8 +131,16 @@ class JobsService:
                 session.query(Clip).filter(Clip.job_id == job_id).delete()
                 session.delete(job)
                 session.commit()
-                return True
-            return False
+                return {
+                    "success": True,
+                    "job_id": job_id,
+                    "message": "Job and associated clips deleted successfully"
+                }
+            return {
+                "success": False,
+                "job_id": job_id,
+                "message": "Job not found or unauthorized"
+            }
     
     def get_jobs_by_status(self, status: str, user_id: Optional[str] = None, is_admin: bool = False) -> List[Dict[str, Any]]:
         """Get all jobs with specific status
@@ -188,18 +196,67 @@ class JobsService:
                 "success_rate": (completed / total * 100) if total > 0 else 0
             }
     
-    def cancel_job(self, job_id: str, user_id: Optional[str] = None, is_admin: bool = False) -> bool:
+    def cancel_job(self, job_id: str, user_id: Optional[str] = None, is_admin: bool = False, **kwargs) -> Dict[str, Any]:
         """Cancel a job
         Only admin or job owner can cancel"""
-        return self.update_job_status(job_id, "cancelled", user_id=user_id, is_admin=is_admin)
+        # First check if job exists
+        job = self.get_job_by_id(job_id, user_id, is_admin)
+        if not job:
+            return {
+                "success": False,
+                "job_id": job_id,
+                "new_status": "unknown",
+                "message": f"Job not found or access denied"
+            }
+        
+        # Check if job can be cancelled
+        if job["status"] in ["completed", "cancelled", "failed"]:
+            return {
+                "success": False,
+                "job_id": job_id,
+                "new_status": job["status"],
+                "message": f"Cannot cancel job with status '{job['status']}'"
+            }
+        
+        # Try to cancel the job
+        success = self.update_job_status(job_id, "cancelled", user_id=user_id, is_admin=is_admin)
+        return {
+            "success": success,
+            "job_id": job_id,
+            "new_status": "cancelled" if success else job["status"],
+            "message": "Job cancelled successfully" if success else "Failed to cancel job"
+        }
     
-    def retry_job(self, job_id: str, user_id: Optional[str] = None, is_admin: bool = False) -> bool:
+    def retry_job(self, job_id: str, user_id: Optional[str] = None, is_admin: bool = False, **kwargs) -> Dict[str, Any]:
         """Retry a failed job
         Only admin or job owner can retry"""
+        # First check if job exists
         job = self.get_job_by_id(job_id, user_id, is_admin)
-        if job and job["status"] == "failed":
-            return self.update_job_status(job_id, "queued", progress=0, user_id=user_id, is_admin=is_admin)
-        return False
+        if not job:
+            return {
+                "success": False,
+                "job_id": job_id,
+                "new_status": "unknown",
+                "message": f"Job not found or access denied"
+            }
+        
+        # Check if job can be retried
+        if job["status"] != "failed":
+            return {
+                "success": False,
+                "job_id": job_id,
+                "new_status": job["status"],
+                "message": f"Cannot retry job with status '{job['status']}' - only failed jobs can be retried"
+            }
+        
+        # Try to retry the job
+        success = self.update_job_status(job_id, "queued", progress=0, user_id=user_id, is_admin=is_admin)
+        return {
+            "success": success,
+            "job_id": job_id,
+            "new_status": "queued" if success else job["status"],
+            "message": "Job queued for retry" if success else "Failed to retry job"
+        }
     
     def get_recent_jobs(self, limit: int = 10, user_id: Optional[str] = None, is_admin: bool = False) -> List[Dict[str, Any]]:
         """Get most recent jobs

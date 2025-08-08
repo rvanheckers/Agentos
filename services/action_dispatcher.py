@@ -29,6 +29,9 @@ from services.audit_log import AuditLog
 from api.models.action_models import ActionType
 from events.dispatcher import EventDispatcher
 
+# Smart Cache Invalidation
+from services.smart_cache_invalidator import get_cache_invalidator
+
 logger = logging.getLogger("agentos.action_dispatcher")
 
 class ActionDispatcher:
@@ -58,6 +61,9 @@ class ActionDispatcher:
         self.rate_limiter = RateLimiter()
         self.audit = AuditLog()
         self.events = EventDispatcher()
+        
+        # Smart cache invalidation
+        self.cache_invalidator = get_cache_invalidator()
     
     # ============ SERVICE PROPERTIES (Lazy Loading) ============
     
@@ -95,9 +101,9 @@ class ActionDispatcher:
     
     ACTION_HANDLERS: Dict[ActionType, Callable] = {
         # Job Actions
-        ActionType.JOB_RETRY: lambda self, p, **kw: self.jobs_service.retry_job(**p, **kw),
-        ActionType.JOB_CANCEL: lambda self, p, **kw: self.jobs_service.cancel_job(**p, **kw),
-        ActionType.JOB_DELETE: lambda self, p, **kw: self.jobs_service.delete_job(**p, **kw),
+        ActionType.JOB_RETRY: lambda self, p, **kw: self.jobs_service.retry_job(job_id=str(p['job_id']), is_admin=True),
+        ActionType.JOB_CANCEL: lambda self, p, **kw: self.jobs_service.cancel_job(job_id=str(p['job_id']), is_admin=True),
+        ActionType.JOB_DELETE: lambda self, p, **kw: self.jobs_service.delete_job(job_id=str(p['job_id']), is_admin=True),
         ActionType.JOB_PRIORITY: lambda self, p, **kw: self.jobs_service.set_job_priority(**p, **kw),
         
         # Queue Actions
@@ -320,10 +326,13 @@ class ActionDispatcher:
                     logger.info("Returning cached result (idempotent)", extra=log_context)
                     return cached_result
             
-            # 3. Rate limiting
-            rate_limit = config.get("rate_limit", {"requests": 100, "window": 60})
-            if not await self.rate_limiter.check(user.id, action, **rate_limit):
-                raise ValueError("Rate limit exceeded for this action")
+            # 3. Rate limiting (BYPASS FOR SUPER ADMIN)
+            if not (hasattr(user, 'is_admin') and user.is_admin):
+                rate_limit = config.get("rate_limit", {"requests": 100, "window": 60})
+                if not await self.rate_limiter.check(user.id, action, **rate_limit):
+                    raise ValueError("Rate limit exceeded for this action")
+            else:
+                logger.info(f"Rate limit bypassed for admin user: {user.id}", extra=log_context)
             
             # 4. Authorization
             permissions = config.get("permissions", ["admin"])
@@ -372,9 +381,10 @@ class ActionDispatcher:
                     execution_time_ms=execution_time
                 )
             
-            # 8. Event propagation
+            # 8. Event propagation AND Smart Cache Invalidation
             events = config.get("events", [])
             for event in events:
+                # Traditional event dispatch
                 await self.events.dispatch(event, {
                     **payload,
                     "action": action.value,
@@ -383,6 +393,31 @@ class ActionDispatcher:
                     "result": result,
                     "timestamp": datetime.now(timezone.utc).isoformat()
                 })
+                
+                # Smart cache invalidation for cache-related events
+                if event == "cache:invalidate" or "cache" in event:
+                    await self.cache_invalidator.invalidate(event)
+                    logger.debug(f"Smart cache invalidation triggered for event: {event}")
+            
+            # CRITICAL FIX: Always trigger cache invalidation for job actions
+            if action.value.startswith("job."):
+                # Map job actions to cache invalidation events
+                cache_event_mapping = {
+                    "job.retry": "job:retry_requested",
+                    "job.cancel": "job:cancelled", 
+                    "job.delete": "job:deleted"
+                }
+                
+                cache_event = cache_event_mapping.get(action.value)
+                if cache_event:
+                    await self.cache_invalidator.invalidate(cache_event)
+                    logger.info(f"Dashboard cache invalidation triggered for {action.value} -> {cache_event}")
+            
+            # Queue actions cache invalidation
+            elif action.value.startswith("queue."):
+                if action.value == "queue.clear":
+                    await self.cache_invalidator.invalidate("queue:cleared")
+                    logger.info(f"Queue cache invalidation triggered for {action.value}")
             
             # 9. Success logging
             logger.info(

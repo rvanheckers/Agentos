@@ -46,28 +46,50 @@ class TestDataGenerator:
     
     def __init__(self, db_manager: PostgreSQLManager):
         self.db = db_manager
-        self.video_titles = [
-            "TikTok Dance Challenge Compilation",
-            "Epic Gaming Moments Montage", 
-            "Street Food Tour Bangkok",
-            "Unboxing Latest iPhone",
-            "Morning Workout Routine",
-            "Cooking Pasta from Scratch",
-            "City Skyline Timelapse",
-            "Pet Tricks and Funny Moments",
-            "DIY Home Renovation",
-            "Music Festival Highlights",
-            "Beach Sunset Photography",
-            "Tech Review: New Laptop",
-            "Travel Vlog: Paris Adventure",
-            "Recipe: Homemade Pizza",
-            "Fitness Transformation",
-            "Art Tutorial: Watercolor",
-            "Comedy Sketch Performance",
-            "Nature Documentary Clips",
-            "Fashion Haul Spring 2024",
-            "Car Review: Electric Vehicle"
-        ]
+        # Expanded video titles for more variety each run
+        title_categories = {
+            'entertainment': [
+                "TikTok Dance Challenge Compilation", "Epic Gaming Moments Montage", 
+                "Comedy Sketch Performance", "Music Festival Highlights", "Pet Tricks and Funny Moments",
+                "Behind the Scenes Movie Magic", "Stand-up Comedy Special", "Concert Highlights Reel",
+                "Viral Meme Compilation", "Celebrity Interview Clips"
+            ],
+            'education': [
+                "Tech Review: New Laptop", "Art Tutorial: Watercolor", "Science Experiment Demo",
+                "Language Learning Tips", "History Documentary Short", "Math Problem Solutions",
+                "Physics Explained Simply", "Chemistry Lab Experiment", "Biology Field Study"
+            ],
+            'lifestyle': [
+                "Morning Workout Routine", "Cooking Pasta from Scratch", "DIY Home Renovation",
+                "Recipe: Homemade Pizza", "Fitness Transformation", "Interior Design Makeover",
+                "Skincare Routine Guide", "Meditation and Mindfulness", "Productivity Hacks",
+                "Travel Packing Tips", "Budget Living Guide"
+            ],
+            'travel': [
+                "Street Food Tour Bangkok", "Travel Vlog: Paris Adventure", "Beach Sunset Photography",
+                "Mountain Hiking Adventure", "City Architecture Tour", "Cultural Festival Experience",
+                "Road Trip Across Country", "Hotel Review Luxury", "Backpacking Europe Guide"
+            ],
+            'tech': [
+                "Unboxing Latest iPhone", "City Skyline Timelapse", "Drone Photography Tips",
+                "Smart Home Setup Guide", "App Development Tutorial", "AI Technology Explained",
+                "VR Gaming Experience", "3D Printing Projects", "Coding Bootcamp Day 1"
+            ],
+            'fashion': [
+                "Fashion Haul Spring 2024", "Vintage Clothing Finds", "Sustainable Fashion Guide",
+                "Makeup Tutorial Evening Look", "Wardrobe Organization Tips", "Designer vs Budget Fashion"
+            ]
+        }
+        
+        # Randomly select titles from different categories for variety
+        self.video_titles = []
+        for category, titles in title_categories.items():
+            # Take random samples from each category
+            sample_size = min(random.randint(2, 4), len(titles))
+            self.video_titles.extend(random.sample(titles, sample_size))
+        
+        # Shuffle the final list
+        random.shuffle(self.video_titles)
         
         self.processing_steps = [
             "video_download",
@@ -84,31 +106,41 @@ class TestDataGenerator:
             "final_rendering"
         ]
         
-        self.user_ids = [
-            "user_001_demo",
-            "user_002_beta",
-            "user_003_premium", 
-            "user_004_basic",
-            "user_005_trial",
-            "user_006_enterprise",
-            "user_007_creator",
-            "user_008_business",
-            "user_009_student",
-            "user_010_admin"
-        ]
+        # Generate random user variety each run
+        user_types = ['demo', 'beta', 'premium', 'basic', 'trial', 'enterprise', 'creator', 'business', 'student', 'admin', 'pro', 'starter', 'expert']
+        user_names = ['alex', 'jamie', 'taylor', 'morgan', 'casey', 'jordan', 'riley', 'avery', 'blake', 'drew', 'sage', 'parker', 'Quinn']
         
-        self.video_urls = [
-            "https://example.com/videos/tiktok_dance_001.mp4",
-            "https://example.com/videos/gaming_montage_002.mp4",
-            "https://example.com/videos/food_tour_003.mp4",
-            "https://example.com/videos/unboxing_004.mp4",
-            "https://example.com/videos/workout_005.mp4",
-            "https://youtube.com/watch?v=dQw4w9WgXcQ",
-            "https://vimeo.com/123456789",
-            "https://example.com/videos/cooking_pasta.mp4",
-            "https://example.com/videos/timelapse_city.mp4",
-            "https://example.com/videos/pet_tricks.mp4"
-        ]
+        self.user_ids = []
+        for i in range(random.randint(8, 15)):  # Variable number of users
+            user_name = random.choice(user_names)
+            user_type = random.choice(user_types) 
+            user_num = random.randint(100, 999)
+            self.user_ids.append(f"user_{user_name}_{user_type}_{user_num}")
+        
+        # Always include admin for testing
+        self.user_ids.append("admin_test_001")
+        
+        # Generate varied video URLs each run
+        domains = ['example.com', 'testvids.io', 'mediademo.net', 'videohub.test', 'contentstream.dev']
+        video_types = ['tutorial', 'vlog', 'review', 'demo', 'compilation', 'guide', 'showcase', 'experiment']
+        
+        self.video_urls = []
+        # Add some YouTube/Vimeo URLs for variety
+        youtube_ids = ['dQw4w9WgXcQ', 'abc123def456', 'xyz789uvw012', 'test123vid456', 'demo789abc012']
+        vimeo_ids = [random.randint(100000000, 999999999) for _ in range(3)]
+        
+        for yt_id in random.sample(youtube_ids, random.randint(1, 3)):
+            self.video_urls.append(f"https://youtube.com/watch?v={yt_id}")
+        for vm_id in random.sample(vimeo_ids, random.randint(1, 2)):
+            self.video_urls.append(f"https://vimeo.com/{vm_id}")
+            
+        # Add custom domain URLs
+        for _ in range(random.randint(6, 12)):
+            domain = random.choice(domains)
+            video_type = random.choice(video_types)
+            video_num = random.randint(1000, 9999)
+            quality = random.choice(['720p', '1080p', '4k', 'hd'])
+            self.video_urls.append(f"https://{domain}/videos/{video_type}_{quality}_{video_num}.mp4")
         
         self.event_types = [
             "job_created", "job_started", "job_completed", "job_failed",
@@ -148,7 +180,10 @@ class TestDataGenerator:
 
     def generate_jobs(self, count: int = 50) -> List[str]:
         """Genereer test jobs met realistische data"""
-        logger.info(f"📋 Generating {count} test jobs...")
+        logger.info(f"📋 Generating {count} test jobs with randomized variety...")
+        logger.info(f"🎲 Generated {len(self.video_titles)} unique video titles across categories")
+        logger.info(f"🎲 Generated {len(self.user_ids)} diverse user accounts")
+        logger.info(f"🎲 Generated {len(self.video_urls)} varied video URLs") 
         job_ids = []
         
         try:
@@ -161,13 +196,25 @@ class TestDataGenerator:
                         minutes=random.randint(0, 59)
                     )
                     
-                    # Determine job status with realistic distribution
-                    status_weights = {
-                        'completed': 60,  # 60% completed
-                        'failed': 15,     # 15% failed  
-                        'processing': 10, # 10% processing
-                        'pending': 15     # 15% pending
-                    }
+                    # Determine job status with randomized distribution for better testing
+                    # Randomize the distribution each run for variety
+                    base_distributions = [
+                        # Distribution 1: Balanced for testing
+                        {'completed': 40, 'failed': 25, 'processing': 15, 'pending': 20},
+                        # Distribution 2: More failures for retry testing  
+                        {'completed': 35, 'failed': 35, 'processing': 10, 'pending': 20},
+                        # Distribution 3: More processing for cancel testing
+                        {'completed': 30, 'failed': 20, 'processing': 25, 'pending': 25},
+                        # Distribution 4: High success rate
+                        {'completed': 65, 'failed': 10, 'processing': 15, 'pending': 10},
+                    ]
+                    status_weights = random.choice(base_distributions)
+                    
+                    # Log the chosen distribution for first job only
+                    if i == 0:
+                        dist_summary = ", ".join([f"{k}:{v}%" for k, v in status_weights.items()])
+                        logger.info(f"🎯 Selected status distribution: {dist_summary}")
+                    
                     status = random.choices(
                         list(status_weights.keys()),
                         weights=list(status_weights.values())
@@ -605,8 +652,9 @@ def main():
     
     args = parser.parse_args()
     
-    logger.info("🚀 Starting AgentOS Test Data Generation")
+    logger.info("🚀 Starting AgentOS Test Data Generation with Dynamic Randomization")
     logger.info(f"Configuration: {args.jobs} jobs, {args.events} events, clean={args.clean}")
+    logger.info(f"🎲 Each run will generate unique data patterns for varied testing")
     
     try:
         # Initialize database manager

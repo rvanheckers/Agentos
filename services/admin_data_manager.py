@@ -513,7 +513,7 @@ class AdminDataManager:
     def _get_jobs_summary(self) -> Dict[str, Any]:
         """Get jobs summary voor dashboard with v4 workflow status."""
         try:
-            recent_jobs = self.jobs_service.get_recent_jobs(limit=10)
+            recent_jobs = self.jobs_service.get_recent_jobs(limit=50)
             job_stats = self.jobs_service.get_job_statistics(is_admin=True)  # CRITICAL FIX: Add is_admin=True
             
             # V4: Add active workflows from orchestrator
