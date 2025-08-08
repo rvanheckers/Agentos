@@ -105,15 +105,18 @@ def create_app() -> FastAPI:
         # Admin SSOT route (ENABLED - CentralDataService needs this for real data)
         app.include_router(admin_ssot.router)
         
-        # ===== ADMIN API ENDPOINTS (DISABLED - Admin UI uses Service Layer SSOT) =====
+        # ===== ADMIN API ENDPOINTS (V5 ENTERPRISE SELECTIVE ENABLE) =====
         
-        # SSOT CLEANUP: Admin UI gebruikt AdminDataManager via CentralDataService
-        # Deze HTTP endpoints zijn overbodig geworden na Service Layer SSOT implementatie
+        # SSOT CLEANUP: Most admin endpoints replaced by Service Layer SSOT
+        # V5 ENTERPRISE EXCEPTION: admin_actions.router ENABLED for unified action endpoint
         
         # app.include_router(celery_workers.admin_router)     # DISABLED: Admin UI → AdminDataManager.get_workers_data()
         # app.include_router(clips_refactored.admin_router)   # DISABLED: Admin UI → AdminDataManager.get_clips_data()
         # app.include_router(admin_dashboard.router)          # DISABLED: Admin UI → AdminDataManager.get_dashboard_data()
-        # app.include_router(admin_actions.router)            # DISABLED: Admin UI → AdminDataManager.execute_action()
+        
+        # ===== V5 ENTERPRISE ACTION ENDPOINT (ENABLED) =====
+        app.include_router(admin_actions.router)              # ENABLED: V5 unified action endpoint POST /api/admin/action
+        
         # app.include_router(resources.router)                # DISABLED: Admin UI → AdminDataManager.get_resource_data()
         # app.include_router(system.router)                   # DISABLED: Admin UI → AdminDataManager.get_system_data()
         
