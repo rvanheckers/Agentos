@@ -179,13 +179,24 @@ Thumbs.db
 desktop.ini
 
 ##########################
-# Backup Files
+# Backup Files & V5 ENTERPRISE EXCLUSIONS
 ##########################
 *.backup
 *.bak
 *backup*
 backups/
 _BACKUP_*
+
+# V5 ENTERPRISE: Exclude development/temp files
+gitignore_report.json
+celerybeat-schedule
+*.pid.lock
+
+# V5 ENTERPRISE: Exclude test data and reports  
+testing/jobs-queue/test_*.html
+testing/test-data/
+script-monitoring/demo_*.py
+endpoint-monitoring/data/*.json
 
 ##########################
 # Environment Variables
@@ -211,20 +222,38 @@ htmlcov/
 .tox/
 
 ##########################
-# Documentation
+# Documentation V5 ENTERPRISE
 ##########################
 docs/_build/
 site/
 
-# Exclude all markdown files by default
+# Exclude all markdown files by default  
 *.md
 
-# But include these specific files
+# V5 ENTERPRISE: Include only current active documentation
 !TEST.md
-!docs/admin-architecture/ADMIN_ARCHITECTURE_SSOT_v4.md
-!docs/admin-architecture/COMPLETE_FLOW_MONITORING_v4.md
-!docs/admin-architecture/ENDPOINT_GOVERNANCE_v3.md
-!docs/admin-architecture/V4_ARCHITECTUUR_SIMPEL_UITGELEGD.md
+!README.md
+!LICENSE
+!SYSTEM_OVERVIEW.md
+!ENTERPRISE_ARCHITECTURE_SUMMARY.md
+
+# V5 ENTERPRISE: Include only current/ directory docs
+!docs/admin-architecture/current/
+!docs/admin-architecture/current/*.md
+
+# EXCLUDE outdated documentation directories
+docs/admin-architecture/Temp/
+docs/admin-architecture/archive/
+docs/admin-architecture/help/
+docs/admin-architecture/refactorendpointcalls/
+
+# EXCLUDE root-level handover files (outdated)
+/AI-Overdrachtsdocument-*.md
+/V4_*.md
+/JOBS_QUEUE_*.md
+/PROJECT_CONTEXT_*.md
+/UPDATES.md
+/V4_WEBSOCKET_*.md
 
 ##########################
 # Monitoring & Analytics
