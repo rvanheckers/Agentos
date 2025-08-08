@@ -14,7 +14,8 @@ function generateUUID() {
 
 class ActionService {
   constructor() {
-    this.baseUrl = '/api/admin/action';
+    // Use absolute URL to API server (port 8001) since admin UI runs on different port (8004)
+    this.baseUrl = 'http://localhost:8001/api/admin/action';
     this.defaultHeaders = {
       'Content-Type': 'application/json',
       'Accept': 'application/json'
