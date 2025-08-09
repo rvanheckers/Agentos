@@ -98,10 +98,11 @@ class SmartCacheInvalidator:
                 logger.error(f"Redis connection failed: {e}")
                 self.redis = None
 
-        # Debounce state
+        # Debounce state (with thread-safe access)
         self.pending_invalidations: Dict[str, Set[str]] = {}  # event -> cache_keys
         self.debounce_timers: Dict[str, Timer] = {}  # event -> timer
         self.last_invalidation: Dict[str, float] = {}  # cache_key -> timestamp
+        self._state_lock = asyncio.Lock()  # Protect shared state from race conditions
 
         # Statistics
         self.stats = {
@@ -157,27 +158,29 @@ class SmartCacheInvalidator:
                 # Normal/low priority use configured debounce time
                 debounce_ms = rule.debounce_ms
 
-            # Add to pending invalidations
-            if event_name not in self.pending_invalidations:
-                self.pending_invalidations[event_name] = set()
+            # Thread-safe access to shared state
+            async with self._state_lock:
+                # Add to pending invalidations
+                if event_name not in self.pending_invalidations:
+                    self.pending_invalidations[event_name] = set()
 
-            self.pending_invalidations[event_name].update(cache_keys)
+                self.pending_invalidations[event_name].update(cache_keys)
 
-            # Cancel existing timer for this event type
-            if event_name in self.debounce_timers:
-                self.debounce_timers[event_name].cancel()
-                self.stats["invalidations_debounced"] += 1
+                # Cancel existing timer for this event type
+                if event_name in self.debounce_timers:
+                    self.debounce_timers[event_name].cancel()
+                    self.stats["invalidations_debounced"] += 1
 
-            # Set up new debounced timer
-            def timer_callback():
-                # Use asyncio.run to properly manage event loop lifecycle
-                try:
-                    asyncio.run(self._execute_debounced_invalidation(event_name))
-                except Exception as e:
-                    logger.error(f"Timer callback failed for {event_name}: {e}")
+                # Set up new debounced timer
+                def timer_callback():
+                    # Use asyncio.run to properly manage event loop lifecycle
+                    try:
+                        asyncio.run(self._execute_debounced_invalidation(event_name))
+                    except Exception as e:
+                        logger.error(f"Timer callback failed for {event_name}: {e}")
 
-            self.debounce_timers[event_name] = Timer(debounce_ms / 1000.0, timer_callback)
-            self.debounce_timers[event_name].start()
+                self.debounce_timers[event_name] = Timer(debounce_ms / 1000.0, timer_callback)
+                self.debounce_timers[event_name].start()
 
             processing_time = (time.time() - start_time) * 1000
             logger.debug(f"Cache invalidation scheduled for {event_name} (debounce: {debounce_ms}ms, processing: {processing_time:.2f}ms)")
@@ -192,20 +195,21 @@ class SmartCacheInvalidator:
     async def _execute_debounced_invalidation(self, event_name: str):
         """Execute debounced cache invalidation after delay"""
         try:
-            # Get pending cache keys for this event
-            cache_keys = self.pending_invalidations.get(event_name, set())
-            if not cache_keys:
-                return
+            # Thread-safe access to shared state
+            async with self._state_lock:
+                # Get pending cache keys for this event
+                cache_keys = self.pending_invalidations.get(event_name, set())
+                if not cache_keys:
+                    return
 
-            # Execute invalidation
+                # Clean up state before executing (prevent duplicate execution)
+                if event_name in self.pending_invalidations:
+                    del self.pending_invalidations[event_name]
+                if event_name in self.debounce_timers:
+                    del self.debounce_timers[event_name]
+
+            # Execute invalidation outside the lock (can take time)
             await self._execute_invalidation(cache_keys)
-
-            # Clean up
-            if event_name in self.pending_invalidations:
-                del self.pending_invalidations[event_name]
-            if event_name in self.debounce_timers:
-                del self.debounce_timers[event_name]
-
             logger.info(f"Debounced cache invalidation executed for {event_name}: {len(cache_keys)} keys")
 
         except Exception as e:
@@ -307,21 +311,35 @@ class SmartCacheInvalidator:
         total_requests = self.stats["invalidations_requested"]
         debounce_rate = (self.stats["invalidations_debounced"] / total_requests * 100) if total_requests > 0 else 0
 
+        # Create a snapshot to avoid race conditions during dict iteration
+        try:
+            pending_count = len(self.pending_invalidations)
+            active_timers = len(self.debounce_timers)
+        except RuntimeError:
+            # Dictionary changed during iteration - use fallback values
+            pending_count = 0
+            active_timers = 0
+
         return {
             **self.stats,
             "debounce_efficiency_percent": round(debounce_rate, 2),
-            "pending_invalidations": len(self.pending_invalidations),
-            "active_timers": len(self.debounce_timers),
+            "pending_invalidations": pending_count,
+            "active_timers": active_timers,
             "redis_available": self._safe_redis_ping(),
             "uptime_seconds": (datetime.now() - datetime.fromisoformat(self.stats["start_time"])).total_seconds()
         }
 
     def get_pending_invalidations(self) -> Dict[str, Any]:
         """Get current pending invalidations for debugging"""
-        return {
-            event_name: list(cache_keys)
-            for event_name, cache_keys in self.pending_invalidations.items()
-        }
+        try:
+            # Create a snapshot to avoid race conditions during dict iteration
+            return {
+                event_name: list(cache_keys)
+                for event_name, cache_keys in self.pending_invalidations.items()
+            }
+        except RuntimeError:
+            # Dictionary changed during iteration - return empty dict
+            return {}
 
 # Singleton instance
 _cache_invalidator = None
