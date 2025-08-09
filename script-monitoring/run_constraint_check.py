@@ -16,8 +16,8 @@ def main():
         print("🎯 AGENTOS SCRIPT SIZE MONITOR")
         print("=" * 50)
 
-        # Initialize enforcer
-        enforcer = SmartConstraintEnforcer("../")
+        # Initialize enforcer for current AgentOS project only
+        enforcer = SmartConstraintEnforcer(".")  # Current directory, not parent
         status = enforcer.get_current_status()
 
         # Show main status
@@ -46,20 +46,36 @@ def main():
                 print(f"   ... and {len(status['violations']) - 5} more")
             print()
 
-        # Show top 5 largest files
-        print("📁 Largest files:")
-        files_sorted = sorted(
-            [(k, v) for k, v in status['files'].items()
-             if isinstance(v.get('lines'), int)],
-            key=lambda x: x[1]['lines'],
-            reverse=True
-        )[:5]
-
-        for file_path, file_info in files_sorted:
-            level_icons = {'green': '🟢', 'yellow': '🟡', 'orange': '🟠', 'red': '🔴'}
-            icon = level_icons.get(file_info['level'], '❓')
-            lines = file_info['lines']
-            print(f"   {icon} {file_path}: {lines:,} lines")
+        # Show files by type that exceed limits
+        print("📁 Files exceeding limits by type:")
+        
+        # Group files by type
+        files_by_type = {}
+        for file_path, file_info in status['files'].items():
+            if isinstance(file_info.get('lines'), int):
+                file_type = file_info.get('file_type', 'PY')
+                if file_type not in files_by_type:
+                    files_by_type[file_type] = []
+                files_by_type[file_type].append((file_path, file_info))
+        
+        # Show per type
+        type_icons = {'PY': '🐍', 'JS': '📜', 'TS': '🔷', 'CSS': '🎨', 'HTML': '🌐', 
+                     'JSON': '📋', 'YAML': '⚙️', 'YML': '⚙️', 'TSX': '⚛️', 'VUE': '💚'}
+        
+        for file_type in sorted(files_by_type.keys()):
+            files = sorted(files_by_type[file_type], key=lambda x: x[1]['lines'], reverse=True)
+            icon = type_icons.get(file_type, '📄')
+            print(f"\n   {icon} {file_type} Files:")
+            
+            for file_path, file_info in files[:3]:  # Top 3 per type
+                level_icons = {'green': '🟢', 'yellow': '🟡', 'orange': '🟠', 'red': '🔴'}
+                status_icon = level_icons.get(file_info['level'], '❓')
+                lines = file_info['lines']
+                limit = file_info['limit']
+                print(f"     {status_icon} {file_path}: {lines:,} lines (limit: {limit})")
+            
+            if len(files) > 3:
+                print(f"     ... and {len(files) - 3} more {file_type} files")
 
         print()
         print("✅ Report complete! Use this data to keep your code organized.")
