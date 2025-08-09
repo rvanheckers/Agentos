@@ -401,7 +401,7 @@ class ActionDispatcher:
                 })
 
                 # Smart cache invalidation for cache-related events
-                if event == "cache:invalidate" or "cache" in event:
+                if event == "cache:invalidate" or event.startswith("cache:"):
                     await self.cache_invalidator.invalidate(event)
                     logger.debug(f"Smart cache invalidation triggered for event: {event}")
 
