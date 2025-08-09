@@ -15,7 +15,7 @@ FEATURES:
 
 QUEUE ROUTING:
 - video_downloader → file_operations queue
-- audio_transcriber → transcription queue  
+- audio_transcriber → transcription queue
 - moment_detector → ai_analysis queue
 - face_detector → ai_analysis queue
 - intelligent_cropper → video_processing queue
@@ -24,9 +24,8 @@ QUEUE ROUTING:
 
 import os
 import sys
-import uuid
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any
 from datetime import datetime, timezone
 
 # Add project root to path
@@ -34,8 +33,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.celery_app import celery_app
 from core.database_manager import PostgreSQLManager
-from celery import group, chain, chord
-from celery.exceptions import Retry
+from celery import chain
 
 # V4 Event Integration - Now using centralized orchestrator
 from events.dispatcher import dispatcher
@@ -60,23 +58,23 @@ def add_numbers(x: int, y: int) -> int:
 async def process_video_workflow_v4(self, job_id: str, job_data: Dict[str, Any]):
     """
     V4 Workflow: Uses centralized WorkflowOrchestrator for automatic event dispatching
-    
+
     VOORDELEN:
     - Automatische event dispatching (geen handmatige code)
     - Consistent error handling
     - Real-time progress tracking
     - Centralized workflow management
-    
+
     Args:
         job_id: Job UUID
         job_data: Job configuration en metadata
-        
+
     Returns:
         Workflow execution result via orchestrator
     """
     try:
         logger.info(f"🎬 V4: Starting centralized workflow for job {job_id}")
-        
+
         # Use centralized orchestrator - automatic event dispatching!
         orchestrator = get_workflow_orchestrator()
         result = await orchestrator.execute_workflow(
@@ -84,10 +82,10 @@ async def process_video_workflow_v4(self, job_id: str, job_data: Dict[str, Any])
             workflow_type=WorkflowType.VIDEO_PROCESSING,
             job_data=job_data
         )
-        
+
         logger.info(f"✅ V4: Centralized workflow completed for job {job_id}")
         return result
-        
+
     except Exception as e:
         logger.error(f"❌ V4: Centralized workflow failed for job {job_id}: {e}")
         raise
@@ -96,20 +94,20 @@ async def process_video_workflow_v4(self, job_id: str, job_data: Dict[str, Any])
 def process_video_workflow(self, job_id: str, job_data: Dict[str, Any]):
     """
     Master workflow orchestrator - Industry standard Celery chain approach
-    
+
     Creates a Celery chain for sequential processing:
     download_video | group(transcribe_audio, detect_faces) | detect_moments | intelligent_crop | cut_videos
-    
+
     Args:
         job_id: Job UUID
         job_data: Job configuration en metadata
-        
+
     Returns:
         Chain signature for execution
     """
     try:
         logger.info(f"🎬 V4: Creating video workflow chain for job {job_id}")
-        
+
         # V4 EVENT DISPATCH: Job processing started
         import asyncio
         try:
@@ -120,34 +118,34 @@ def process_video_workflow(self, job_id: str, job_data: Dict[str, Any]):
             }))
         except Exception as event_error:
             logger.warning(f"Event dispatch failed: {event_error}")
-        
+
         # Create workflow chain - FULL AGENT PIPELINE
         workflow = chain(
             # Step 1: Download video
             download_video.s(job_id, job_data),
-            
+
             # Step 2: Transcribe audio (receives download result)
             transcribe_audio.s(job_id),
-            
+
             # Step 3: Detect viral moments (receives transcription result)
             detect_moments.s(),
-            
-            # Step 4: Detect faces (receives moment result)  
+
+            # Step 4: Detect faces (receives moment result)
             detect_faces.s(),
-            
+
             # Step 5: Intelligent cropping (receives face result)
             intelligent_crop.s(),
-            
+
             # Step 6: Cut videos (receives crop result)
             cut_videos.s(),
-            
+
             # Step 7: Finalize and store clips
             finalize_workflow.s()
         )
-        
+
         # Execute the chain
         return workflow()
-        
+
     except Exception as e:
         logger.error(f"❌ Video workflow setup failed for job {job_id}: {e}")
         raise
@@ -158,10 +156,10 @@ def finalize_workflow(self, cut_videos_data: Dict[str, Any]):
     try:
         job_id = cut_videos_data.get('job_id')
         logger.info(f"🎬 V4: Finalizing workflow for job {job_id}")
-        
+
         # Update job status to completed in database
         db = PostgreSQLManager()
-        
+
         try:
             # Update job to completed status
             with db.get_session() as session:
@@ -176,28 +174,28 @@ def finalize_workflow(self, cut_videos_data: Dict[str, Any]):
                     logger.info(f"✅ Job {job_id} marked as completed in database")
                 else:
                     logger.warning(f"⚠️ Job {job_id} not found in database")
-                    
+
         except Exception as db_error:
             logger.error(f"❌ Database update failed for job {job_id}: {db_error}")
-        
+
         # Create clips from cut_videos agent output or fallback to test clips
         try:
             import os
             os.makedirs("./io/output", exist_ok=True)
-            
+
             clips_created = 0
             with db.get_session() as session:
                 from core.database_manager import Clip
-                
+
                 # Check if we should use mock data or real AI
                 use_mock_ai = os.getenv('USE_MOCK_AI', 'true').lower() == 'true'
-                
+
                 # Use real clips from cut_videos agent if available
                 if not use_mock_ai and cut_videos_data and cut_videos_data.get('success') and cut_videos_data.get('cut_videos'):
                     # Use real clips from video cutting agent
                     real_clips = cut_videos_data['cut_videos']
                     logger.info(f"🎥 Using {len(real_clips)} real clips from video_cutter agent")
-                    
+
                     for i, clip_data in enumerate(real_clips, 1):
                         clip = Clip(
                             job_id=job_id,
@@ -212,11 +210,11 @@ def finalize_workflow(self, cut_videos_data: Dict[str, Any]):
                         )
                         session.add(clip)
                         clips_created += 1
-                    
+
                     # Commit real clips to database
                     session.commit()
                     logger.info(f"✅ Saved {clips_created} real AI clips to database for job {job_id}")
-                    
+
                 else:
                     # Either mock mode or AI mode fallback
                     if use_mock_ai:
@@ -231,7 +229,7 @@ def finalize_workflow(self, cut_videos_data: Dict[str, Any]):
                             },
                             {
                                 "clip_number": 2,
-                                "file_path": f"./io/output/clip_{job_id}_2.mp4", 
+                                "file_path": f"./io/output/clip_{job_id}_2.mp4",
                                 "duration": 12.3,
                                 "title": "🎭 MOCK: Best Quote Ever",
                                 "description": "🎭 Mock data - Epic quote that went viral",
@@ -260,7 +258,7 @@ def finalize_workflow(self, cut_videos_data: Dict[str, Any]):
                             },
                             {
                                 "clip_number": 2,
-                                "file_path": f"./io/output/clip_{job_id}_2.mp4", 
+                                "file_path": f"./io/output/clip_{job_id}_2.mp4",
                                 "duration": 12.3,
                                 "title": "⚠️ AI: Fallback Clip #2",
                                 "description": "⚠️ AI-generated fallback - Video cutting failed",
@@ -275,10 +273,10 @@ def finalize_workflow(self, cut_videos_data: Dict[str, Any]):
                                 "tags": "ai,fallback,error,clip"
                             }
                         ]
-                        
+
                     # Process fallback clips (either mock or AI error fallback)
                     logger.info(f"🔍 Environment USE_MOCK_AI: {os.getenv('USE_MOCK_AI')}, use_mock_ai: {use_mock_ai}")
-                    
+
                     for clip_data in clips_data:
                         # Create dummy file for fallback clips (mock or AI error fallback)
                         with open(clip_data["file_path"], "w") as f:
@@ -289,7 +287,7 @@ def finalize_workflow(self, cut_videos_data: Dict[str, Any]):
                                 f.write(f"⚠️ FALLBACK - Dummy video clip {clip_data['clip_number']} for job {job_id} (video cutting failed)")
                                 logger.warning(f"⚠️ FALLBACK: Created dummy clip {clip_data['clip_number']} for job {job_id}")
                         file_size = 1024*1024*5  # 5MB dummy size
-                        
+
                         # Create clip in database
                         clip = Clip(
                             job_id=job_id,
@@ -304,15 +302,15 @@ def finalize_workflow(self, cut_videos_data: Dict[str, Any]):
                         )
                         session.add(clip)
                         clips_created += 1
-                    
-                    # Commit fallback clips to database  
+
+                    # Commit fallback clips to database
                     session.commit()
                     logger.info(f"✅ Created {clips_created} fallback clips for job {job_id}")
-                
+
         except Exception as clip_error:
             logger.error(f"❌ Failed to create clips for job {job_id}: {clip_error}")
             clips_created = 0
-        
+
         # V4 EVENT DISPATCH: Job completed successfully
         import asyncio
         try:
@@ -325,7 +323,7 @@ def finalize_workflow(self, cut_videos_data: Dict[str, Any]):
             }))
         except Exception as event_error:
             logger.warning(f"Completion event dispatch failed: {event_error}")
-        
+
         return {
             'success': True,
             'job_id': job_id,
@@ -333,10 +331,10 @@ def finalize_workflow(self, cut_videos_data: Dict[str, Any]):
             'processing_time': 30,
             'cut_videos_data': cut_videos_data
         }
-        
+
     except Exception as e:
         logger.error(f"❌ V4: Workflow finalization failed for job {job_id}: {e}")
-        
+
         # V4 EVENT DISPATCH: Job failed
         import asyncio
         try:
@@ -349,7 +347,7 @@ def finalize_workflow(self, cut_videos_data: Dict[str, Any]):
             }))
         except Exception as event_error:
             logger.warning(f"Failure event dispatch failed: {event_error}")
-        
+
         raise
 
 # ==============================================================================
@@ -362,9 +360,9 @@ def download_video(self, job_id: str, job_data: Dict[str, Any]):
     try:
         # Import hier om circular imports te voorkomen
         from agents2.video_downloader import VideoDownloader
-        
+
         logger.info(f"🔽 Downloading video for job {job_id}")
-        
+
         downloader = VideoDownloader()
         result = downloader.download_video({
             'url': job_data['video_url'],
@@ -372,10 +370,10 @@ def download_video(self, job_id: str, job_data: Dict[str, Any]):
             'quality': 'best',
             'format': 'mp4'
         })
-        
+
         if result['success']:
             logger.info(f"✅ Video downloaded for job {job_id}")
-            
+
             # Update job progress in database
             try:
                 db = PostgreSQLManager()
@@ -391,12 +389,12 @@ def download_video(self, job_id: str, job_data: Dict[str, Any]):
                         logger.info(f"✅ Job {job_id} progress updated: video downloaded")
             except Exception as db_error:
                 logger.error(f"❌ Database progress update failed for job {job_id}: {db_error}")
-            
+
             return result
         else:
             logger.error(f"❌ Video download failed for job {job_id}: {result.get('error')}")
             raise Exception(result.get('error', 'Download failed'))
-            
+
     except Exception as e:
         logger.error(f"❌ Download task failed for job {job_id}: {e}")
         raise self.retry(exc=e, countdown=60, max_retries=3)
@@ -406,7 +404,7 @@ def transcribe_audio(self, download_data: Dict[str, Any], job_id: str):
     """Audio transcription task - routed naar transcription queue"""
     try:
         logger.info(f"🎤 Mock transcription for job {job_id} - video: {download_data.get('title', 'Unknown')}")
-        
+
         # Update job progress in database
         try:
             db = PostgreSQLManager()
@@ -420,7 +418,7 @@ def transcribe_audio(self, download_data: Dict[str, Any], job_id: str):
                     logger.info(f"✅ Job {job_id} progress updated: audio transcribed")
         except Exception as db_error:
             logger.error(f"❌ Database progress update failed for job {job_id}: {db_error}")
-        
+
         # Mock transcription for testing
         return {
             'success': True,
@@ -429,7 +427,7 @@ def transcribe_audio(self, download_data: Dict[str, Any], job_id: str):
             'job_id': job_id,
             'duration': download_data.get('duration', 0)
         }
-            
+
     except Exception as e:
         logger.error(f"❌ Transcription task failed for job {job_id}: {e}")
         raise self.retry(exc=e, countdown=30, max_retries=2)
@@ -438,12 +436,11 @@ def transcribe_audio(self, download_data: Dict[str, Any], job_id: str):
 def detect_faces(self, moment_data: Dict[str, Any]):
     """Face detection task - routed naar ai_analysis queue"""
     try:
-        from agents2.face_detector_mediapipe import SimpleFaceDetector
-        
+
         job_id = moment_data.get('job_id')
         video_path = moment_data.get('video_path')
         logger.info(f"👤 Detecting faces for job {job_id}")
-        
+
         # Face detection is currently for images only
         # Return mock face data for video pipeline
         result = {
@@ -457,7 +454,7 @@ def detect_faces(self, moment_data: Dict[str, Any]):
             }],
             'method_used': 'mock_video'
         }
-        
+
         if result['success']:
             logger.info(f"✅ Faces detected for job {job_id}")
             # Pass along data for next task
@@ -467,7 +464,7 @@ def detect_faces(self, moment_data: Dict[str, Any]):
             return result
         else:
             raise Exception(result.get('error', 'Face detection failed'))
-            
+
     except Exception as e:
         job_id = moment_data.get('job_id', 'unknown')
         logger.error(f"❌ Face detection task failed for job {job_id}: {e}")
@@ -478,17 +475,17 @@ def detect_moments(self, transcription_data: Dict[str, Any]):
     """Moment detection task - routed naar ai_analysis queue"""
     try:
         from agents2.moment_detector import MomentDetector
-        
+
         job_id = transcription_data.get('job_id')
         logger.info(f"⚡ Detecting moments for job {job_id}")
-        
+
         detector = MomentDetector()
         result = detector.detect_moments({
             'video_path': transcription_data['video_path'],
             'transcript': transcription_data['transcript'],
             'output_types': ['viral', 'key_highlights', 'summary']
         })
-        
+
         if result['success']:
             logger.info(f"✅ Moments detected for job {job_id}")
             # Add job_id and video_path to result for next task in chain
@@ -497,7 +494,7 @@ def detect_moments(self, transcription_data: Dict[str, Any]):
             return result
         else:
             raise Exception(result.get('error', 'Moment detection failed'))
-            
+
     except Exception as e:
         job_id = transcription_data.get('job_id', 'unknown')
         logger.error(f"❌ Moment detection task failed for job {job_id}: {e}")
@@ -508,12 +505,12 @@ def intelligent_crop(self, face_data: Dict[str, Any]):
     """Intelligent cropping task - routed naar video_processing queue"""
     try:
         from agents2.intelligent_cropper import IntelligentCropper
-        
+
         job_id = face_data.get('job_id')
         video_path = face_data.get('video_path')
         moments = face_data.get('moments', [])
         logger.info(f"✂️ Intelligent cropping for job {job_id}")
-        
+
         cropper = IntelligentCropper()
         result = cropper.calculate_crop({
             'video_path': video_path,
@@ -521,7 +518,7 @@ def intelligent_crop(self, face_data: Dict[str, Any]):
             'moments': moments,
             'target_formats': ['16:9', '9:16', '1:1']
         })
-        
+
         if result['success']:
             logger.info(f"✅ Intelligent cropping completed for job {job_id}")
             # Pass along data for next task
@@ -531,7 +528,7 @@ def intelligent_crop(self, face_data: Dict[str, Any]):
             return result
         else:
             raise Exception(result.get('error', 'Intelligent cropping failed'))
-            
+
     except Exception as e:
         job_id = face_data.get('job_id', 'unknown')
         logger.error(f"❌ Intelligent cropping task failed for job {job_id}: {e}")
@@ -542,12 +539,12 @@ def cut_videos(self, crop_data: Dict[str, Any]):
     """Video cutting task - routed naar video_processing queue"""
     try:
         from agents2.video_cutter import VideoCutter
-        
+
         job_id = crop_data.get('job_id')
         video_path = crop_data.get('video_path')
         moments = crop_data.get('moments', [])
         logger.info(f"🎬 Cutting videos for job {job_id}")
-        
+
         # Convert moments to cuts for video cutter
         cuts = []
         for i, moment in enumerate(moments[:3]):  # Max 3 clips
@@ -556,14 +553,14 @@ def cut_videos(self, crop_data: Dict[str, Any]):
                 'end_time': moment.get('end_time', (i * 20) + 15),
                 'output_name': f'clip_{i+1}'
             })
-        
+
         cutter = VideoCutter()
         result = cutter.cut_video({
             'video_path': video_path,
             'cuts': cuts,
             'output_path': f'./io/output/{job_id}'
         })
-        
+
         if result['success']:
             logger.info(f"✅ Video cutting completed for job {job_id}")
             # Pass along data for finalize task
@@ -571,7 +568,7 @@ def cut_videos(self, crop_data: Dict[str, Any]):
             return result
         else:
             raise Exception(result.get('error', 'Video cutting failed'))
-            
+
     except Exception as e:
         job_id = crop_data.get('job_id', 'unknown')
         logger.error(f"❌ Video cutting task failed for job {job_id}: {e}")

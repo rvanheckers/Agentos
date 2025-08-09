@@ -47,7 +47,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 
 .jobs-queue-view {
@@ -707,9 +707,6 @@
   margin-bottom: var(--space-6);
 }
 
-.smartfilter-header {
-  margin-bottom: var(--space-3);
-}
 
 .smartfilter-header .section-title {
   display: flex;
@@ -1389,5 +1386,4 @@
   }
 }
 
-/* Make JobHistory globally accessible for onclick handlers */
-window.jobHistory = null;
+/* JobHistory globally accessible for onclick handlers - moved to main.js */

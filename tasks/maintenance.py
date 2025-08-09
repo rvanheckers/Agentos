@@ -24,7 +24,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.celery_app import celery_app
 from core.database_manager import PostgreSQLManager
-from services.cleanup_service import cleanup_service
 
 logger = logging.getLogger(__name__)
 
@@ -33,27 +32,27 @@ def cleanup_old_results():
     """Cleanup oude Celery results en completed jobs ouder dan 24 uur"""
     try:
         db = PostgreSQLManager()
-        
+
         # Cleanup jobs ouder dan 7 dagen
         cutoff_date = datetime.now(timezone.utc) - timedelta(days=7)
-        
+
         with db.get_session() as session:
             # Count jobs to be cleaned
             old_jobs_count = session.execute(
                 text("SELECT COUNT(*) FROM jobs WHERE completed_at < :cutoff_date AND status IN ('completed', 'failed')"),
                 {"cutoff_date": cutoff_date}
             ).fetchone()[0]
-            
+
             # Delete old completed/failed jobs
             session.execute(
                 text("DELETE FROM jobs WHERE completed_at < :cutoff_date AND status IN ('completed', 'failed')"),
                 {"cutoff_date": cutoff_date}
             )
-            
+
             logger.info(f"🧹 Cleaned up {old_jobs_count} old jobs")
-            
+
         return {'cleaned_jobs': old_jobs_count}
-        
+
     except Exception as e:
         logger.error(f"❌ Cleanup failed: {e}")
         raise
@@ -68,7 +67,7 @@ def system_health_check():
             'redis': 'unknown',
             'workers': 'unknown'
         }
-        
+
         # Check database
         try:
             db = PostgreSQLManager()
@@ -77,7 +76,7 @@ def system_health_check():
             health_status['db_connections'] = health['connections']
         except Exception as e:
             health_status['database'] = f'error: {e}'
-        
+
         # Check Redis
         try:
             import redis
@@ -86,7 +85,7 @@ def system_health_check():
             health_status['redis'] = 'healthy'
         except Exception as e:
             health_status['redis'] = f'error: {e}'
-        
+
         # Check active workers
         try:
             from core.celery_app import celery_app
@@ -95,10 +94,10 @@ def system_health_check():
             health_status['workers'] = f"{len(active_workers or {})} active"
         except Exception as e:
             health_status['workers'] = f'error: {e}'
-        
+
         logger.info(f"💓 System health check: {health_status}")
         return health_status
-        
+
     except Exception as e:
         logger.error(f"❌ Health check failed: {e}")
         raise
@@ -108,7 +107,7 @@ def cleanup_old_clips():
     """🗑️ INDUSTRY STANDARD: Daily cleanup of old video clips and jobs"""
     try:
         import shutil
-        
+
         db = PostgreSQLManager()
         cleanup_stats = {
             'clips_removed': 0,
@@ -117,26 +116,26 @@ def cleanup_old_clips():
             'bytes_freed': 0,
             'errors': []
         }
-        
+
         # Configuration - industry standard retention policies
         CLIP_RETENTION_DAYS = 30  # Keep clips for 30 days
         JOB_RETENTION_DAYS = 90   # Keep job records for 90 days
         TEMP_RETENTION_HOURS = 24 # Clean temp files after 24 hours
-        
+
         cutoff_clips = datetime.now(timezone.utc) - timedelta(days=CLIP_RETENTION_DAYS)
         cutoff_jobs = datetime.now(timezone.utc) - timedelta(days=JOB_RETENTION_DAYS)
         cutoff_temp = datetime.now(timezone.utc) - timedelta(hours=TEMP_RETENTION_HOURS)
-        
+
         with db.get_session() as session:
             # 1. Clean old clips from database and filesystem
             old_clips = session.execute(
                 text("SELECT id, file_path FROM clips WHERE created_at < :cutoff_clips"),
                 {"cutoff_clips": cutoff_clips}
             ).fetchall()
-            
+
             for clip in old_clips:
                 clip_id, file_path = clip
-                
+
                 # Remove file from filesystem
                 if file_path and os.path.exists(file_path):
                     try:
@@ -147,14 +146,14 @@ def cleanup_old_clips():
                         logger.info(f"🗑️ Removed clip file: {file_path}")
                     except Exception as e:
                         cleanup_stats['errors'].append(f"File removal failed {file_path}: {e}")
-                
+
                 # Remove from database
                 try:
                     session.execute(text("DELETE FROM clips WHERE id = :clip_id"), {"clip_id": clip_id})
                     cleanup_stats['clips_removed'] += 1
                 except Exception as e:
                     cleanup_stats['errors'].append(f"DB clip removal failed {clip_id}: {e}")
-            
+
             # 2. Clean old job directories
             output_dir = './io/output'
             if os.path.exists(output_dir):
@@ -169,20 +168,20 @@ def cleanup_old_clips():
                                 logger.info(f"🗑️ Removed old job directory: {item_path}")
                             except Exception as e:
                                 cleanup_stats['errors'].append(f"Directory removal failed {item_path}: {e}")
-            
+
             # 3. Clean old completed/failed jobs from database
             old_jobs_count = session.execute(
                 text("SELECT COUNT(*) FROM jobs WHERE completed_at < :cutoff_jobs AND status IN ('completed', 'failed')"),
                 {"cutoff_jobs": cutoff_jobs}
             ).fetchone()[0]
-            
+
             if old_jobs_count > 0:
                 session.execute(
                     text("DELETE FROM jobs WHERE completed_at < :cutoff_jobs AND status IN ('completed', 'failed')"),
                     {"cutoff_jobs": cutoff_jobs}
                 )
                 cleanup_stats['jobs_cleaned'] = old_jobs_count
-            
+
             # 4. Clean temp files
             temp_dirs = ['./io/temp', './io/downloads']
             for temp_dir in temp_dirs:
@@ -201,21 +200,21 @@ def cleanup_old_clips():
                                 logger.info(f"🗑️ Removed temp item: {item_path}")
                             except Exception as e:
                                 cleanup_stats['errors'].append(f"Temp cleanup failed {item_path}: {e}")
-        
+
         # Convert bytes to MB for logging
         mb_freed = cleanup_stats['bytes_freed'] / (1024 * 1024)
-        
+
         logger.info(f"🧹 CLEANUP COMPLETE: {cleanup_stats['clips_removed']} clips, "
                    f"{cleanup_stats['files_removed']} files, {cleanup_stats['jobs_cleaned']} jobs, "
                    f"{mb_freed:.1f}MB freed")
-        
+
         if cleanup_stats['errors']:
             logger.warning(f"⚠️ Cleanup errors: {len(cleanup_stats['errors'])} errors occurred")
             for error in cleanup_stats['errors'][:5]:  # Log first 5 errors
                 logger.warning(f"   - {error}")
-        
+
         return cleanup_stats
-        
+
     except Exception as e:
         logger.error(f"❌ Cleanup task failed: {e}")
         raise
@@ -224,25 +223,24 @@ def cleanup_old_clips():
 def disk_usage_monitor():
     """🔍 Monitor disk usage and trigger emergency cleanup if needed"""
     try:
-        import shutil
-        
+
         # Check disk usage for key directories
         directories_to_check = {
             'output': './io/output',
-            'input': './io/input', 
+            'input': './io/input',
             'temp': './io/temp',
             'downloads': './io/downloads'
         }
-        
+
         usage_stats = {}
         total_usage_mb = 0
-        
+
         for name, path in directories_to_check.items():
             if os.path.exists(path):
                 # Get directory size
                 total_size = 0
                 file_count = 0
-                
+
                 for dirpath, dirnames, filenames in os.walk(path):
                     for filename in filenames:
                         filepath = os.path.join(dirpath, filename)
@@ -251,7 +249,7 @@ def disk_usage_monitor():
                             file_count += 1
                         except (OSError, IOError):
                             pass  # Skip files we can't read
-                
+
                 size_mb = total_size / (1024 * 1024)
                 usage_stats[name] = {
                     'size_mb': round(size_mb, 2),
@@ -259,30 +257,30 @@ def disk_usage_monitor():
                     'path': path
                 }
                 total_usage_mb += size_mb
-        
+
         # Emergency cleanup if usage exceeds threshold
         EMERGENCY_THRESHOLD_MB = 5000  # 5GB threshold
-        
+
         if total_usage_mb > EMERGENCY_THRESHOLD_MB:
             logger.warning(f"⚠️ EMERGENCY: Disk usage {total_usage_mb:.1f}MB exceeds {EMERGENCY_THRESHOLD_MB}MB threshold")
-            
+
             # Trigger immediate cleanup
             cleanup_result = cleanup_old_clips.delay()
             logger.info(f"🚨 Emergency cleanup triggered: task {cleanup_result.id}")
-            
+
             usage_stats['emergency_cleanup'] = {
                 'triggered': True,
                 'task_id': cleanup_result.id,
                 'threshold_mb': EMERGENCY_THRESHOLD_MB
             }
-        
+
         usage_stats['total_usage_mb'] = round(total_usage_mb, 2)
         usage_stats['timestamp'] = datetime.now(timezone.utc).isoformat()
-        
+
         logger.info(f"💾 Disk usage: {total_usage_mb:.1f}MB across {sum(s['file_count'] for s in usage_stats.values() if isinstance(s, dict) and 'file_count' in s)} files")
-        
+
         return usage_stats
-        
+
     except Exception as e:
         logger.error(f"❌ Disk usage monitor failed: {e}")
         raise
@@ -293,34 +291,34 @@ def performance_metrics():
     try:
         db = PostgreSQLManager()
         metrics = {}
-        
+
         with db.get_session() as session:
             # Job completion rates (last 24h)
             yesterday = datetime.now(timezone.utc) - timedelta(days=1)
-            
+
             total_jobs = session.execute(
                 text("SELECT COUNT(*) FROM jobs WHERE created_at > :yesterday"),
                 {"yesterday": yesterday}
             ).fetchone()[0]
-            
+
             completed_jobs = session.execute(
                 text("SELECT COUNT(*) FROM jobs WHERE created_at > :yesterday AND status = 'completed'"),
                 {"yesterday": yesterday}
             ).fetchone()[0]
-            
+
             failed_jobs = session.execute(
                 text("SELECT COUNT(*) FROM jobs WHERE created_at > :yesterday AND status = 'failed'"),
                 {"yesterday": yesterday}
             ).fetchone()[0]
-            
+
             # Average processing time
             avg_time = session.execute(
-                text("""SELECT AVG(EXTRACT(EPOCH FROM (completed_at - started_at))) 
-                   FROM jobs 
+                text("""SELECT AVG(EXTRACT(EPOCH FROM (completed_at - started_at)))
+                   FROM jobs
                    WHERE status = 'completed' AND started_at > :yesterday"""),
                 {"yesterday": yesterday}
             ).fetchone()[0]
-            
+
             metrics = {
                 'period': '24h',
                 'total_jobs': total_jobs,
@@ -330,10 +328,10 @@ def performance_metrics():
                 'avg_processing_time_seconds': float(avg_time or 0),
                 'timestamp': datetime.now(timezone.utc).isoformat()
             }
-        
+
         logger.info(f"📊 Performance metrics: {metrics}")
         return metrics
-        
+
     except Exception as e:
         logger.error(f"❌ Performance metrics failed: {e}")
         raise

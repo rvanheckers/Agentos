@@ -3,8 +3,6 @@ Audit Log Service
 Comprehensive logging for compliance and security
 """
 
-import json
-import asyncio
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, asdict
@@ -64,10 +62,10 @@ class AuditEvent:
 # Database model (only if DB available)
 if DB_AVAILABLE:
     Base = declarative_base()
-    
+
     class AuditLogEntry(Base):
         __tablename__ = 'audit_logs'
-        
+
         id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
         event_type = Column(String(50), nullable=False, index=True)
         level = Column(String(20), nullable=False, index=True)
@@ -88,7 +86,7 @@ if DB_AVAILABLE:
 class AuditLog:
     """
     Enterprise audit logging service
-    
+
     Features:
     - Structured logging for compliance
     - Multiple storage backends
@@ -97,12 +95,12 @@ class AuditLog:
     - Export for compliance reporting
     - Immutable log storage
     """
-    
+
     def __init__(self):
         """Initialize audit log service"""
         self.db_manager = None
         self.fallback_logger = logging.getLogger("agentos.audit_fallback")
-        
+
         # Initialize database if available
         if DB_AVAILABLE:
             try:
@@ -112,13 +110,13 @@ class AuditLog:
             except Exception as e:
                 logger.warning(f"Database not available for audit logs: {e}")
                 self.db_manager = None
-        
+
         # PII fields to scrub
         self.pii_fields = {
             'password', 'token', 'secret', 'key', 'auth', 'credential',
             'ssn', 'social_security', 'credit_card', 'phone', 'email'
         }
-    
+
     def _ensure_table_exists(self):
         """Ensure audit log table exists"""
         if self.db_manager and DB_AVAILABLE:
@@ -128,19 +126,19 @@ class AuditLog:
                 logger.info("Audit log table ensured")
             except Exception as e:
                 logger.error(f"Error creating audit log table: {e}")
-    
+
     def _scrub_pii(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Scrub personally identifiable information from data"""
         if not isinstance(data, dict):
             return data
-        
+
         scrubbed = {}
         for key, value in data.items():
             key_lower = key.lower()
-            
+
             # Check if key contains PII indicators
             is_pii = any(pii_field in key_lower for pii_field in self.pii_fields)
-            
+
             if is_pii:
                 scrubbed[key] = "[SCRUBBED]"
             elif isinstance(value, dict):
@@ -149,28 +147,28 @@ class AuditLog:
                 scrubbed[key] = [self._scrub_pii(item) if isinstance(item, dict) else item for item in value]
             else:
                 scrubbed[key] = value
-        
+
         return scrubbed
-    
+
     def _determine_level(self, event_type: AuditEventType, action: Optional[str] = None) -> AuditLevel:
         """Determine audit level based on event type and action"""
         if event_type in [AuditEventType.ACTION_DENIED, AuditEventType.LOGIN_FAILURE]:
             return AuditLevel.HIGH
-        
+
         if event_type in [AuditEventType.PERMISSION_CHANGE, AuditEventType.CONFIG_CHANGE]:
             return AuditLevel.CRITICAL
-        
+
         if action:
             # High-risk actions
             if any(risk in action for risk in ['delete', 'clear', 'backup', 'maintenance']):
                 return AuditLevel.HIGH
-            
-            # Medium-risk actions  
+
+            # Medium-risk actions
             if any(risk in action for risk in ['restart', 'scale', 'pause', 'cancel']):
                 return AuditLevel.MEDIUM
-        
+
         return AuditLevel.LOW
-    
+
     async def log_action(
         self,
         user_id: str,
@@ -185,7 +183,7 @@ class AuditLog:
     ):
         """
         Log successful action execution
-        
+
         Args:
             user_id: User who performed the action
             action: Action that was performed
@@ -216,12 +214,12 @@ class AuditLog:
                 duration_ms=execution_time_ms,
                 success=True
             )
-            
+
             await self._store_event(event)
-            
+
         except Exception as e:
             logger.error(f"Error logging action: {e}")
-    
+
     async def log_action_failure(
         self,
         user_id: str,
@@ -236,7 +234,7 @@ class AuditLog:
     ):
         """
         Log failed action execution
-        
+
         Args:
             user_id: User who attempted the action
             action: Action that was attempted
@@ -267,12 +265,12 @@ class AuditLog:
                 duration_ms=execution_time_ms,
                 success=False
             )
-            
+
             await self._store_event(event)
-            
+
         except Exception as e:
             logger.error(f"Error logging action failure: {e}")
-    
+
     async def log_denied_attempt(
         self,
         user_id: str,
@@ -286,7 +284,7 @@ class AuditLog:
     ):
         """
         Log denied access attempt
-        
+
         Args:
             user_id: User who attempted the action
             action: Action that was attempted
@@ -316,9 +314,9 @@ class AuditLog:
                 duration_ms=None,
                 success=False
             )
-            
+
             await self._store_event(event)
-            
+
             # Also log to security logger
             logger.warning(
                 f"Access denied: user {user_id} attempted {action}",
@@ -331,10 +329,10 @@ class AuditLog:
                     "trace_id": trace_id
                 }
             )
-            
+
         except Exception as e:
             logger.error(f"Error logging denied attempt: {e}")
-    
+
     async def log_login(
         self,
         user_id: str,
@@ -346,7 +344,7 @@ class AuditLog:
     ):
         """
         Log login attempt
-        
+
         Args:
             user_id: User attempting to log in
             success: Whether login succeeded
@@ -374,19 +372,19 @@ class AuditLog:
                 duration_ms=None,
                 success=success
             )
-            
+
             await self._store_event(event)
-            
+
         except Exception as e:
             logger.error(f"Error logging login: {e}")
-    
+
     async def _store_event(self, event: AuditEvent):
         """Store audit event to database and fallback logger"""
-        
+
         # Always log to fallback logger
         log_data = asdict(event)
         log_data['timestamp'] = event.timestamp.isoformat()
-        
+
         self.fallback_logger.info(
             f"AUDIT: {event.event_type.value}",
             extra={
@@ -394,19 +392,19 @@ class AuditLog:
                 **log_data
             }
         )
-        
+
         # Store to database if available
         if self.db_manager and DB_AVAILABLE:
             try:
                 await self._store_to_database(event)
             except Exception as e:
                 logger.error(f"Error storing audit event to database: {e}")
-    
+
     async def _store_to_database(self, event: AuditEvent):
         """Store audit event to database"""
         if not self.db_manager or not DB_AVAILABLE:
             return
-        
+
         try:
             with self.db_manager.get_session() as session:
                 db_event = AuditLogEntry(
@@ -427,14 +425,14 @@ class AuditLog:
                     duration_ms=event.duration_ms,
                     success=event.success
                 )
-                
+
                 session.add(db_event)
                 session.commit()
-                
+
         except Exception as e:
             logger.error(f"Database audit log storage failed: {e}")
             raise
-    
+
     async def query_events(
         self,
         user_id: Optional[str] = None,
@@ -449,7 +447,7 @@ class AuditLog:
     ) -> List[Dict[str, Any]]:
         """
         Query audit events
-        
+
         Args:
             user_id: Filter by user
             action: Filter by action
@@ -460,17 +458,17 @@ class AuditLog:
             success: Filter by success/failure
             limit: Maximum number of results
             offset: Result offset for pagination
-            
+
         Returns:
             List of audit events
         """
         if not self.db_manager or not DB_AVAILABLE:
             return []
-        
+
         try:
             with self.db_manager.get_session() as session:
                 query = session.query(AuditLogEntry)
-                
+
                 # Apply filters
                 if user_id:
                     query = query.filter(AuditLogEntry.user_id == user_id)
@@ -486,13 +484,13 @@ class AuditLog:
                     query = query.filter(AuditLogEntry.timestamp <= end_time)
                 if success is not None:
                     query = query.filter(AuditLogEntry.success == success)
-                
+
                 # Order by timestamp descending
                 query = query.order_by(AuditLogEntry.timestamp.desc())
-                
+
                 # Apply pagination
                 events = query.offset(offset).limit(limit).all()
-                
+
                 # Convert to dictionaries
                 return [
                     {
@@ -515,44 +513,44 @@ class AuditLog:
                     }
                     for event in events
                 ]
-                
+
         except Exception as e:
             logger.error(f"Error querying audit events: {e}")
             return []
-    
+
     async def get_security_summary(
         self,
         hours: int = 24
     ) -> Dict[str, Any]:
         """
         Get security summary for the last N hours
-        
+
         Args:
             hours: Number of hours to analyze
-            
+
         Returns:
             Security summary
         """
         start_time = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         start_time = start_time.replace(hour=start_time.hour - hours)
-        
+
         try:
             # Query recent security events
             denied_attempts = await self.query_events(
                 event_type=AuditEventType.ACTION_DENIED,
                 start_time=start_time
             )
-            
+
             failed_logins = await self.query_events(
                 event_type=AuditEventType.LOGIN_FAILURE,
                 start_time=start_time
             )
-            
+
             high_risk_actions = await self.query_events(
                 level=AuditLevel.HIGH,
                 start_time=start_time
             )
-            
+
             return {
                 "period_hours": hours,
                 "denied_attempts": len(denied_attempts),
@@ -562,11 +560,11 @@ class AuditLog:
                 "top_failing_users": self._get_top_users(failed_logins),
                 "summary_generated": datetime.now(timezone.utc).isoformat()
             }
-            
+
         except Exception as e:
             logger.error(f"Error generating security summary: {e}")
             return {"error": str(e)}
-    
+
     def _get_top_actions(self, events: List[Dict[str, Any]], limit: int = 5) -> List[Dict[str, Any]]:
         """Get top actions from events"""
         action_counts = {}
@@ -574,12 +572,12 @@ class AuditLog:
             action = event.get('action')
             if action:
                 action_counts[action] = action_counts.get(action, 0) + 1
-        
+
         return [
             {"action": action, "count": count}
             for action, count in sorted(action_counts.items(), key=lambda x: x[1], reverse=True)[:limit]
         ]
-    
+
     def _get_top_users(self, events: List[Dict[str, Any]], limit: int = 5) -> List[Dict[str, Any]]:
         """Get top users from events"""
         user_counts = {}
@@ -587,7 +585,7 @@ class AuditLog:
             user_id = event.get('user_id')
             if user_id:
                 user_counts[user_id] = user_counts.get(user_id, 0) + 1
-        
+
         return [
             {"user_id": user_id, "count": count}
             for user_id, count in sorted(user_counts.items(), key=lambda x: x[1], reverse=True)[:limit]

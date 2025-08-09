@@ -1,10 +1,10 @@
 """
-Clean Agents routes - Admin duplicates removed 
+Clean Agents routes - Admin duplicates removed
 Only user endpoints remain to eliminate duplicate chaos
 """
 
 from fastapi import APIRouter, HTTPException, Body
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from services.agents_service import AgentsService
 import logging
 

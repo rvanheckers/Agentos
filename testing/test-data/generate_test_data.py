@@ -187,6 +187,23 @@ class TestDataGenerator:
         job_ids = []
         
         try:
+            # Choose status distribution once per run for consistency
+            base_distributions = [
+                # Distribution 1: Balanced for testing
+                {'completed': 40, 'failed': 25, 'processing': 15, 'pending': 20},
+                # Distribution 2: More failures for retry testing  
+                {'completed': 35, 'failed': 35, 'processing': 10, 'pending': 20},
+                # Distribution 3: More processing for cancel testing
+                {'completed': 30, 'failed': 20, 'processing': 25, 'pending': 25},
+                # Distribution 4: High success rate
+                {'completed': 65, 'failed': 10, 'processing': 15, 'pending': 10},
+            ]
+            status_weights = random.choice(base_distributions)
+            
+            # Log the chosen distribution
+            dist_summary = ", ".join([f"{k}:{v}%" for k, v in status_weights.items()])
+            logger.info(f"🎯 Selected status distribution for this run: {dist_summary}")
+            
             with self.db.get_session() as session:
                 for i in range(count):
                     # Create realistic timestamps
@@ -195,25 +212,6 @@ class TestDataGenerator:
                         hours=random.randint(0, 23),
                         minutes=random.randint(0, 59)
                     )
-                    
-                    # Determine job status with randomized distribution for better testing
-                    # Randomize the distribution each run for variety
-                    base_distributions = [
-                        # Distribution 1: Balanced for testing
-                        {'completed': 40, 'failed': 25, 'processing': 15, 'pending': 20},
-                        # Distribution 2: More failures for retry testing  
-                        {'completed': 35, 'failed': 35, 'processing': 10, 'pending': 20},
-                        # Distribution 3: More processing for cancel testing
-                        {'completed': 30, 'failed': 20, 'processing': 25, 'pending': 25},
-                        # Distribution 4: High success rate
-                        {'completed': 65, 'failed': 10, 'processing': 15, 'pending': 10},
-                    ]
-                    status_weights = random.choice(base_distributions)
-                    
-                    # Log the chosen distribution for first job only
-                    if i == 0:
-                        dist_summary = ", ".join([f"{k}:{v}%" for k, v in status_weights.items()])
-                        logger.info(f"🎯 Selected status distribution: {dist_summary}")
                     
                     status = random.choices(
                         list(status_weights.keys()),

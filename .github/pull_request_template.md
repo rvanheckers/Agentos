@@ -30,7 +30,7 @@
 ### 🔧 Technische checks
 - [ ] Code compileert/start zonder errors
 - [ ] Alle tests zijn groen
-- [ ] No console.log() statements in productie code
+- [ ] Geen console.log()-statements in productcode
 - [ ] Database migraties zijn getest (als van toepassing)
 - [ ] API endpoints zijn gedocumenteerd (als nieuw)
 
@@ -38,7 +38,7 @@
 - [ ] Geen wachtwoorden, API keys of secrets in code
 - [ ] Input validatie toegevoegd waar nodig
 - [ ] SQL injection preventie gecontroleerd
-- [ ] CORS instellingen gecheckt (als van toepassing)
+- [ ] CORS-instellingen gecheckt (als van toepassing)
 
 ### 📊 Code kwaliteit
 - [ ] CodeRabbit opmerkingen opgelost
@@ -57,7 +57,7 @@
 
 - [ ] CodeRabbit review afgerond
 - [ ] Alle CodeRabbit comments opgelost
-- [ ] Security scan passed
+- [ ] Security-scan geslaagd
 
 ## 📸 Screenshots (als van toepassing)
 <!-- Als je UI wijzigingen hebt, voeg screenshots toe -->

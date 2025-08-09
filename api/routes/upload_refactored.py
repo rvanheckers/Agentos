@@ -1,9 +1,9 @@
 """
-Clean Upload routes - Admin duplicates removed 
+Clean Upload routes - Admin duplicates removed
 Only user endpoints remain to eliminate duplicate chaos
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Body
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from typing import Dict, Any, Optional
 from pydantic import BaseModel
 from services.upload_service import UploadService
@@ -48,7 +48,7 @@ async def init_upload(request: UploadInitRequest) -> Dict[str, Any]:
         # Handle both camelCase and snake_case
         filename = request.filename or request.fileName
         file_size = request.file_size or request.fileSize
-        
+
         return upload_service.init_upload(
             filename=filename,
             file_size=file_size,
@@ -83,8 +83,7 @@ async def finalize_upload(request: UploadFinalizeRequest) -> Dict[str, Any]:
     try:
         # Handle both camelCase and snake_case
         upload_id = request.upload_id or request.uploadId
-        total_chunks = request.total_chunks or request.totalChunks
-        
+
         return upload_service.finalize_upload(
             upload_id=upload_id,
             is_admin=False

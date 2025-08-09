@@ -3,14 +3,15 @@
 ## 📍 Waar staan de bestanden?
 
 **CodeRabbit configuraties (MOET in project root!):**
-```
+```text
 AgentOS/
-├── .coderabbit.yml        👈 Uitgebreide versie (alles checken)
-└── .coderabbit-fast.yml   👈 Snelle versie (basics only)
+├── .coderabbit.yml            👈 Actieve configuratie (default: uitgebreid)
+├── .coderabbit-fast.yml       👈 Snelle versie (basics only)
+└── .coderabbit-full-backup.yml 👈 Backup van uitgebreide versie (tijdelijk)
 ```
 
 **GitHub workflows:**
-```
+```text
 AgentOS/
 └── .github/
     ├── workflows/
@@ -21,6 +22,10 @@ AgentOS/
 
 ⚠️ **BELANGRIJK:** CodeRabbit bestanden MOETEN in de root staan, niet in een map!
 
+### 🔍 **Verschil tussen configuraties:**
+- **`.coderabbit.yml`** (uitgebreid): Volledige code review, alle regels, uitgebreide checks
+- **`.coderabbit-fast.yml`** (snel): Alleen kritieke issues, snelle feedback voor dagelijkse development
+
 ---
 
 ## 🚀 Hoe gebruik je het?
@@ -29,16 +34,21 @@ AgentOS/
 
 **Voor dagelijkse development (snel):**
 ```bash
-# Maak de snelle versie actief
-mv .coderabbit.yml .coderabbit-full.yml
-mv .coderabbit-fast.yml .coderabbit.yml
+# Backup huidige uitgebreide versie en activeer snelle versie
+cp .coderabbit.yml .coderabbit-full-backup.yml
+cp .coderabbit-fast.yml .coderabbit.yml
 ```
 
 **Voor belangrijke features (uitgebreid):**
 ```bash
-# Maak de uitgebreide versie actief  
-mv .coderabbit.yml .coderabbit-fast.yml
-mv .coderabbit-full.yml .coderabbit.yml
+# Herstel de uitgebreide versie
+cp .coderabbit-full-backup.yml .coderabbit.yml
+```
+
+**Check welke versie actief is:**
+```bash
+# Kijk of het de snelle of uitgebreide versie is
+head -n 20 .coderabbit.yml | grep -E "(minimal|comprehensive|fast)"
 ```
 
 ### Stap 2: Branch naamgeving (voor automatische CI keuze)
@@ -64,6 +74,54 @@ git checkout -b hotfix/critical-bug         # → Snelle CI
 
 ## 🔄 Workflow stappen
 
+### Visuele Flow Overzicht:
+```
+┌─────────────────┐
+│ 1. Branch maken │  git checkout -b feature/nieuwe-feature
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ 2. Code schrijven│  # Maak je wijzigingen
+│    & Testen     │  pytest tests/        ← Voorkomt CI fails!
+└────────┬────────┘  ruff check .
+         │
+         ▼
+┌─────────────────┐
+│ 3. Commit+Push  │  git add .
+│                 │  git commit -m "feat: nieuwe feature"
+└────────┬────────┘  git push origin feature/nieuwe-feature
+         │
+         ▼
+┌─────────────────┐
+│ 4. PR maken     │  gh pr create
+│                 │  # OF: gh pr create --web
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ 5. Automatisch: │  ✓ CI draait tests
+│ CI + CodeRabbit │  ✓ CodeRabbit geeft feedback
+└────────┬────────┘  ✓ Security checks
+         │
+    ❌ Iets faalt?
+         │
+         ▼
+┌─────────────────┐
+│ 6. Fix & Push   │  # Fix lokaal, commit, push
+│                 │  git add . && git commit -m "fix: ..."
+└────────┬────────┘  git push
+         │           ↺ Terug naar stap 5
+         │
+    ✅ Alles groen?
+         │
+         ▼
+┌─────────────────┐
+│ 7. Merge!       │  gh pr merge
+│                 │  # OF merge button op GitHub
+└─────────────────┘
+```
+
 ### Voor een nieuwe feature:
 
 1. **Branch maken:**
@@ -83,20 +141,50 @@ git push origin feature/mijn-nieuwe-feature
 ```
 
 4. **Pull Request maken:**
-- GitHub opent automatisch de PR template
-- Vul de checklist in
-- CodeRabbit begint automatisch met reviewen
+```bash
+# Optie A: Via GitHub CLI (makkelijk!)
+gh pr create --title "Mijn nieuwe feature" --body "Beschrijving"
 
-5. **CodeRabbit feedback verwerken:**
+# Optie B: Via browser
+gh pr create --web  # Opent browser met PR form
+```
+
+5. **CodeRabbit feedback bekijken:**
+```bash
+# Bekijk PR status
+gh pr view
+
+# Bekijk CodeRabbit comments
+gh pr view --comments
+
+# Open PR in browser
+gh pr view --web
+
+# Check CI status
+gh pr checks
+```
+
+6. **CodeRabbit feedback verwerken:**
 - Lees de comments
 - Fix de issues
 - Push weer → CodeRabbit checkt opnieuw
 
-6. **Mergen:**
-- Alle checks groen? ✅
-- Alle CodeRabbit comments opgelost? ✅
-- PR checklist compleet? ✅
-- **Merge naar main!**
+7. **GitHub Secrets setup (eenmalig):**
+```bash
+# Voor CI database wachtwoord
+gh secret set POSTGRES_PASSWORD_TEST --body "your_secure_test_password"
+```
+
+8. **Mergen:**
+```bash
+# Check status
+gh pr status
+
+# Als alles groen is:
+gh pr merge --auto  # Auto-merge wanneer checks slagen
+# OF
+gh pr merge --squash  # Squash en merge
+```
 
 ---
 
@@ -157,17 +245,43 @@ git checkout -b hotfix/urgent-security
 git checkout -b feature/new-user-system
 ```
 
-### 2. CodeRabbit hacks
+### 2. GitHub CLI handige commando's
+```bash
+# Lijst van al je PRs
+gh pr list
+
+# Bekijk specifieke PR (#4 bijvoorbeeld)
+gh pr view 4
+gh pr view 4 --comments
+
+# Checkout een PR lokaal
+gh pr checkout 4
+
+# Sluit PR zonder merge
+gh pr close 4
+
+# Heropen PR
+gh pr reopen 4
+
+# Review goedkeuren
+gh pr review --approve
+
+# Zie workflow runs
+gh run list
+gh workflow view
+```
+
+### 3. CodeRabbit hacks
 - Type `@coderabbitai explain this` in PR comments voor uitleg
 - `@coderabbitai suggest improvements` voor tips
 - `@coderabbitai review only security` voor specifieke focus
 
-### 3. CI optimalisatie
+### 4. CI optimalisatie
 - Commit vaak (kleine commits = snellere CI)
 - Fix linting lokaal: `ruff check . --fix`
 - Test lokaal: `pytest testing/test_jobs_queue.py -v`
 
-### 4. Merge strategy
+### 5. Merge strategy
 1. Start met **snelle config** tijdens development  
 2. Switch naar **uitgebreide config** voor finale review
 3. Fix alle issues

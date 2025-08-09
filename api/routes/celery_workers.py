@@ -6,13 +6,11 @@ Replacement voor oude /workers endpoints met Celery worker integration.
 Admin UI compatibility met dezelfde data structures.
 """
 
-from fastapi import APIRouter, HTTPException
-from typing import Dict, Any, List
+from fastapi import APIRouter
 import logging
 from datetime import datetime
 import subprocess
 import psutil
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +24,7 @@ def get_celery_worker_status():
         result = subprocess.run([
             'celery', '-A', 'core.celery_app', 'inspect', 'active'
         ], capture_output=True, text=True, timeout=10)
-        
+
         if result.returncode == 0:
             # Parse the output to get worker info
             active_tasks = {}
@@ -34,7 +32,7 @@ def get_celery_worker_status():
                 # Basic parsing of celery inspect output
                 lines = result.stdout.strip().split('\n')
                 current_worker = None
-                
+
                 for line in lines:
                     if line.startswith('->'):
                         # Worker identifier line
@@ -44,15 +42,15 @@ def get_celery_worker_status():
                         # Task info line
                         if 'empty' not in line.lower():
                             active_tasks[current_worker].append(line.strip())
-                            
+
             except Exception as parse_error:
                 logger.warning(f"Failed to parse celery output: {parse_error}")
-                
+
             return active_tasks
         else:
             logger.warning(f"Celery inspect failed: {result.stderr}")
             return {}
-            
+
     except subprocess.TimeoutExpired:
         logger.warning("Celery inspect timed out")
         return {}
@@ -67,12 +65,12 @@ def get_celery_worker_stats():
         result = subprocess.run([
             'celery', '-A', 'core.celery_app', 'inspect', 'stats'
         ], capture_output=True, text=True, timeout=10)
-        
+
         if result.returncode == 0:
             # Basic stats extraction
             stats = {}
             lines = result.stdout.strip().split('\n')
-            
+
             for line in lines:
                 if 'pool' in line.lower() and 'processes' in line.lower():
                     # Extract process count info
@@ -82,11 +80,11 @@ def get_celery_worker_stats():
                             stats['max_concurrency'] = concurrency
                         except:
                             pass
-                            
+
             return stats
         else:
             return {}
-            
+
     except Exception as e:
         logger.error(f"Error getting celery stats: {e}")
         return {}
@@ -104,7 +102,7 @@ def count_celery_processes():
                         worker_count += 1
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
-                
+
         return worker_count
     except Exception as e:
         logger.error(f"Error counting celery processes: {e}")
@@ -114,7 +112,7 @@ def count_celery_processes():
 async def get_workers_details():
     """
     🔄 CELERY COMPATIBILITY - Replacement for old workers/details endpoint
-    
+
     Returns Admin UI compatible data structure with Celery worker information
     """
     try:
@@ -122,11 +120,11 @@ async def get_workers_details():
         active_tasks = get_celery_worker_status()
         worker_stats = get_celery_worker_stats()
         process_count = count_celery_processes()
-        
+
         # Transform to Admin UI expected format
         workers = []
         worker_id_counter = 1
-        
+
         for worker_name, tasks in active_tasks.items():
             workers.append({
                 "id": f"celery_{worker_id_counter}",
@@ -142,7 +140,7 @@ async def get_workers_details():
                 "last_heartbeat": datetime.now().isoformat()
             })
             worker_id_counter += 1
-        
+
         # If no workers detected via inspect, show process count
         if not workers and process_count > 0:
             for i in range(process_count):
@@ -154,17 +152,17 @@ async def get_workers_details():
                     "active_tasks": 0,
                     "task_details": [],
                     "pid": None,
-                    "memory_usage": "N/A", 
+                    "memory_usage": "N/A",
                     "cpu_usage": "N/A",
                     "uptime": "N/A",
                     "last_heartbeat": datetime.now().isoformat()
                 })
-        
+
         # Calculate metrics in Admin UI expected format
         total_workers = len(workers)
         active_workers = len([w for w in workers if w["status"] == "active"])
         idle_workers = total_workers - active_workers
-        
+
         response = {
             "success": True,
             "workers": workers,
@@ -186,13 +184,13 @@ async def get_workers_details():
             "active": active_workers,
             "idle": idle_workers
         }
-        
+
         logger.info(f"Celery workers status: {total_workers} total, {active_workers} active")
         return response
-        
+
     except Exception as e:
         logger.error(f"Error getting Celery worker details: {e}")
-        
+
         # Fallback response for Admin UI compatibility
         return {
             "success": False,
@@ -231,7 +229,7 @@ async def restart_worker(worker_id: str):
         "note": "Celery worker management requires process-level control"
     }
 
-@admin_router.post("/workers/{worker_id}/stop") 
+@admin_router.post("/workers/{worker_id}/stop")
 async def stop_worker(worker_id: str):
     """
     Stop Celery worker (placeholder - requires advanced Celery management)
@@ -276,7 +274,7 @@ async def get_worker_metrics(worker_id: str):
             "metrics": {
                 "worker_id": worker_id,
                 "tasks_processed": "N/A",
-                "tasks_active": "N/A", 
+                "tasks_active": "N/A",
                 "memory_usage": "N/A",
                 "cpu_usage": "N/A",
                 "uptime": "N/A"

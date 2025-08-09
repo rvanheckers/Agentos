@@ -3,7 +3,8 @@
 
 # Globale instellingen
 language: nl
-chat_auto_reply: true
+chat:
+  auto_reply: true
 auto_review:
   enabled: true
   # Alleen reviewen als er code wijzigingen zijn
@@ -15,10 +16,10 @@ tests:
   timeout: 300  # 5 minuten max voor tests
 
 # Type-checken en code stijl controleren
-style:
-  tools:
-    python: ["ruff", "mypy"]
-    javascript: ["eslint"]
+tools:
+  ruff: { enabled: true }
+  mypy: { enabled: true }
+  eslint: { enabled: true }
 
 # Merge-gate: pas mergen als alles groen is
 merge_gate:
@@ -30,7 +31,7 @@ merge_gate:
 reviews:
   include:
     - "api/**"
-    - "core/**" 
+    - "core/**"
     - "services/**"
     - "agents2/**"
     - "ui-admin-clean/assets/js/**"
@@ -46,7 +47,7 @@ reviews:
     - "**/node_modules/**"
     - "**/logs/**"
     - "**/io/input/**"
-    - "**/io/output/**" 
+    - "**/io/output/**"
     - "**/io/temp/**"
     - "**/io/uploads/**"
     - "**/database/postgresql/backups/**"
@@ -71,29 +72,29 @@ rules:
     patterns:
       - "password"
       - "secret"
-      - "api_key" 
+      - "api_key"
       - "token"
       - "auth"
       - "credential"
-      
-  # Code kwaliteit  
+
+  # Code kwaliteit
   code_quality:
     enabled: true
     severity: medium
     max_line_length: 120
-    
+
   # Python specifiek
   python:
     enabled: true
     check_imports: true
     check_docstrings: false  # Niet zeuren over documentatie
     check_type_hints: true
-    
-  # JavaScript specifiek  
+
+  # JavaScript specifiek
   javascript:
     enabled: true
     check_console_logs: true  # Waarschuwen voor console.log in productie
-    
+
   # Performance checks
   performance:
     enabled: true
@@ -107,12 +108,12 @@ prompts:
     - "Let op database connecties en of ze goed afgesloten worden"
     - "Check of error handling aanwezig is"
     - "Kijk naar async/await usage"
-    
+
   javascript_files:
     - "Check of event listeners worden afgesloten"
     - "Let op memory leaks"
     - "Controleer API error handling"
-    
+
   api_files:
     - "Controleer input validatie"
     - "Check rate limiting"
@@ -123,7 +124,7 @@ priority:
   high:
     - "security"
     - "api"
-    - "core" 
+    - "core"
     - "services"
   medium:
     - "agents2"

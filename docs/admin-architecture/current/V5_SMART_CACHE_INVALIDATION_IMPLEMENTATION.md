@@ -18,7 +18,7 @@
 
 ## 🏗️ Architectuur - Event-Driven Smart Cache Invalidation
 
-```
+```text
 Job Action → Action Dispatcher → Smart Cache Invalidator → Redis Cache → UI Update
      ↓              ↓                      ↓                   ↓            ↓
   API Call    Event Dispatch        Debounced Timer        Cache Clear   Fresh Data

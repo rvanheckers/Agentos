@@ -4,26 +4,25 @@ Resource-Based API Architecture - Enterprise Grade
 
 Modern REST API following resource-based patterns used by:
 - GitHub API v4
-- Google Cloud APIs  
+- Google Cloud APIs
 - AWS APIs
 - Netflix APIs
 
 Consolidates domain-specific endpoints into resource endpoints:
 - /api/resources/jobs (replaces /api/jobs/*)
-- /api/resources/agents (replaces /api/agents/*) 
+- /api/resources/agents (replaces /api/agents/*)
 - /api/resources/workers (replaces /api/admin/workers/*)
 
 Query parameters control data inclusion and filtering.
 """
 
-from fastapi import APIRouter, HTTPException, Query, Depends
-from typing import Dict, Any, List, Optional, Literal
+from fastapi import APIRouter, HTTPException, Query
+from typing import Dict, Any, Optional, Literal
 from datetime import datetime, timezone
 import logging
 
 # Import existing services
 from services.jobs_service import JobsService
-from services.agents_service import AgentsService
 from services.queue_service import QueueService
 from api.services.database_service import DatabaseService
 
@@ -56,14 +55,14 @@ async def get_jobs_resource(
 ) -> Dict[str, Any]:
     """
     🚀 JOBS RESOURCE ENDPOINT
-    
+
     Replaces multiple job endpoints:
     - GET /api/jobs/today → filter=today
     - GET /api/jobs/history → filter=recent
     - GET /api/jobs/status/{status} → status=completed
     - GET /api/jobs/recent/{limit} → limit=10
     - GET /api/jobs/summary/stats → include=analytics
-    
+
     Query Examples:
     - /api/resources/jobs?filter=today&include=analytics
     - /api/resources/jobs?status=completed&limit=10
@@ -71,9 +70,9 @@ async def get_jobs_resource(
     """
     try:
         logger.info(f"🔄 Loading jobs resource: filter={filter}, status={status}, include={include}")
-        
+
         result = {"status": "success", "data": {}}
-        
+
         # Apply filters - use REAL database data
         if filter == "today":
             # Get real today's jobs data from database service
@@ -86,32 +85,32 @@ async def get_jobs_resource(
                 "pending": today_jobs_data.get("pending", 0),
                 "failed": today_jobs_data.get("failed", 0)
             }
-            
+
         elif filter == "recent":
             # Get recent jobs from database
             recent_jobs = db_service.get_jobs(limit=limit)
             result["data"]["jobs"] = recent_jobs
-            
+
         elif status:
             # Filter by status using database
             all_jobs = db_service.get_jobs(limit=limit*3)  # Get extra to filter
             filtered_jobs = [job for job in all_jobs if job.get('status') == status]
             result["data"]["jobs"] = filtered_jobs[:limit]
-            
+
         else:
             # Default: all jobs from database
             all_jobs = db_service.get_jobs(limit=limit)
             result["data"]["jobs"] = all_jobs
-        
+
         # Include additional data
         if include:
             includes = include.split(",")
-            
+
             if "analytics" in includes:
                 # Get real analytics data
                 analytics_data = db_service.get_analytics_data()
                 result["data"]["analytics"] = analytics_data
-            
+
             if "clips" in includes:
                 result["data"]["clips"] = [
                     {
@@ -123,7 +122,7 @@ async def get_jobs_resource(
                     }
                     for i in range(1, 6)
                 ]
-            
+
             if "steps" in includes:
                 result["data"]["processing_steps"] = [
                     {"step": "video_download", "status": "completed", "duration": 15},
@@ -131,16 +130,16 @@ async def get_jobs_resource(
                     {"step": "moment_detect", "status": "completed", "duration": 30},
                     {"step": "video_cut", "status": "completed", "duration": 20}
                 ]
-        
+
         result["meta"] = {
             "endpoints_replaced": 7,
             "query_params": {"filter": filter, "status": status, "limit": limit, "include": include},
             "total_results": len(result["data"].get("jobs", [])),
             "resource_type": "jobs"
         }
-        
+
         return result
-        
+
     except Exception as e:
         logger.error(f"Jobs resource failed: {e}")
         raise HTTPException(status_code=500, detail=f"Jobs resource error: {str(e)}")
@@ -152,7 +151,7 @@ async def get_job_resource(
 ) -> Dict[str, Any]:
     """
     🚀 SINGLE JOB RESOURCE
-    
+
     Replaces:
     - GET /api/jobs/{job_id} → base data
     - GET /api/jobs/{job_id}/status → include=status
@@ -166,17 +165,17 @@ async def get_job_resource(
             "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             "updated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         }
-        
+
         if include:
             includes = include.split(",")
-            
+
             if "clips" in includes:
                 job_data["clips"] = [
                     {"clip_id": f"{job_id}_clip_1", "title": "Viral Moment 1", "duration": 30},
                     {"clip_id": f"{job_id}_clip_2", "title": "Viral Moment 2", "duration": 25},
                     {"clip_id": f"{job_id}_clip_3", "title": "Viral Moment 3", "duration": 35}
                 ]
-            
+
             if "status" in includes:
                 job_data["detailed_status"] = {
                     "progress": 100,
@@ -184,7 +183,7 @@ async def get_job_resource(
                     "steps_completed": 6,
                     "total_steps": 6
                 }
-            
+
             if "steps" in includes:
                 job_data["processing_steps"] = [
                     {"step": "video_download", "status": "completed", "started": "2025-07-31T10:00:00Z"},
@@ -192,7 +191,7 @@ async def get_job_resource(
                     {"step": "moment_detect", "status": "completed", "started": "2025-07-31T10:02:30Z"},
                     {"step": "video_cut", "status": "completed", "started": "2025-07-31T10:04:00Z"}
                 ]
-        
+
         return {
             "status": "success",
             "data": job_data,
@@ -202,7 +201,7 @@ async def get_job_resource(
                 "includes": include.split(",") if include else []
             }
         }
-        
+
     except Exception as e:
         logger.error(f"Job resource {job_id} failed: {e}")
         raise HTTPException(status_code=500, detail=f"Job resource error: {str(e)}")
@@ -215,7 +214,7 @@ async def job_actions(
 ) -> Dict[str, Any]:
     """
     🚀 JOB ACTIONS
-    
+
     Replaces:
     - POST /api/jobs/create → action=create
     - POST /api/jobs/{job_id}/cancel → action=cancel
@@ -231,18 +230,18 @@ async def job_actions(
                 "job_id": new_job_id,
                 "message": "Job created successfully"
             }
-            
+
         elif action in ["cancel", "retry"]:
             if not job_id:
                 raise HTTPException(status_code=400, detail="Job ID required for this action")
-            
+
             return {
-                "status": "success", 
+                "status": "success",
                 "action": action,
                 "job_id": job_id,
                 "message": f"Job {action} successful"
             }
-            
+
     except Exception as e:
         logger.error(f"Job action {action} failed: {e}")
         raise HTTPException(status_code=500, detail=f"Job action error: {str(e)}")
@@ -255,7 +254,7 @@ async def get_agents_resource(
 ) -> Dict[str, Any]:
     """
     🚀 AGENTS RESOURCE
-    
+
     Replaces ALL agent endpoints:
     - GET /api/agents → base list
     - GET /api/agents/{name}/status → include=status
@@ -272,14 +271,14 @@ async def get_agents_resource(
                 "version": "2.1.0"
             },
             {
-                "name": "audio_transcriber", 
+                "name": "audio_transcriber",
                 "category": "Audio Processing",
                 "description": "Speech-to-text with timestamps",
                 "version": "1.8.0"
             },
             {
                 "name": "moment_detector",
-                "category": "AI Analysis", 
+                "category": "AI Analysis",
                 "description": "Viral moment detection",
                 "version": "3.2.0"
             },
@@ -290,15 +289,15 @@ async def get_agents_resource(
                 "version": "2.0.0"
             }
         ]
-        
+
         if include:
             includes = include.split(",")
-            
+
             if "status" in includes:
                 for agent in agents_data:
                     agent["status"] = "active"
                     agent["last_run"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-            
+
             if "health" in includes:
                 for agent in agents_data:
                     agent["health"] = {
@@ -306,7 +305,7 @@ async def get_agents_resource(
                         "response_time": 45,
                         "success_rate": 98.7
                     }
-            
+
             if "metrics" in includes:
                 for agent in agents_data:
                     agent["metrics"] = {
@@ -315,7 +314,7 @@ async def get_agents_resource(
                         "success_count": 22,
                         "error_count": 1
                     }
-        
+
         return {
             "status": "success",
             "data": {
@@ -329,7 +328,7 @@ async def get_agents_resource(
                 "includes": include.split(",") if include else []
             }
         }
-        
+
     except Exception as e:
         logger.error(f"Agents resource failed: {e}")
         raise HTTPException(status_code=500, detail=f"Agents resource error: {str(e)}")
@@ -342,10 +341,10 @@ async def agent_actions(
 ) -> Dict[str, Any]:
     """
     🚀 AGENT ACTIONS
-    
+
     Replaces:
     - POST /api/agents/{name}/execute → action=execute
-    - POST /api/agents/{name}/stop → action=stop  
+    - POST /api/agents/{name}/stop → action=stop
     - POST /api/agents/{name}/restart → action=restart
     - POST /api/agents/{name}/test → action=test
     """
@@ -357,7 +356,7 @@ async def agent_actions(
             "message": f"Agent {action} successful",
             "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         }
-        
+
     except Exception as e:
         logger.error(f"Agent action {action} failed: {e}")
         raise HTTPException(status_code=500, detail=f"Agent action error: {str(e)}")
@@ -370,7 +369,7 @@ async def get_workers_resource(
 ) -> Dict[str, Any]:
     """
     🚀 WORKERS RESOURCE
-    
+
     Replaces:
     - GET /api/admin/workers → base data
     - GET /api/admin/workers/details → include=details
@@ -380,7 +379,7 @@ async def get_workers_resource(
     try:
         # PERFORMANCE OPTIMIZATION: Check cache first
         current_time = time.time()
-        if (_workers_cache["data"] is not None and 
+        if (_workers_cache["data"] is not None and
             current_time - _workers_cache["timestamp"] < _workers_cache["ttl"]):
             logger.info("🚀 CACHE HIT: Returning cached worker data")
             cached_data = _workers_cache["data"]
@@ -395,21 +394,21 @@ async def get_workers_resource(
                     "cache_age": int(current_time - _workers_cache["timestamp"])
                 }
             }
-        
+
         # Cache miss - get fresh data
         logger.info("💾 CACHE MISS: Fetching fresh worker data...")
         workers_data = []
         worker_count = 0
         active_count = 0
-        
+
         try:
             # PERFORMANCE BREAKTHROUGH: Direct Celery connection instead of subprocess
             from core.celery_app import celery_app
-            
+
             # Get worker stats directly from Celery app (NO subprocess!)
             inspect = celery_app.control.inspect()
             stats = inspect.stats()
-            
+
             if stats:
                 for worker_name, worker_stats in stats.items():
                     worker_count += 1
@@ -421,12 +420,12 @@ async def get_workers_resource(
                         "last_seen": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                         "pool": worker_stats.get('pool', {}).get('max-concurrency', 'unknown')
                     })
-                
+
                 logger.info(f"🚀 DIRECT Celery workers detected: {worker_count} total, {active_count} active")
-                
+
             else:
                 raise Exception("No Celery workers responding")
-                
+
         except Exception as celery_error:
             logger.warning(f"⚠️ Celery worker detection failed: {celery_error}")
             # Fallback to mock data
@@ -440,10 +439,10 @@ async def get_workers_resource(
             ]
             worker_count = len(workers_data)
             active_count = 0
-        
+
         if include:
             includes = include.split(",")
-            
+
             if "details" in includes:
                 for worker in workers_data:
                     worker["details"] = {
@@ -452,7 +451,7 @@ async def get_workers_resource(
                         "cpu_usage": 15.3,
                         "uptime": "2h 45m"
                     }
-            
+
             if "metrics" in includes:
                 for worker in workers_data:
                     worker["metrics"] = {
@@ -461,14 +460,14 @@ async def get_workers_resource(
                         "avg_task_time": 125,
                         "success_rate": 98.0
                     }
-            
+
             if "logs" in includes:
                 for worker in workers_data:
                     worker["recent_logs"] = [
                         {"level": "INFO", "message": "Task completed successfully", "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")},
                         {"level": "INFO", "message": "New task received", "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")}
                     ]
-        
+
         # Prepare response data
         response_data = {
             "workers": workers_data,
@@ -477,12 +476,12 @@ async def get_workers_resource(
             "idle": worker_count - active_count,
             "is_real_data": worker_count > 0 and not any("MOCK" in w["id"] for w in workers_data)
         }
-        
+
         # Cache the fresh data
         _workers_cache["data"] = response_data
         _workers_cache["timestamp"] = current_time
         logger.info(f"💾 CACHED: Worker data cached for {_workers_cache['ttl']} seconds")
-        
+
         return {
             "status": "success",
             "data": response_data,
@@ -493,7 +492,7 @@ async def get_workers_resource(
                 "data_source": "fresh_celery_inspect"
             }
         }
-        
+
     except Exception as e:
         logger.error(f"Workers resource failed: {e}")
         raise HTTPException(status_code=500, detail=f"Workers resource error: {str(e)}")
@@ -505,7 +504,7 @@ async def worker_actions(
 ) -> Dict[str, Any]:
     """
     🚀 WORKER ACTIONS
-    
+
     Replaces:
     - POST /api/admin/workers/{id}/restart → action=restart
     - POST /api/admin/workers/{id}/stop → action=stop
@@ -518,7 +517,7 @@ async def worker_actions(
             "message": f"Worker {action} successful",
             "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         }
-        
+
     except Exception as e:
         logger.error(f"Worker action {action} failed: {e}")
         raise HTTPException(status_code=500, detail=f"Worker action error: {str(e)}")
@@ -531,19 +530,19 @@ async def get_queue_resource(
 ) -> Dict[str, Any]:
     """
     🚀 QUEUE RESOURCE
-    
+
     Replaces:
     - GET /api/queue/status → include=status
-    - GET /api/queue/details → include=details  
+    - GET /api/queue/details → include=details
     - GET /api/queue/stats → include=stats
     """
     try:
         # Use real queue service (SSOT) instead of hardcoded mock data
         queue_data = queue_service.get_queue_status(is_admin=True)
-        
+
         if include:
             includes = include.split(",")
-            
+
             if "details" in includes:
                 queue_data["details"] = {
                     "queues": [
@@ -554,7 +553,7 @@ async def get_queue_resource(
                     "workers_available": 3,
                     "estimated_wait_time": "2m 30s"
                 }
-            
+
             if "stats" in includes:
                 queue_data["stats"] = {
                     "avg_processing_time": 125,
@@ -562,7 +561,7 @@ async def get_queue_resource(
                     "throughput_per_hour": 45,
                     "peak_queue_size": 25
                 }
-        
+
         return {
             "status": "success",
             "data": queue_data,
@@ -572,7 +571,7 @@ async def get_queue_resource(
                 "includes": include.split(",") if include else []
             }
         }
-        
+
     except Exception as e:
         logger.error(f"Queue resource failed: {e}")
         raise HTTPException(status_code=500, detail=f"Queue resource error: {str(e)}")
@@ -586,7 +585,7 @@ async def get_analytics_resource(
 ) -> Dict[str, Any]:
     """
     🚀 ANALYTICS RESOURCE
-    
+
     Replaces:
     - GET /api/analytics → base analytics
     """
@@ -598,17 +597,17 @@ async def get_analytics_resource(
             "clips_generated": 3741,
             "period": period
         }
-        
+
         if include:
             includes = include.split(",")
-            
+
             if "trends" in includes:
                 analytics_data["trends"] = {
                     "jobs_trend": "+12% vs last week",
                     "success_trend": "+2.3% vs last week",
                     "speed_trend": "-8% processing time vs last week"
                 }
-            
+
             if "breakdown" in includes:
                 analytics_data["breakdown"] = {
                     "by_agent": {
@@ -622,7 +621,7 @@ async def get_analytics_resource(
                         "failed": 67
                     }
                 }
-        
+
         return {
             "status": "success",
             "data": analytics_data,
@@ -632,7 +631,7 @@ async def get_analytics_resource(
                 "includes": include.split(",") if include else []
             }
         }
-        
+
     except Exception as e:
         logger.error(f"Analytics resource failed: {e}")
         raise HTTPException(status_code=500, detail=f"Analytics resource error: {str(e)}")

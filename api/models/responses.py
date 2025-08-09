@@ -13,7 +13,7 @@ Elk model representeert een specifiek response type dat de API teruggeeft.
 Helper methoden zoals 'from_job' converteren database objecten naar API responses.
 """
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 from datetime import datetime
 
 class JobResponse(BaseModel):
@@ -26,7 +26,7 @@ class JobResponse(BaseModel):
     completed_at: Optional[datetime] = Field(None, description="Completion timestamp")
     error_message: Optional[str] = Field(None, description="Error message")
     metadata: Optional[Dict[str, Any]] = Field(default={}, description="Additional metadata")
-    
+
     @classmethod
     def from_job(cls, job):
         """Create response from job model"""
@@ -49,7 +49,7 @@ class UserResponse(BaseModel):
     credits: int = Field(..., description="User credits")
     subscription_tier: str = Field(..., description="Subscription tier")
     created_at: datetime = Field(..., description="Creation timestamp")
-    
+
     @classmethod
     def from_user(cls, user):
         """Create response from user model"""

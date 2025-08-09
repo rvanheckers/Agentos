@@ -40,53 +40,53 @@ def warm_admin_cache():
     """
     try:
         start_time = datetime.now()
-        
+
         # Initialize services
         admin_manager = AdminDataManager()
         redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
-        
+
         # Fetch ALL data in parallel (including agents_workers!)
         logger.info("🔥 Cache warming: Starting parallel data collection")
-        
+
         # Use asyncio to run the async method
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        
+
         try:
             # Get fresh data from all services
             fresh_data = loop.run_until_complete(admin_manager._collect_all_data_fresh())
         finally:
             loop.close()
-        
+
         # Validate data completeness
         required_keys = ['dashboard', 'agents_workers', 'analytics', 'queue', 'logs', 'system_control']
         missing_keys = [key for key in required_keys if key not in fresh_data]
-        
+
         if missing_keys:
             logger.warning(f"⚠️ Cache warming: Missing keys: {missing_keys}")
-        
+
         # Store in Redis with 15 second TTL (task runs every 5 seconds = 3x safety)
         cache_key = "admin:dashboard:v4"
         cache_data = json.dumps(fresh_data, cls=AdminDataEncoder)
-        
+
         redis_client.setex(cache_key, 15, cache_data)
-        
+
         # Calculate performance
         elapsed = (datetime.now() - start_time).total_seconds() * 1000
-        
+
         # Log success
         logger.info(f"✅ Cache warmed successfully in {elapsed:.2f}ms")
         logger.debug(f"   - Dashboard: {bool(fresh_data.get('dashboard'))}")
         logger.debug(f"   - Agents: {fresh_data.get('agents_workers', {}).get('agents', {}).get('status', {}).get('total_agents', 0)} agents")
         logger.debug(f"   - Cache size: {len(cache_data)} bytes")
-        
+
         return {
             "status": "success",
             "elapsed_ms": elapsed,
             "cache_size": len(cache_data),
             "timestamp": datetime.now().isoformat()
         }
-        
+
     except Exception as e:
         logger.error(f"❌ Cache warming failed: {str(e)}")
         return {
@@ -95,7 +95,7 @@ def warm_admin_cache():
             "timestamp": datetime.now().isoformat()
         }
 
-@shared_task(name='validate_cache_health')  
+@shared_task(name='validate_cache_health')
 def validate_cache_health():
     """
     Validates that cache contains complete data.
@@ -103,20 +103,20 @@ def validate_cache_health():
     """
     try:
         redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
-        
+
         # Get current cache
         cache_data = redis_client.get("admin:dashboard:v4")
-        
+
         if not cache_data:
             logger.warning("⚠️ Cache validation: Cache is empty!")
             return {"status": "empty"}
-        
+
         # Parse and validate
         data = json.loads(cache_data)
-        
+
         # Check data freshness
         cache_age = redis_client.ttl("admin:dashboard:v4")
-        
+
         # Validate structure
         validation = {
             "has_dashboard": "dashboard" in data,
@@ -125,20 +125,20 @@ def validate_cache_health():
             "cache_age_seconds": 15 - cache_age if cache_age > 0 else "expired",
             "total_agents": data.get('agents_workers', {}).get('agents', {}).get('status', {}).get('total_agents', 0)
         }
-        
+
         # Log any issues
         if validation["total_agents"] == 0:
             logger.warning("⚠️ Cache validation: No agents in cache!")
-        
+
         if not validation["has_dashboard"]:
             logger.error("❌ Cache validation: Missing dashboard data!")
-        
+
         return {
             "status": "validated",
             "validation": validation,
             "timestamp": datetime.now().isoformat()
         }
-        
+
     except Exception as e:
         logger.error(f"❌ Cache validation failed: {str(e)}")
         return {

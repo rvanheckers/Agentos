@@ -145,8 +145,8 @@ export class JobHistory {
               <button class="help-icon" data-section="job_filters">❓</button>
             </h3>
             <div class="timeframe-filter">
-              <label for="timeframeSelect">📅 Timeframe:</label>
-              <select id="timeframeSelect" class="timeframe-select">
+              <label for="timeframe-select">📅 Timeframe:</label>
+              <select id="timeframe-select" class="timeframe-select" aria-label="Select job history timeframe">
                 <option value="all">All Time</option>
                 <option value="today">Today Only</option>
                 <option value="week">This Week</option>
@@ -265,7 +265,7 @@ export class JobHistory {
   }
 
   setupTimeframeFilter() {
-    const timeframeSelect = document.getElementById('timeframeSelect');
+    const timeframeSelect = document.getElementById('timeframe-select');
     if (!timeframeSelect) {
       console.warn('⚠️ Timeframe select not found');
       return;
@@ -294,6 +294,10 @@ export class JobHistory {
     };
     
     const message = messages[timeframe] || `Showing ${timeframe} jobs`;
+    
+    // Remove existing notifications to prevent DOM buildup
+    const existingNotifications = document.querySelectorAll('.timeframe-notification');
+    existingNotifications.forEach(notification => notification.remove());
     
     // Create and show notification
     const notification = document.createElement('div');
@@ -653,7 +657,10 @@ export class JobHistory {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const thisWeekStart = new Date(today);
-    thisWeekStart.setDate(today.getDate() - today.getDay()); // Start of this week (Sunday)
+    // Start week on Monday (NL standard) instead of Sunday
+    const dayOfWeek = today.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    thisWeekStart.setDate(today.getDate() - daysToMonday);
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
     return jobs.filter(job => {
@@ -684,9 +691,11 @@ export class JobHistory {
     this.renderCurrentView();
     this.updatePagination();
     
-    // Update smart filter results
+    // Update smart filter results (guard against null)
     if (this.smartFilter) {
       this.smartFilter.updateResultsCount(this.jobs.length, this.allJobs.length);
+    } else {
+      console.warn('⚠️ SmartFilter not initialized, skipping results count update');
     }
   }
 

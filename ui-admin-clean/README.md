@@ -149,14 +149,14 @@ const card = new MetricCard(container, {
 
 ## 🚨 Kritieke Ontwikkelingsregels
 
-### ❌ NIET DOEN:
+### ❌ NIET DOEN
 1. **Nieuwe CSS definities maken** voor bestaande components
 2. **Duplicate styling** schrijven die al in components/ bestaat
 3. **Global CSS overschrijven** zonder namespace
 4. **Inline styles** gebruiken in plaats van CSS classes
 5. **Hardcoded kleuren/spacing** - gebruik CSS variabelen
 
-### ✅ WEL DOEN:
+### ✅ WEL DOEN
 1. **Hergebruik bestaande components** uit components/
 2. **Extend bestaande styles** met specifieke selectors
 3. **Gebruik CSS variabelen** voor alle styling waarden

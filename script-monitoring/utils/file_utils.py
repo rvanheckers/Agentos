@@ -30,16 +30,16 @@ def find_python_files(project_path: Path, exclude_dirs: List[str] = None) -> Lis
     """Find all Python files in project, excluding specified directories"""
     if exclude_dirs is None:
         exclude_dirs = ['venv', '__pycache__', '.git', 'docs', 'tests', 'examples']
-    
+
     python_files = []
     for root, dirs, files in os.walk(project_path):
         # Remove excluded directories from search
         dirs[:] = [d for d in dirs if d not in exclude_dirs]
-        
+
         for file in files:
             if file.endswith('.py'):
                 python_files.append(Path(root) / file)
-    
+
     return python_files
 
 def get_project_structure(project_path: Path) -> Dict[str, Any]:
@@ -49,18 +49,18 @@ def get_project_structure(project_path: Path) -> Dict[str, Any]:
         'total_lines': 0,
         'modules': {}
     }
-    
+
     python_files = find_python_files(project_path)
-    
+
     for file_path in python_files:
         rel_path = file_path.relative_to(project_path)
         lines = count_lines_in_file(file_path)
-        
+
         structure['files'].append(str(rel_path))
         structure['total_lines'] += lines
         structure['modules'][str(rel_path)] = {
             'lines': lines,
             'path': str(file_path)
         }
-    
+
     return structure

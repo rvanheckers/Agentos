@@ -5,7 +5,7 @@ Uses AnalyticsService to eliminate duplicate logic between admin and user endpoi
 """
 
 from fastapi import APIRouter, HTTPException, Query
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from services.analytics_service import AnalyticsService
 import logging
 

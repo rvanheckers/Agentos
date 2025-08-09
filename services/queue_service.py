@@ -18,21 +18,21 @@ logger = logging.getLogger("agentos.services.queue")
 class QueueService:
     """
     Service layer for queue management
-    
+
     Methods:
     - get_queue_status(): Get simple queue status
     - get_queue_details(): Get detailed queue information
     - get_queue_stats(): Get queue statistics
     - purge_queue(): Purge the job queue
     """
-    
+
     def __init__(self):
         """Initialize queue service with v4 optimizations"""
         # V4 SINGLETON PATTERN: Initialize database service lazily
         self._db_service = None
         self._redis_client = None
         logger.debug("QueueService v4 initialized with lazy loading")
-    
+
     @property
     def db_service(self):
         """Lazy-loaded database service for connection reuse"""
@@ -45,7 +45,7 @@ class QueueService:
                 logger.warning(f"Database service not available: {e}")
                 self._db_service = None
         return self._db_service
-    
+
     @property
     def redis_client(self):
         """Lazy-loaded Redis client for worker status"""
@@ -59,7 +59,7 @@ class QueueService:
                 logger.warning(f"Redis client initialization failed: {e}")
                 self._redis_client = None
         return self._redis_client
-    
+
     def get_queue_status(self, is_admin: bool = False) -> Dict[str, Any]:
         """
         Get simple queue status
@@ -91,7 +91,7 @@ class QueueService:
             # 🎭 MOCK DATA - Database service unavailable, using fallback data for demo
             return {
                 "pending": 3,
-                "processing": 2, 
+                "processing": 2,
                 "completed": 147,
                 "failed": 5,
                 "total": 157,
@@ -99,7 +99,7 @@ class QueueService:
                 "mock_reason": "Database service unavailable",
                 "error": f"🎭 MOCK: {str(e)}" if is_admin else "🎭 MOCK: Service using demo data"
             }
-    
+
     def get_queue_details(self, limit: int = 20, is_admin: bool = False) -> Dict[str, Any]:
         """
         Get detailed queue information
@@ -110,14 +110,14 @@ class QueueService:
                 # Get recent jobs for queue view
                 jobs = self.db_service.get_jobs(limit=limit)
                 health_data = self.db_service.health_check()
-                
+
                 # Filter sensitive data for non-admin users
                 if not is_admin:
                     for job in jobs:
                         job.pop("user_id", None)
                         job.pop("error_message", None)
                         job.pop("retry_count", None)
-                
+
                 return {
                     "jobs": jobs[:limit],  # Limit results
                     "queue_size": health_data["stats"]["total_jobs"],
@@ -140,7 +140,7 @@ class QueueService:
                 "error": str(e) if is_admin else "Service unavailable",
                 "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             }
-    
+
     def get_queue_stats(self, is_admin: bool = False) -> Dict[str, Any]:
         """
         Get queue statistics for UI compatibility
@@ -150,13 +150,13 @@ class QueueService:
             if self.db_service:
                 # Get real job statistics from database
                 all_jobs = self.db_service.get_jobs(limit=1000)
-                
+
                 # Count job statuses
                 pending = len([job for job in all_jobs if job["status"] in ["pending", "queued"]])
                 processing = len([job for job in all_jobs if job["status"] == "processing"])
                 completed = len([job for job in all_jobs if job["status"] == "completed"])
                 failed = len([job for job in all_jobs if job["status"] == "failed"])
-                
+
                 stats = {
                     "queue_length": pending,
                     "processing_jobs": processing,
@@ -165,7 +165,7 @@ class QueueService:
                     "average_processing_time": 120.5,  # TODO: calculate real average
                     "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
                 }
-                
+
                 # Add admin-only fields
                 if is_admin:
                     stats.update({
@@ -173,7 +173,7 @@ class QueueService:
                         "success_rate": round((completed / (completed + failed) * 100) if (completed + failed) > 0 else 0, 2),
                         "queue_health": "healthy" if pending < 100 else "busy"
                     })
-                
+
                 return stats
             else:
                 return {
@@ -195,11 +195,11 @@ class QueueService:
                 "error": str(e) if is_admin else "Service unavailable",
                 "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             }
-    
+
     def get_workers_status(self, is_admin: bool = False) -> List[Dict[str, Any]]:
         """
         🎬 NETFLIX PATTERN v4: Get worker status from Redis (5ms) with event integration
-        
+
         Workers self-report their status to Redis every minute
         Dashboard gets instant data without expensive inspection calls
         V4: Integrated with event dispatcher for real-time updates
@@ -210,10 +210,10 @@ class QueueService:
             if not r:
                 logger.error("Redis client not available for worker status")
                 return self._get_fallback_workers()
-            
+
             # Get all worker status from Redis (5ms lookup)
             worker_keys = r.keys("worker_status:*")
-            
+
             workers = []
             for key in worker_keys:
                 try:
@@ -221,14 +221,14 @@ class QueueService:
                     if worker_json:
                         import json
                         worker_data = json.loads(worker_json)
-                        
+
                         # Validate data freshness (within last 2 minutes)
                         last_heartbeat = datetime.fromisoformat(
                             worker_data['last_heartbeat'].replace('Z', '+00:00')
                         )
                         now = datetime.now(timezone.utc)
                         age_seconds = (now - last_heartbeat).total_seconds()
-                        
+
                         if age_seconds < 120:  # Fresh data (< 2 minutes old)
                             workers.append(worker_data)
                         else:
@@ -236,33 +236,33 @@ class QueueService:
                             worker_data['status'] = 'stale'
                             worker_data['warning'] = f'Last seen {int(age_seconds)}s ago'
                             workers.append(worker_data)
-                            
+
                 except (json.JSONDecodeError, KeyError, ValueError) as e:
                     logger.warning(f"Invalid worker data in Redis: {e}")
                     continue
-            
+
             if workers:
                 logger.info(f"✅ v4: Retrieved worker data from Redis in ~5ms: {len(workers)} workers")
-                
+
                 # V4 EVENT INTEGRATION: Check for worker status changes
                 self._check_worker_status_events(workers)
                 return workers
             else:
                 # No Redis data - fall back to direct inspection (slow but necessary)
                 logger.warning("⚠️ No worker data in Redis, falling back to Celery inspection")
-                
+
                 # V4 EVENT: Cache miss event
                 asyncio.create_task(dispatcher.dispatch("worker:cache_miss", {
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                     "fallback": "celery_inspection"
                 }))
-                
+
                 return self._get_celery_inspection_fallback()
-                
+
         except Exception as e:
             logger.error(f"❌ Redis worker lookup failed: {e}")
             return self._get_celery_inspection_fallback()
-    
+
     def _get_celery_inspection_fallback(self) -> List[Dict[str, Any]]:
         """
         Fallback to direct Celery inspection if Redis data unavailable
@@ -271,24 +271,24 @@ class QueueService:
         try:
             from core.celery_app import celery_app
             import signal
-            
+
             # Set timeout for Celery inspection
             def timeout_handler(signum, frame):
                 raise TimeoutError("Celery inspect timeout")
-            
+
             signal.signal(signal.SIGALRM, timeout_handler)
             signal.alarm(3)  # Reduced to 3 second timeout
-            
+
             try:
                 # Get minimal worker stats only
                 inspect = celery_app.control.inspect()
                 stats = inspect.stats()
-                
+
                 workers = []
                 if stats:
                     for worker_name, worker_stats in stats.items():
                         total_stats = worker_stats.get('total', {})
-                        
+
                         workers.append({
                             "worker_id": worker_name,
                             "status": "active",
@@ -301,22 +301,22 @@ class QueueService:
                             "queues": ["video_processing", "transcription", "ai_analysis", "file_operations"],
                             "data_source": "celery_inspection_fallback"
                         })
-                
+
                 logger.warning(f"⚠️ Used slow Celery inspection fallback: {len(workers)} workers")
                 return workers
-                
+
             finally:
                 signal.alarm(0)
-                
+
         except Exception as e:
             logger.error(f"❌ Celery inspection fallback failed: {e}")
             return self._get_fallback_workers()
-    
+
     def _get_fallback_workers(self) -> List[Dict[str, Any]]:
         """Fallback worker data when Celery inspection fails"""
         return [{
             "worker_id": "worker-offline",
-            "status": "unknown", 
+            "status": "unknown",
             "current_tasks": 0,
             "total_tasks_completed": 0,
             "load_average": 0.0,
@@ -345,7 +345,7 @@ class QueueService:
                 "queue_health_score": 8.7,
                 "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to get queue statistics: {e}")
             return {
@@ -361,7 +361,7 @@ class QueueService:
         try:
             # 🎯 FIXED: Use real worker data instead of mock
             workers = self.get_workers_status(is_admin=is_admin)
-            
+
             # Transform to assignment format
             worker_assignments = []
             for worker in workers:
@@ -372,16 +372,16 @@ class QueueService:
                     "queues": worker.get("queues", []),
                     "last_seen": worker.get("last_heartbeat", datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"))
                 })
-            
+
             # Get real queue data from job statuses
             if self.db_service:
                 jobs_data = self.db_service.get_stats()
                 queue_distribution = {
                     "video_processing": {
-                        "pending": jobs_data.get("pending_jobs", 0), 
+                        "pending": jobs_data.get("pending_jobs", 0),
                         "processing": jobs_data.get("processing_jobs", 0)
                     },
-                    "transcription": {"pending": 0, "processing": 0}, 
+                    "transcription": {"pending": 0, "processing": 0},
                     "ai_analysis": {"pending": 0, "processing": 0},
                     "file_operations": {"pending": 0, "processing": 0}
                 }
@@ -389,11 +389,11 @@ class QueueService:
                 # Fallback distribution
                 queue_distribution = {
                     "video_processing": {"pending": 0, "processing": 0},
-                    "transcription": {"pending": 0, "processing": 0}, 
+                    "transcription": {"pending": 0, "processing": 0},
                     "ai_analysis": {"pending": 0, "processing": 0},
                     "file_operations": {"pending": 0, "processing": 0}
                 }
-            
+
             return {
                 "workers": worker_assignments,
                 "queue_distribution": queue_distribution,
@@ -402,7 +402,7 @@ class QueueService:
                 "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                 "status": "success"
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to get worker assignments: {e}")
             return {
@@ -425,24 +425,24 @@ class QueueService:
                 "success": False,
                 "error": "Unauthorized: Admin access required"
             }
-        
+
         try:
             purged_count = 0
-            
+
             if self.db_service:
                 # Get all jobs to purge based on status
                 all_jobs = self.db_service.get_jobs(limit=10000)
-                
+
                 for job in all_jobs:
                     should_purge = False
-                    
+
                     if status_filter:
                         # Purge only jobs with specific status
                         should_purge = job["status"] == status_filter
                     else:
                         # Purge failed and old pending jobs
                         should_purge = job["status"] in ["failed", "pending", "queued"]
-                    
+
                     if should_purge:
                         try:
                             # In real implementation, would delete from database
@@ -450,14 +450,14 @@ class QueueService:
                             purged_count += 1
                         except Exception as e:
                             logger.error(f"Failed to purge job {job['id']}: {e}")
-            
+
             return {
                 "success": True,
                 "purged_jobs": purged_count,
                 "purge_time": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                 "message": f"Successfully purged {purged_count} jobs from queue"
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to purge queue: {e}")
             return {
@@ -465,13 +465,13 @@ class QueueService:
                 "error": str(e),
                 "purged_jobs": 0
             }
-    
+
     # V4 EVENT INTEGRATION METHODS
-    
+
     def _check_worker_status_events(self, workers: List[Dict[str, Any]]):
         """
         Check for worker status changes and trigger events
-        
+
         V4: Integrated with event dispatcher for real-time notifications
         """
         try:
@@ -485,7 +485,7 @@ class QueueService:
                         "last_seen": worker.get("last_heartbeat"),
                         "timestamp": datetime.now(timezone.utc).isoformat()
                     }))
-            
+
             # Check for overloaded workers
             overloaded_workers = [w for w in workers if w.get("current_tasks", 0) > 10]
             if overloaded_workers:
@@ -495,71 +495,71 @@ class QueueService:
                         "current_tasks": worker.get("current_tasks", 0),
                         "timestamp": datetime.now(timezone.utc).isoformat()
                     }))
-        
+
         except Exception as e:
             logger.error(f"Worker status event checking failed: {e}")
-    
+
     # V4 ASYNC METHODS: Enable parallel execution in AdminDataManager
-    
+
     async def get_queue_status_async(self, is_admin: bool = False) -> Dict[str, Any]:
         """Async wrapper for queue status"""
         return await asyncio.get_event_loop().run_in_executor(
             None, self.get_queue_status, is_admin
         )
-    
+
     async def get_workers_status_async(self, is_admin: bool = False) -> List[Dict[str, Any]]:
         """Async wrapper for workers status"""
         return await asyncio.get_event_loop().run_in_executor(
             None, self.get_workers_status, is_admin
         )
-    
+
     async def get_queue_statistics_async(self, is_admin: bool = False) -> Dict[str, Any]:
         """Async wrapper for queue statistics"""
         return await asyncio.get_event_loop().run_in_executor(
             None, self.get_queue_statistics, is_admin
         )
-    
+
     async def get_worker_assignments_async(self, is_admin: bool = False) -> Dict[str, Any]:
         """Async wrapper for worker assignments"""
         return await asyncio.get_event_loop().run_in_executor(
             None, self.get_worker_assignments, is_admin
         )
-    
+
     # ============ V5 ENTERPRISE ACTION METHODS ============
-    
+
     async def pause_processing(self, queue_name: str = "default", **kwargs) -> Dict[str, Any]:
         """
         Pause queue processing - V5 Enterprise Action
-        
+
         Args:
             queue_name: Name of queue to pause (default: "default")
-            
+
         Returns:
             Action result with success status
         """
         logger.info(f"Pausing queue processing: {queue_name}")
-        
+
         try:
             # Set queue pause flag in Redis
             r = self.redis_client
             if r:
                 r.set(f"queue:paused:{queue_name}", "true", ex=3600)  # 1 hour expiry
                 logger.info(f"Queue {queue_name} marked as paused in Redis")
-            
+
             # Trigger event for real-time UI updates
             await dispatcher.dispatch("queue:paused", {
                 "queue_name": queue_name,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "action": "pause_processing"
             })
-            
+
             return {
                 "success": True,
                 "message": f"Queue {queue_name} processing paused",
                 "queue_name": queue_name,
                 "paused": True
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to pause queue {queue_name}: {e}")
             return {
@@ -567,40 +567,40 @@ class QueueService:
                 "error": str(e),
                 "queue_name": queue_name
             }
-    
+
     async def resume_processing(self, queue_name: str = "default", **kwargs) -> Dict[str, Any]:
         """
         Resume queue processing - V5 Enterprise Action
-        
+
         Args:
             queue_name: Name of queue to resume (default: "default")
-            
+
         Returns:
             Action result with success status
         """
         logger.info(f"Resuming queue processing: {queue_name}")
-        
+
         try:
             # Remove queue pause flag from Redis
             r = self.redis_client
             if r:
                 r.delete(f"queue:paused:{queue_name}")
                 logger.info(f"Queue {queue_name} pause flag removed from Redis")
-            
+
             # Trigger event for real-time UI updates
             await dispatcher.dispatch("queue:resumed", {
                 "queue_name": queue_name,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "action": "resume_processing"
             })
-            
+
             return {
                 "success": True,
                 "message": f"Queue {queue_name} processing resumed",
                 "queue_name": queue_name,
                 "paused": False
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to resume queue {queue_name}: {e}")
             return {
@@ -608,24 +608,24 @@ class QueueService:
                 "error": str(e),
                 "queue_name": queue_name
             }
-    
+
     async def clear_queue(self, queue_name: str = "default", **kwargs) -> Dict[str, Any]:
         """
         Clear all jobs from queue - V5 Enterprise Action (HIGH RISK)
-        
+
         Args:
             queue_name: Name of queue to clear (default: "default")
-            
+
         Returns:
             Action result with job count cleared
         """
         logger.warning(f"CLEARING QUEUE: {queue_name} - HIGH RISK OPERATION")
-        
+
         try:
             # This would integrate with your job system to clear pending jobs
             # For now, return success with mock data
             cleared_count = 0  # Would be actual cleared job count
-            
+
             # Trigger critical event
             await dispatcher.dispatch("queue:cleared", {
                 "queue_name": queue_name,
@@ -634,14 +634,14 @@ class QueueService:
                 "action": "clear_queue",
                 "risk_level": "HIGH"
             })
-            
+
             return {
                 "success": True,
                 "message": f"Queue {queue_name} cleared",
                 "queue_name": queue_name,
                 "cleared_count": cleared_count
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to clear queue {queue_name}: {e}")
             return {

@@ -1,6 +1,6 @@
 # Service Layers (Managers) - Business Logic Middleware
 
-**Data efficiency engines voor AgentOS - Nu met performance monitoring**
+## Data-efficiency engines voor AgentOS – nu met performance monitoring
 
 In de **Admin UI** worden deze service layers **"Managers"** genoemd voor performance monitoring.
 
@@ -8,7 +8,7 @@ In de **Admin UI** worden deze service layers **"Managers"** genoemd voor perfor
 
 **"2 deuren naar 1 kamer"** - Admin & user endpoints delen dezelfde service layer business logic voor maximale data efficiency en code hergebruik.
 
-```
+```text
 Admin UI View → API Endpoint → Service Layer → Database
 User API Call → API Endpoint → Service Layer → Database
                     ↑              ↑

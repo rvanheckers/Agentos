@@ -3,8 +3,6 @@ WebSocket routes for the AgentOS API
 """
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from typing import List
-import json
-import asyncio
 
 # Create router
 router = APIRouter()

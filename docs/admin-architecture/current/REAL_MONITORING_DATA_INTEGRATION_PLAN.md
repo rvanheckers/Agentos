@@ -228,14 +228,14 @@ MONITORING_CONFIG = {
 ## 🎯 Expected Results
 
 ### **Voor (Test Data)**
-```
+```text
 📊 Processing Rate: 17/min → +2%    [FAKE]
 ⚙️ Active Workers: 5/5 🟢           [GEDEELTELIJK ECHT]
 💾 Memory Usage: 67.8%              [FAKE]
 ```
 
 ### **Na (Real Data)**  
-```
+```text
 📊 Processing Rate: 23/min → +5%    [GRAFANA REAL-TIME]
 ⚙️ Active Workers: 3/5 🟡           [CELERY INSPECT]  
 💾 Memory Usage: 82.3%              [PROMETHEUS NODE_EXPORTER]

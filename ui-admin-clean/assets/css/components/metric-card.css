@@ -29,6 +29,11 @@
 .metric-card__title {
   display: flex;
   align-items: center;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .metric-card {
@@ -52,13 +57,6 @@
   margin-bottom: var(--space-4);
 }
 
-.metric-card__title {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--gray-600);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 
 .metric-card__status {
   padding: var(--space-1) var(--space-2);

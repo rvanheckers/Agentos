@@ -16,7 +16,7 @@ python3 run_constraint_check.py
 
 - `run_constraint_check.py` - **GEBRUIK DEZE** voor dagelijks rapport
 - `constraint_enforcer.py` - Core monitoring engine
-- `vibecoder_limits.json` - Configuratie limieten (zonder punt!)
+- `vibecoder_limits.json` - Configuratielimieten
 - `utils/file_utils.py` - File scanning utilities
 - `test_constraint.py` - Test scripts
 
@@ -59,5 +59,5 @@ Edit `vibecoder_limits.json` voor custom limieten:
 
 ✅ **PRODUCTION READY** - Volledig geïmplementeerd voor AgentOS
 - 36,000+ regels code gemonitoreerd
-- 🟠 Orange niveau (normale status voor groot project)
+- 🟠 Oranje niveau (normale status voor groot project)
 - Realtime feedback over codebase gezondheid

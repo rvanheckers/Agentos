@@ -6,7 +6,7 @@ Drie-laags monitoring: Menukaart + Keuken + Klanten voor complete endpoint healt
 
 ## 🏗️ Architectuur
 
-```
+```text
 endpoint-monitoring/
 ├── run_endpoint_check.py       # 🚀 MAIN SCRIPT - Enhanced met log analysis
 ├── utils/                      # 🛠️ Enhanced utilities  
@@ -68,7 +68,7 @@ Het script genereert nu:
 - **💡 Recommendations** voor verbetering
 
 **Voorbeeld output:**
-```
+```text
 🎯 AGENTOS ENDPOINT HEALTH REPORT
 📊 Overall Health: 🟡 CAUTION
 📈 Total Endpoints: 80

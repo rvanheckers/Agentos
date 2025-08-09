@@ -17,10 +17,10 @@ FEATURES:
 GEBRUIK:
     # Start Celery worker
     celery -A celery_app worker --loglevel=info --concurrency=4
-    
+
     # Start Celery Beat (scheduler)
     celery -A celery_app beat --loglevel=info
-    
+
     # Monitor tasks
     celery -A celery_app flower
 """
@@ -65,7 +65,7 @@ celery_app.conf.update(
     # Broker settings
     broker_url=CELERY_BROKER_URL,
     result_backend=CELERY_RESULT_BACKEND,
-    
+
     # Task routing - verschillende queues voor verschillende taken
     task_routes={
         'tasks.video_processing.*': {'queue': 'video_processing'},
@@ -73,7 +73,7 @@ celery_app.conf.update(
         'tasks.ai_analysis.*': {'queue': 'ai_analysis'},
         'tasks.file_operations.*': {'queue': 'file_operations'},
     },
-    
+
     # Queue definities
     task_queues=(
         Queue('video_processing', routing_key='video_processing'),
@@ -82,34 +82,34 @@ celery_app.conf.update(
         Queue('file_operations', routing_key='file_operations'),
         Queue('celery', routing_key='celery'),  # Default queue
     ),
-    
+
     # Task execution settings
     task_serializer='json',
     accept_content=['json'],
     result_serializer='json',
     timezone='UTC',
     enable_utc=True,
-    
+
     # Retry policy - industry standard
     task_acks_late=True,
     task_reject_on_worker_lost=True,
     worker_prefetch_multiplier=1,
-    
+
     # Task expiration
     task_soft_time_limit=300,  # 5 minuten soft limit
     task_time_limit=600,       # 10 minuten hard limit
-    
+
     # Result expiration
     result_expires=3600,       # Results blijven 1 uur beschikbaar
-    
+
     # Worker settings
     worker_max_tasks_per_child=1000,  # Restart worker na 1000 tasks
     worker_disable_rate_limits=False,
-    
+
     # Monitoring
     worker_send_task_events=True,
     task_send_sent_event=True,
-    
+
     # Beat schedule (voor periodieke taken) - INDUSTRY STANDARD CLEANUP
     beat_schedule={
         # 🗑️ DAILY CLEANUP (2 AM) - Industry standard retention policies
@@ -118,53 +118,53 @@ celery_app.conf.update(
             'schedule': crontab(hour=2, minute=0),  # 2 AM daily
             'options': {'queue': 'file_operations'}
         },
-        
+
         # 📊 HOURLY DISK MONITORING - Proactive disk management
         'hourly-disk-monitor': {
-            'task': 'tasks.maintenance.disk_usage_monitor', 
+            'task': 'tasks.maintenance.disk_usage_monitor',
             'schedule': crontab(minute=0),  # Every hour
             'options': {'queue': 'file_operations'}
         },
-        
+
         # 🧹 LEGACY: Old results cleanup (keep for compatibility)
         'cleanup-old-results': {
             'task': 'tasks.maintenance.cleanup_old_results',
             'schedule': 3600.0,  # Elk uur
         },
-        
+
         # 💓 HEALTH CHECK - System monitoring
         'health-check': {
             'task': 'tasks.maintenance.system_health_check',
             'schedule': 300.0,   # Elke 5 minuten
         },
-        
+
         # 📈 PERFORMANCE METRICS - Daily reporting
         'daily-performance-report': {
             'task': 'tasks.maintenance.performance_metrics',
             'schedule': crontab(hour=1, minute=0),  # 1 AM daily
         },
-        
+
         # 🎬 NETFLIX PATTERN: Worker self-reporting via Redis
         'worker-status-report': {
             'task': 'tasks.monitoring.report_worker_status',
             'schedule': 60.0,  # Every minute - Netflix-style real-time
             'options': {'queue': 'celery'}
         },
-        
+
         # 🧹 NETFLIX PATTERN: Cleanup dead workers from Redis
         'cleanup-dead-workers': {
             'task': 'tasks.monitoring.cleanup_dead_workers',
             'schedule': 300.0,  # Every 5 minutes
             'options': {'queue': 'celery'}
         },
-        
+
         # 🚀 V4 ARCHITECTURE: Cache warming for <50ms dashboard loads
         'warm-admin-cache': {
             'task': 'tasks.cache_warming.warm_admin_cache',
             'schedule': 5.0,  # Every 5 seconds - aggressive cache warming
             'options': {'queue': 'celery'}
         },
-        
+
         # 🏥 V4 ARCHITECTURE: Cache health monitoring
         'cache-health-check': {
             'task': 'tasks.cache_warming.cache_health_check',

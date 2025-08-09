@@ -1,13 +1,12 @@
 """
-Clean Job routes - Admin duplicates removed 
+Clean Job routes - Admin duplicates removed
 Only user endpoints remain to eliminate duplicate chaos
 """
 from fastapi import APIRouter, HTTPException, Depends, Query
-from typing import List, Optional, Dict, Any
-from datetime import datetime
+from typing import Dict, Any
 
 from services.jobs_service import JobsService
-from api.services.auth_dependencies import get_current_user, get_admin_user
+from api.services.auth_dependencies import get_current_user
 
 # Single router - user endpoints only (admin can use these too)
 user_router = APIRouter(prefix="/api", tags=["jobs"])
@@ -22,13 +21,13 @@ async def user_get_today_jobs():
     # TODO: Re-enable auth when frontend sends proper auth headers
     try:
         jobs = jobs_service.get_todays_jobs(user_id="user1", is_admin=False)
-        
+
         # Calculate stats
         completed = len([job for job in jobs if job["status"] == "completed"])
         processing = len([job for job in jobs if job["status"] == "processing"])
         pending = len([job for job in jobs if job["status"] in ["pending", "queued"]])
         failed = len([job for job in jobs if job["status"] == "failed"])
-        
+
         return {
             "completed": completed,
             "processing": processing,
@@ -50,9 +49,9 @@ async def user_get_job_history(
     """Get user's job history with pagination"""
     try:
         return jobs_service.get_job_history(
-            user_id=current_user["id"], 
-            is_admin=False, 
-            limit=limit, 
+            user_id=current_user["id"],
+            is_admin=False,
+            limit=limit,
             offset=offset
         )
     except Exception as e:
@@ -132,7 +131,7 @@ async def user_create_job(job_data: Dict[str, Any]):
     """Create a new job - Temporarily allow anonymous access for frontend compatibility"""
     # TODO: Re-enable auth when frontend sends proper auth headers
     job_data["user_id"] = "user1"  # Default user for anonymous access
-    
+
     # Validate video_url at API level (fail fast)
     video_url = job_data.get("video_url")
     if video_url is None or (isinstance(video_url, str) and not video_url.strip()):
@@ -141,10 +140,10 @@ async def user_create_job(job_data: Dict[str, Any]):
             "error": "❌ Geen video input opgegeven. Upload een bestand of voer een URL in.",
             "message": "Invalid video input"
         }
-    
+
     try:
         job = jobs_service.create_job(job_data, is_admin=False)
-        
+
         # Return consistent API response format
         return {
             "success": True,

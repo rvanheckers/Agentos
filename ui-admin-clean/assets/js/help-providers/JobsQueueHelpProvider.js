@@ -22,10 +22,12 @@ export const JobsQueueHelpProvider = {
    * @returns {object} Help content object
    */
   getHelp(componentId = null) {
-    // Get dynamic data from current view
-    const totalJobs = window.jobHistory ? window.jobHistory.jobs?.length || 0 : 0;
-    const currentFilter = window.jobHistory ? window.jobHistory.currentFilter?.preset || 'all' : 'all';
-    const itemsPerPage = window.jobHistory ? window.jobHistory.itemsPerPage : 20;
+    // Get dynamic data from current view (safe for SSR/tests)
+    const hasWindow = typeof window !== 'undefined';
+    const jobHistory = hasWindow && window.jobHistory ? window.jobHistory : null;
+    const totalJobs = jobHistory?.jobs?.length ?? 0;
+    const currentFilter = jobHistory?.currentFilter?.preset ?? 'all';
+    const itemsPerPage = jobHistory?.itemsPerPage ?? 20;
     
     const helpContent = {
       // Jobs Overview - main section help
@@ -49,7 +51,7 @@ export const JobsQueueHelpProvider = {
             "Processing time: <2min normaal, >10min onderzoeken",
             "Success rate: >95% gezond, <90% systematisch probleem",
             "Queue length: <10 goed, >50 bottleneck indicatie",
-            "Worker capacity: 20 parallelle jobs (5 workers × 4 concurrency)"
+            "Worker capacity: Dynamisch gebaseerd op configuratie (check System > Workers voor actuele capaciteit)"
           ]
         }
       },
@@ -313,6 +315,13 @@ export const JobsQueueHelpProvider = {
       };
     }
 
-    return componentId ? { [componentId]: helpContent[componentId] } : helpContent;
+    if (componentId === null) {
+      return helpContent;
+    }
+    if (!Object.prototype.hasOwnProperty.call(helpContent, componentId)) {
+      return {};
+      // of: throw new Error(`Unknown help component: ${componentId}`);
+    }
+    return { [componentId]: helpContent[componentId] };
   }
 };

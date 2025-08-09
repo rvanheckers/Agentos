@@ -11,21 +11,21 @@ logger = logging.getLogger("agentos.system_service")
 
 class SystemService:
     """Mock system service for enterprise action system"""
-    
+
     def __init__(self):
         self.maintenance_mode = False
         self.last_backup = None
-    
+
     async def create_backup(self) -> Dict[str, Any]:
         """Create system backup"""
         logger.info("Creating system backup...")
-        
+
         # Simulate backup process
         await asyncio.sleep(1.0)
-        
+
         backup_id = f"backup_{int(asyncio.get_event_loop().time())}"
         self.last_backup = backup_id
-        
+
         return {
             "success": True,
             "message": "System backup completed successfully",
@@ -33,32 +33,32 @@ class SystemService:
             "backup_size": "2.3 GB",
             "duration": 1.0
         }
-    
+
     async def enter_maintenance_mode(self, reason: str = "Scheduled maintenance") -> Dict[str, Any]:
         """Enter maintenance mode"""
         logger.info(f"Entering maintenance mode: {reason}")
-        
+
         self.maintenance_mode = True
-        
+
         return {
             "success": True,
             "message": f"Maintenance mode enabled: {reason}",
             "maintenance_mode": True,
             "reason": reason
         }
-    
+
     async def exit_maintenance_mode(self) -> Dict[str, Any]:
         """Exit maintenance mode"""
         logger.info("Exiting maintenance mode")
-        
+
         self.maintenance_mode = False
-        
+
         return {
             "success": True,
             "message": "Maintenance mode disabled",
             "maintenance_mode": False
         }
-    
+
     async def get_system_status(self) -> Dict[str, Any]:
         """Get system status"""
         return {
