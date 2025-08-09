@@ -65,14 +65,14 @@ class SmartConstraintEnforcer:
         # Scan ALL code files by type for files over limits
         from utils.file_utils import find_code_files
         all_code_files = find_code_files(self.project_path)
-        
+
         # Different limits per file type
         type_limits = {
             '.py': 500,   # Python - business logic
-            '.js': 400,   # JavaScript - frontend logic  
+            '.js': 400,   # JavaScript - frontend logic
             '.ts': 400,   # TypeScript - frontend logic
             '.tsx': 300,  # React components
-            '.vue': 300,  # Vue components  
+            '.vue': 300,  # Vue components
             '.css': 200,  # CSS stylesheets
             '.scss': 200, # SCSS stylesheets
             '.html': 150, # HTML templates
@@ -80,28 +80,28 @@ class SmartConstraintEnforcer:
             '.yaml': 50,  # YAML config
             '.yml': 50    # YAML config
         }
-        
+
         for file_type, files in all_code_files.items():
             limit = type_limits.get(file_type, 300)  # Default 300 lines
-            
+
             for file_path in files:
                 rel_path = str(file_path.relative_to(self.project_path))
                 if rel_path in self.limits:
                     continue  # Already handled above
-                    
+
                 lines = count_lines_in_file(file_path)
                 if file_type == '.py':
                     core_lines += lines  # Only Python counts toward core
-                
+
                 # Report files over their type-specific limit
                 if lines >= limit:
                     level = "red" if lines >= limit * 2 else "orange" if lines >= limit * 1.5 else "yellow"
                     file_status[rel_path] = {
-                        "lines": lines, 
+                        "lines": lines,
                         "limit": limit,
                         "file_type": file_type.strip('.').upper(),
                         "usage_pct": round((lines / limit) * 100, 1),
-                        "level": level, 
+                        "level": level,
                         "tracked": f"auto_detected_{file_type.strip('.')}"
                     }
         # Check infrastructure

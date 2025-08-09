@@ -17,7 +17,7 @@ def count_lines_in_file(file_path: Path) -> int:
     try:
         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
             # More efficient counting without storing all lines
-            return sum(1 for line in f if line.strip() and 
+            return sum(1 for line in f if line.strip() and
                       not line.strip().startswith(('#', '//', '/*', '*', '<!--')))
     except Exception:
         return 0
@@ -26,17 +26,17 @@ def find_code_files(project_path: Path, file_types: List[str] = None, exclude_di
     """Find all code files by type in project, excluding specified directories"""
     if file_types is None:
         file_types = ['.py', '.js', '.ts', '.tsx', '.vue', '.css', '.scss', '.html', '.json', '.yaml', '.yml']
-    
+
     if exclude_dirs is None:
-        exclude_dirs = ['venv', '__pycache__', '.git', 'node_modules', 
-                       'logs', 'io/input', 'io/output', 'io/downloads', 'database/postgresql', 
+        exclude_dirs = ['venv', '__pycache__', '.git', 'node_modules',
+                       'logs', 'io/input', 'io/output', 'io/downloads', 'database/postgresql',
                        '.env', 'temp', 'cache',
-                       # Exclude backup directories and other projects  
+                       # Exclude backup directories and other projects
                        'AgentOS - kopie', 'AgentOS_Copy', 'AgentOS-BACKUP', 'Nieuwe map',
                        'Clipper&VideoUI', 'SmartFoodScan', 'vibecoder', 'XXXClipper']
 
     code_files = {ext: [] for ext in file_types}
-    
+
     for root, dirs, files in os.walk(project_path):
         # Remove excluded directories from search (support names én relatieve paden)
         ex_names = {n.lower() for n in exclude_dirs if ('/' not in n and os.sep not in n)}
