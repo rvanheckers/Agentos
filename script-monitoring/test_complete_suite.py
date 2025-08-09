@@ -41,7 +41,7 @@ def main():
                     files_by_type[file_type] = []
                 files_by_type[file_type].append((file_path, file_info))
         
-        print(f"\n📁 Files by type:")
+        print("\n📁 Files by type:")
         type_icons = {'PY': '🐍', 'JS': '📜', 'TS': '🔷', 'CSS': '🎨', 'HTML': '🌐', 
                      'JSON': '📋', 'YAML': '⚙️', 'YML': '⚙️', 'TSX': '⚛️', 'VUE': '💚'}
         
@@ -60,7 +60,7 @@ def main():
             if len(files) > 5:
                 print(f"    ... and {len(files) - 5} more {file_type} files")
         
-        print(f"\n✅ Complete suite test successful!")
+        print("\n✅ Complete suite test successful!")
         print(f"   Total types monitored: {len(files_by_type)}")
         print(f"   Total files over limits: {files_count}")
         

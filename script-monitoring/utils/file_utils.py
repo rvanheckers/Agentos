@@ -38,8 +38,21 @@ def find_code_files(project_path: Path, file_types: List[str] = None, exclude_di
     code_files = {ext: [] for ext in file_types}
     
     for root, dirs, files in os.walk(project_path):
-        # Remove excluded directories from search
-        dirs[:] = [d for d in dirs if d not in exclude_dirs]
+        # Remove excluded directories from search (support names én relatieve paden)
+        ex_names = {n.lower() for n in exclude_dirs if ('/' not in n and os.sep not in n)}
+        ex_rel = tuple(
+            n.strip('/').replace('\\', '/').lower()
+            for n in exclude_dirs if ('/' in n or os.sep in n)
+        )
+        rel_root = os.path.relpath(root, project_path).replace('\\', '/').lstrip('./').lower()
+
+        def is_excluded(dname: str) -> bool:
+            if dname.lower() in ex_names:
+                return True
+            rel = f"{rel_root}/{dname}".lstrip('./').lower() if rel_root and rel_root != '.' else dname.lower()
+            return any(rel == p or rel.startswith(p + '/') for p in ex_rel)
+
+        dirs[:] = [d for d in dirs if not is_excluded(d)]
 
         for file in files:
             for ext in file_types:
