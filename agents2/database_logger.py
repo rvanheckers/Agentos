@@ -35,11 +35,11 @@ class DatabaseLoggerMixin:
     """
     Mixin class die database logging toevoegt aan agents
     """
-    
+
     def __init__(self):
         self.agent_name = getattr(self, 'agent_name', self.__class__.__name__)
-    
-    @contextmanager 
+
+    @contextmanager
     def log_execution(self, job_id: str, step_number: int, input_data: Any = None):
         """
         Context manager voor het loggen van agent execution
@@ -57,9 +57,9 @@ class DatabaseLoggerMixin:
             # Fallback als database niet beschikbaar is
             yield DummyLogger()
             return
-        
+
         started_at = datetime.utcnow()
-        
+
         # Start logging in database
         step_id = db.log_processing_step(
             job_id=job_id,
@@ -70,9 +70,9 @@ class DatabaseLoggerMixin:
             completed_at=None,  # Nog niet completed
             input_data=json.dumps(input_data) if input_data else None
         )
-        
+
         logger = StepLogger(step_id, db)
-        
+
         try:
             yield logger
             # Als we hier komen zonder exception, was het succesvol
@@ -90,33 +90,33 @@ class StepLogger:
     """
     Helper class voor het loggen van een specifieke processing step
     """
-    
+
     def __init__(self, step_id: str, db_manager):
         self.step_id = step_id
         self.db = db_manager
         self.success = False
         self.error_message = None
         self.output_data = None
-    
+
     def set_output(self, output_data: Any):
         """Set output data voor deze step"""
         self.output_data = json.dumps(output_data) if output_data else None
-    
+
     def set_error(self, error_message: str):
         """Set error message voor deze step"""
         self.error_message = error_message
         self.success = False
-    
+
     def mark_success(self):
         """Mark deze step als succesvol"""
         self.success = True
         self.error_message = None
-    
+
     def mark_failure(self, error_message: str):
         """Mark deze step als gefaald"""
         self.success = False
         self.error_message = error_message
-    
+
     def complete(self):
         """Complete de step en update database"""
         self.db.update_processing_step(
@@ -132,26 +132,26 @@ class DummyLogger:
     """
     Dummy logger voor als database niet beschikbaar is
     """
-    
+
     def set_output(self, output_data: Any):
         pass
-    
+
     def set_error(self, error_message: str):
         pass
-    
+
     def mark_success(self):
         pass
-    
+
     def mark_failure(self, error_message: str):
         pass
-    
+
     def complete(self):
         pass
 
 
 # Helper function voor direct gebruik
-def log_agent_step(agent_name: str, job_id: str, step_number: int, 
-                   input_data: Any = None, output_data: Any = None, 
+def log_agent_step(agent_name: str, job_id: str, step_number: int,
+                   input_data: Any = None, output_data: Any = None,
                    success: bool = True, error_message: str = None):
     """
     Direct een processing step loggen zonder context manager
@@ -161,7 +161,7 @@ def log_agent_step(agent_name: str, job_id: str, step_number: int,
     try:
         from core.database_manager import PostgreSQLManager
         db = PostgreSQLManager()
-        
+
         db.log_processing_step(
             job_id=job_id,
             agent_name=agent_name,
@@ -172,7 +172,7 @@ def log_agent_step(agent_name: str, job_id: str, step_number: int,
             output_data=json.dumps(output_data) if output_data else None,
             duration_seconds=0  # Voor direct logging zonder timing
         )
-        
+
     except ImportError:
         # Database niet beschikbaar, skip logging
         pass
@@ -184,15 +184,15 @@ def log_agent_step(agent_name: str, job_id: str, step_number: int,
 if __name__ == "__main__":
     # Test de database logger
     print("🧪 Testing Database Logger...")
-    
+
     # Test met dummy data
     log_agent_step(
         agent_name="test_agent",
-        job_id="test-job-123", 
+        job_id="test-job-123",
         step_number=1,
         input_data={"test": "data"},
         output_data={"result": "success"},
         success=True
     )
-    
+
     print("✅ Database Logger test completed")

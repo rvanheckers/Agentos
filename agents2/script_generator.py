@@ -26,10 +26,10 @@ class ScriptGenerator:
     Creates engaging scripts for different video formats
     and social media platforms.
     """
-    
+
     def __init__(self):
         self.version = "1.0.0"
-    
+
     def generate_script(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Generate script for video content.
@@ -72,14 +72,14 @@ class ScriptGenerator:
                 "agent_version": str
             }
         """
-        
+
         start_time = time.time()
-        
+
         try:
             # Validate inputs
             if not input_data.get("topic"):
                 return self._error("topic is required")
-            
+
             # Get parameters
             topic = input_data["topic"]
             transcript = input_data.get("transcript", "")
@@ -90,18 +90,18 @@ class ScriptGenerator:
             target_audience = input_data.get("target_audience", "general")
             include_hooks = input_data.get("include_hooks", True)
             include_cta = input_data.get("include_cta", True)
-            
+
             # Generate script based on format
             script = self._generate_script_content(
                 topic, transcript, moments, format_type, duration,
                 tone, target_audience, include_hooks, include_cta
             )
-            
+
             # Get format information
             format_info = self._get_format_info(format_type, duration)
-            
+
             processing_time = time.time() - start_time
-            
+
             return {
                 "success": True,
                 "script": script,
@@ -109,19 +109,19 @@ class ScriptGenerator:
                 "processing_time": processing_time,
                 "agent_version": self.version
             }
-            
+
         except Exception as e:
             return self._error(f"Script generation failed: {str(e)}")
-    
+
     def _generate_script_content(self, topic: str, transcript: str, moments: List[dict],
                                 format_type: str, duration: int, tone: str,
                                 target_audience: str, include_hooks: bool,
                                 include_cta: bool) -> Dict[str, Any]:
         """Generate the actual script content"""
-        
+
         sections = []
         full_script_parts = []
-        
+
         # Hook (if requested)
         if include_hooks and duration > 10:
             hook = self._generate_hook(topic, format_type, tone)
@@ -132,7 +132,7 @@ class ScriptGenerator:
                 "notes": "Deliver with high energy to grab attention"
             })
             full_script_parts.append(hook)
-        
+
         # Introduction
         intro = self._generate_introduction(topic, format_type, tone, target_audience)
         sections.append({
@@ -142,13 +142,13 @@ class ScriptGenerator:
             "notes": "Set the context and establish credibility"
         })
         full_script_parts.append(intro)
-        
+
         # Body content
         body_duration = duration - (3 if include_hooks else 0) - 5 - (5 if include_cta else 0)
         body_content = self._generate_body_content(
             topic, transcript, moments, format_type, tone, body_duration
         )
-        
+
         for i, body_part in enumerate(body_content):
             sections.append({
                 "type": "body",
@@ -157,7 +157,7 @@ class ScriptGenerator:
                 "notes": f"Main point {i+1}"
             })
             full_script_parts.append(body_part)
-        
+
         # Call to action (if requested)
         if include_cta and duration > 15:
             cta = self._generate_cta(topic, format_type, tone)
@@ -168,14 +168,14 @@ class ScriptGenerator:
                 "notes": "Encourage engagement and action"
             })
             full_script_parts.append(cta)
-        
+
         # Combine all parts
         full_script = " ".join(full_script_parts)
-        
+
         # Generate keywords and hashtags
         keywords = self._extract_keywords(topic, full_script)
         hashtags = self._generate_hashtags(topic, format_type, keywords)
-        
+
         return {
             "full_script": full_script,
             "sections": sections,
@@ -184,10 +184,10 @@ class ScriptGenerator:
             "keywords": keywords,
             "hashtags": hashtags
         }
-    
+
     def _generate_hook(self, topic: str, format_type: str, tone: str) -> str:
         """Generate attention-grabbing hook"""
-        
+
         hooks = {
             "tiktok": [
                 f"Wait, did you know that {topic}?",
@@ -208,13 +208,13 @@ class ScriptGenerator:
                 f"Real talk about {topic}"
             ]
         }
-        
+
         hook_options = hooks.get(format_type, hooks["youtube"])
         return hook_options[0]  # Return first option for simplicity
-    
+
     def _generate_introduction(self, topic: str, format_type: str, tone: str, target_audience: str) -> str:
         """Generate introduction section"""
-        
+
         if tone == "professional":
             return f"Welcome to our discussion on {topic}. For {target_audience}, understanding this topic is crucial for success."
         elif tone == "energetic":
@@ -223,11 +223,11 @@ class ScriptGenerator:
             return f"In this video, we'll explore {topic} and learn how it impacts {target_audience}."
         else:  # casual
             return f"Hey guys! So today I want to talk about {topic} because I think it's something we all need to know about."
-    
+
     def _generate_body_content(self, topic: str, transcript: str, moments: List[dict],
                               format_type: str, tone: str, duration: int) -> List[str]:
         """Generate main body content"""
-        
+
         # If we have transcript moments, use them
         if moments:
             content = []
@@ -235,7 +235,7 @@ class ScriptGenerator:
                 description = moment.get("description", f"Key point about {topic}")
                 content.append(f"Here's something important: {description}")
             return content
-        
+
         # Generate generic content based on topic
         if duration > 30:
             return [
@@ -248,10 +248,10 @@ class ScriptGenerator:
                 f"The most important thing about {topic} is this simple fact.",
                 f"Here's how {topic} can make a real difference for you."
             ]
-    
+
     def _generate_cta(self, topic: str, format_type: str, tone: str) -> str:
         """Generate call-to-action"""
-        
+
         ctas = {
             "tiktok": [
                 "Drop a comment if you want to see more about this!",
@@ -272,47 +272,47 @@ class ScriptGenerator:
                 "Follow for more content like this!"
             ]
         }
-        
+
         cta_options = ctas.get(format_type, ctas["youtube"])
         return cta_options[0]  # Return first option for simplicity
-    
+
     def _extract_keywords(self, topic: str, script: str) -> List[str]:
         """Extract keywords from topic and script"""
-        
+
         # Simple keyword extraction
         words = (topic + " " + script).lower().split()
         keywords = [word for word in words if len(word) > 3]
-        
+
         # Remove duplicates and return top keywords
         unique_keywords = list(set(keywords))
         return unique_keywords[:10]
-    
+
     def _generate_hashtags(self, topic: str, format_type: str, keywords: List[str]) -> List[str]:
         """Generate relevant hashtags"""
-        
+
         # Platform-specific hashtags
         platform_tags = {
             "tiktok": ["#fyp", "#viral", "#trending", "#foryou"],
             "youtube": ["#youtube", "#video", "#content", "#tutorial"],
             "instagram": ["#instagram", "#reels", "#content", "#creator"]
         }
-        
+
         # Generic hashtags based on topic
         topic_words = topic.lower().split()
         topic_tags = [f"#{word}" for word in topic_words if len(word) > 2]
-        
+
         # Keyword-based hashtags
         keyword_tags = [f"#{word}" for word in keywords[:5] if len(word) > 3]
-        
+
         # Combine all hashtags
         all_tags = platform_tags.get(format_type, []) + topic_tags + keyword_tags
-        
+
         # Remove duplicates and return
         return list(set(all_tags))[:15]
-    
+
     def _get_format_info(self, format_type: str, duration: int) -> Dict[str, Any]:
         """Get format-specific information"""
-        
+
         format_specs = {
             "tiktok": {
                 "platform": "TikTok",
@@ -335,9 +335,9 @@ class ScriptGenerator:
                 "style_notes": "Adaptable to any platform, focus on clear messaging"
             }
         }
-        
+
         return format_specs.get(format_type, format_specs["generic"])
-    
+
     def _error(self, message: str) -> Dict[str, Any]:
         """Return standardized error response"""
         return {
@@ -356,13 +356,13 @@ def main():
             "error_code": "INVALID_ARGUMENTS"
         }))
         sys.exit(1)
-    
+
     try:
         input_data = json.loads(sys.argv[1])
         generator = ScriptGenerator()
         result = generator.generate_script(input_data)
         print(json.dumps(result, indent=2))
-        
+
     except json.JSONDecodeError:
         print(json.dumps({
             "success": False,
