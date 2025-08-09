@@ -8,7 +8,7 @@ Gebruikt door: Developers om code kwaliteit te bewaken
 Start met: python constraint_enforcer.py (vanuit script-monitoring directory)
 """
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from utils.file_utils import get_project_structure, count_lines_in_file
 # Context verification imports
 try:
@@ -46,7 +46,7 @@ class SmartConstraintEnforcer:
 
     def get_current_status(self) -> Dict[str, Any]:
         """Get current gradient status"""
-        structure = get_project_structure(self.project_path)
+        get_project_structure(self.project_path)
         core_lines = 0
         file_status = {}
         # Check hardcoded core files with specific limits
@@ -126,7 +126,7 @@ class SmartConstraintEnforcer:
         elif level == "orange":
             suggestion = f"Increase BASE_LINES to {core_lines + 50}, MAX_LINES to {core_lines + 200}" if to_red < 50 else "Refactor largest files"
             largest_files = sorted([(k, v['lines']) for k, v in (file_status or {}).items() if isinstance(v.get('lines'), int)], key=lambda x: x[1], reverse=True)[:2]
-            files_info = f" (largest: {', '.join([f'{f}:{l}' for f, l in largest_files])})" if largest_files else ""
+            files_info = f" (largest: {', '.join([f'{filename}:{lines}' for filename, lines in largest_files])})" if largest_files else ""
             return f"🟠 CAPACITY WARNING: Only {remaining} lines remaining! Consider: {suggestion}{files_info}"
         elif level == "red":
             return f"🔴 MANDATORY: Refactor before adding code! Over limit by {abs(remaining)} lines"
@@ -135,23 +135,23 @@ class SmartConstraintEnforcer:
     def _discover_core_files(self) -> List[Path]:
         """Discover all core files that should be tracked in AgentOS project"""
         core_files = []
-        
+
         # AgentOS relevant file extensions
         extensions = [".py", ".js", ".json", ".ts", ".tsx", ".vue"]
-        
+
         # Include root level files
         for ext in [".py", ".js", ".json"]:  # Most common at root
             for file_path in self.project_path.glob(f"*{ext}"):
                 if file_path.is_file() and not file_path.name.startswith('.'):
                     core_files.append(file_path)
-        
+
         # AgentOS core directories
         core_directories = [
             "api", "services", "workers", "agents2", "database", "websockets",
             "ui-admin/src", "ui-v2/src", "ui-admin-clean/assets/js",
             "scripts", "script-monitoring"
         ]
-        
+
         # Include files in core directories
         for core_dir in core_directories:
             core_dir_path = self.project_path / core_dir
@@ -163,7 +163,7 @@ class SmartConstraintEnforcer:
                             if "node_modules" not in str(file_path) and ".git" not in str(file_path):
                                 core_files.append(file_path)
         return core_files
-    
+
     def _load_custom_limits(self):
         """Load custom limits from file if they exist"""
         limits_file = self.project_path / "script-monitoring" / "vibecoder_limits.json"
@@ -179,7 +179,7 @@ class SmartConstraintEnforcer:
                         self.limits.update(custom_limits['file_limits'])
             except Exception as e:
                 print(f"Warning: Failed to load custom limits: {e}")
-    
+
     def update_limits(self, base_lines: int = None, max_lines: int = None, infrastructure_max: int = None, file_limits: dict = None) -> dict:
         """Update gradient limits and save to file"""
         try:
@@ -192,7 +192,7 @@ class SmartConstraintEnforcer:
                 self.INFRASTRUCTURE_MAX = max(50, infrastructure_max)
             if file_limits:
                 self.limits.update(file_limits)
-            
+
             # Save to file
             limits_data = {
                 'base_lines': self.BASE_LINES,
@@ -200,12 +200,12 @@ class SmartConstraintEnforcer:
                 'infrastructure_max': self.INFRASTRUCTURE_MAX,
                 'file_limits': self.limits
             }
-            
+
             limits_file = self.project_path / "script-monitoring" / "vibecoder_limits.json"
             import json
             with open(limits_file, 'w') as f:
                 json.dump(limits_data, f, indent=2)
-            
+
             return {
                 'status': 'success',
                 'message': 'Limits updated successfully',
@@ -220,7 +220,7 @@ class SmartConstraintEnforcer:
                 'status': 'error',
                 'message': f'Failed to update limits: {str(e)}'
             }
-    
+
     def get_limits(self) -> dict:
         """Get current limits for UI display"""
         return {
@@ -309,7 +309,7 @@ def enforce_constraints_with_context_verification(action_description: str = "act
         return {
             "status": "blocked",
             "reason": "context_verification_failed",
-            "message": f"🛡️ CONTEXT VERIFICATION FAILED: AI must demonstrate understanding before proceeding",
+            "message": "🛡️ CONTEXT VERIFICATION FAILED: AI must demonstrate understanding before proceeding",
             "gradient_status": gradient_status,
             "context_verification": {
                 "verified": context_verification.verified,

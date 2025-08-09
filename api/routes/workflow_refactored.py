@@ -7,7 +7,6 @@ Uses WorkflowService to eliminate duplicate logic between admin and user endpoin
 from fastapi import APIRouter, HTTPException, Request, Query
 from typing import Dict, Any, Optional
 from api.services.workflow_service import WorkflowService
-from api.services.auth_dependencies import get_current_user, get_admin_user
 import logging
 
 logger = logging.getLogger("agentos.api.routes.workflow")

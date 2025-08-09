@@ -4,7 +4,6 @@ Central orchestrator for all admin actions with enterprise features
 """
 
 import asyncio
-import json
 import time
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, Callable, List
@@ -29,6 +28,9 @@ from services.audit_log import AuditLog
 from api.models.action_models import ActionType
 from events.dispatcher import EventDispatcher
 
+# Smart Cache Invalidation
+from services.smart_cache_invalidator import get_cache_invalidator
+
 logger = logging.getLogger("agentos.action_dispatcher")
 
 class ActionDispatcher:
@@ -43,7 +45,7 @@ class ActionDispatcher:
     - Audit logging
     - Event propagation
     """
-    
+
     def __init__(self):
         # Service instances (lazy loaded for performance)
         self._jobs_service = None
@@ -51,76 +53,86 @@ class ActionDispatcher:
         self._worker_service = None
         self._system_service = None
         self._admin_data_manager = None
-        
+
         # Enterprise services
         self.idempotency = IdempotencyService()
         self.auth = AuthorizationService()
         self.rate_limiter = RateLimiter()
         self.audit = AuditLog()
         self.events = EventDispatcher()
-    
+
+        # Smart cache invalidation
+        self.cache_invalidator = get_cache_invalidator()
+
     # ============ SERVICE PROPERTIES (Lazy Loading) ============
-    
+
     @property
     def jobs_service(self):
         if not self._jobs_service:
             self._jobs_service = JobsService()
         return self._jobs_service
-    
+
     @property
     def queue_service(self):
         if not self._queue_service:
             self._queue_service = QueueService()
         return self._queue_service
-    
+
     @property
     def worker_service(self):
         if not self._worker_service:
             self._worker_service = WorkerService()
         return self._worker_service
-    
+
     @property
     def system_service(self):
         if not self._system_service:
             self._system_service = SystemService()
         return self._system_service
-    
+
     @property
     def admin_data_manager(self):
         if not self._admin_data_manager:
             self._admin_data_manager = AdminDataManager()
         return self._admin_data_manager
-    
+
     # ============ ACTION REGISTRY ============
-    
+
+    def _get_job_id(self, payload: Dict[str, Any]) -> str:
+        """Safely extract job_id from payload with validation"""
+        job_id = payload.get('job_id')
+        if not job_id:
+            raise ValueError("Missing required parameter: job_id")
+        return str(job_id)
+
     ACTION_HANDLERS: Dict[ActionType, Callable] = {
-        # Job Actions
-        ActionType.JOB_RETRY: lambda self, p, **kw: self.jobs_service.retry_job(**p, **kw),
-        ActionType.JOB_CANCEL: lambda self, p, **kw: self.jobs_service.cancel_job(**p, **kw),
-        ActionType.JOB_DELETE: lambda self, p, **kw: self.jobs_service.delete_job(**p, **kw),
+        # Job Actions (with payload validation)
+        ActionType.JOB_RETRY: lambda self, p, **kw: self.jobs_service.retry_job(job_id=self._get_job_id(p), is_admin=True),
+        ActionType.JOB_CANCEL: lambda self, p, **kw: self.jobs_service.cancel_job(job_id=self._get_job_id(p), is_admin=True),
+        ActionType.JOB_DELETE: lambda self, p, **kw: self.jobs_service.delete_job(job_id=self._get_job_id(p), is_admin=True),
         ActionType.JOB_PRIORITY: lambda self, p, **kw: self.jobs_service.set_job_priority(**p, **kw),
-        
+
         # Queue Actions
         ActionType.QUEUE_CLEAR: lambda self, p, **kw: self.queue_service.clear_queue(**p, **kw),
         ActionType.QUEUE_PAUSE: lambda self, p, **kw: self.queue_service.pause_processing(**p, **kw),
         ActionType.QUEUE_RESUME: lambda self, p, **kw: self.queue_service.resume_processing(**p, **kw),
         ActionType.QUEUE_DRAIN: lambda self, p, **kw: self.queue_service.clear_queue(**p, **kw),
-        
+
         # Worker Actions
         ActionType.WORKER_RESTART: lambda self, p, **kw: self.worker_service.restart_worker(**p, **kw),
         ActionType.WORKER_SCALE: lambda self, p, **kw: self.worker_service.scale_workers(**p, **kw),
         ActionType.WORKER_PAUSE: lambda self, p, **kw: self.worker_service.pause_worker(**p, **kw),
         ActionType.WORKER_RESUME: lambda self, p, **kw: self.worker_service.resume_worker(**p, **kw),
-        
+
         # System Actions
         ActionType.SYSTEM_BACKUP: lambda self, p, **kw: self.system_service.create_backup(**p, **kw),
         ActionType.SYSTEM_MAINTENANCE: lambda self, p, **kw: self.system_service.set_maintenance(**p, **kw),
         ActionType.CACHE_CLEAR: lambda self, p, **kw: self.admin_data_manager.clear_cache(**p, **kw),
         ActionType.CACHE_WARM: lambda self, p, **kw: self.admin_data_manager.warm_cache(**p, **kw),
     }
-    
+
     # ============ ACTION CONFIGURATION ============
-    
+
     ACTION_CONFIG = {
         # Job Actions
         ActionType.JOB_RETRY: {
@@ -155,7 +167,7 @@ class ActionDispatcher:
             "audit": False,
             "events": ["job:priority_changed"],
         },
-        
+
         # Queue Actions
         ActionType.QUEUE_CLEAR: {
             "permissions": ["admin", "queue:manage", "queue:clear"],
@@ -189,7 +201,7 @@ class ActionDispatcher:
             "audit": True,
             "events": ["queue:draining", "cache:invalidate"],
         },
-        
+
         # Worker Actions
         ActionType.WORKER_RESTART: {
             "permissions": ["admin", "worker:manage"],
@@ -223,7 +235,7 @@ class ActionDispatcher:
             "audit": True,
             "events": ["worker:resumed"],
         },
-        
+
         # System Actions
         ActionType.SYSTEM_BACKUP: {
             "permissions": ["admin", "system:backup"],
@@ -258,9 +270,9 @@ class ActionDispatcher:
             "events": ["cache:warmed"],
         },
     }
-    
+
     # ============ MAIN EXECUTION METHOD ============
-    
+
     async def execute(
         self,
         action: ActionType,
@@ -272,7 +284,7 @@ class ActionDispatcher:
     ) -> Dict[str, Any]:
         """
         Execute action with full enterprise features
-        
+
         Args:
             action: The action type to execute
             payload: Action-specific payload
@@ -280,21 +292,21 @@ class ActionDispatcher:
             trace_id: Trace ID for distributed tracing
             idempotency_key: Key for idempotency checking
             **options: Additional options
-        
+
         Returns:
             Action result dictionary
-        
+
         Raises:
             PermissionError: If user lacks permissions
             ValueError: If action or payload is invalid
             TimeoutError: If action times out
             Exception: For other execution errors
         """
-        
+
         # Generate trace ID if not provided
         if not trace_id:
             trace_id = str(uuid4())
-        
+
         # Setup logging context
         log_context = {
             "trace_id": trace_id,
@@ -302,29 +314,32 @@ class ActionDispatcher:
             "user_id": getattr(user, 'id', 'unknown'),
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
-        
+
         logger.info("Action execution started", extra=log_context)
         execution_start = time.time()
-        
+
         try:
             # 1. Validate action exists
             if action not in self.ACTION_HANDLERS:
                 raise ValueError(f"Unknown action: {action}")
-            
+
             config = self.ACTION_CONFIG.get(action, {})
-            
+
             # 2. Check idempotency
             if idempotency_key:
                 cached_result = await self.idempotency.check(idempotency_key, action, user.id)
                 if cached_result:
                     logger.info("Returning cached result (idempotent)", extra=log_context)
                     return cached_result
-            
-            # 3. Rate limiting
-            rate_limit = config.get("rate_limit", {"requests": 100, "window": 60})
-            if not await self.rate_limiter.check(user.id, action, **rate_limit):
-                raise ValueError("Rate limit exceeded for this action")
-            
+
+            # 3. Rate limiting (BYPASS FOR SUPER ADMIN)
+            if not (hasattr(user, 'is_admin') and user.is_admin):
+                rate_limit = config.get("rate_limit", {"requests": 100, "window": 60})
+                if not await self.rate_limiter.check(user.id, action, **rate_limit):
+                    raise ValueError("Rate limit exceeded for this action")
+            else:
+                logger.info(f"Rate limit bypassed for admin user: {user.id}", extra=log_context)
+
             # 4. Authorization
             permissions = config.get("permissions", ["admin"])
             if not await self.auth.check_permissions(user, action, payload, permissions):
@@ -336,11 +351,11 @@ class ActionDispatcher:
                     trace_id=trace_id
                 )
                 raise PermissionError(f"Insufficient permissions for {action}")
-            
+
             # 5. Execute with circuit breaker and timeout
             handler = self.ACTION_HANDLERS[action]
             timeout = config.get("timeout", 30)
-            
+
             if config.get("circuit_breaker", True):
                 # Create circuit breaker instance and use its context manager
                 circuit_breaker = CircuitBreaker(f"action:{action}")
@@ -354,13 +369,13 @@ class ActionDispatcher:
                     self._execute_handler(handler, payload, user=user, trace_id=trace_id, **options),
                     timeout=timeout
                 )
-            
+
             execution_time = (time.time() - execution_start) * 1000  # ms
-            
+
             # 6. Cache result for idempotency
             if idempotency_key:
                 await self.idempotency.store(idempotency_key, result)
-            
+
             # 7. Audit logging
             if config.get("audit", True):
                 await self.audit.log_action(
@@ -371,10 +386,11 @@ class ActionDispatcher:
                     trace_id=trace_id,
                     execution_time_ms=execution_time
                 )
-            
-            # 8. Event propagation
+
+            # 8. Event propagation AND Smart Cache Invalidation
             events = config.get("events", [])
             for event in events:
+                # Traditional event dispatch
                 await self.events.dispatch(event, {
                     **payload,
                     "action": action.value,
@@ -383,13 +399,38 @@ class ActionDispatcher:
                     "result": result,
                     "timestamp": datetime.now(timezone.utc).isoformat()
                 })
-            
+
+                # Smart cache invalidation for cache-related events
+                if event == "cache:invalidate" or event.startswith("cache:"):
+                    await self.cache_invalidator.invalidate(event)
+                    logger.debug(f"Smart cache invalidation triggered for event: {event}")
+
+            # CRITICAL FIX: Always trigger cache invalidation for job actions
+            if action.value.startswith("job."):
+                # Map job actions to cache invalidation events
+                cache_event_mapping = {
+                    "job.retry": "job:retry_requested",
+                    "job.cancel": "job:cancelled",
+                    "job.delete": "job:deleted"
+                }
+
+                cache_event = cache_event_mapping.get(action.value)
+                if cache_event:
+                    await self.cache_invalidator.invalidate(cache_event)
+                    logger.info(f"Dashboard cache invalidation triggered for {action.value} -> {cache_event}")
+
+            # Queue actions cache invalidation
+            elif action.value.startswith("queue."):
+                if action.value == "queue.clear":
+                    await self.cache_invalidator.invalidate("queue:cleared")
+                    logger.info(f"Queue cache invalidation triggered for {action.value}")
+
             # 9. Success logging
             logger.info(
-                "Action execution completed successfully", 
+                "Action execution completed successfully",
                 extra={**log_context, "execution_time_ms": execution_time, "result_size": len(str(result))}
             )
-            
+
             return {
                 "success": True,
                 "result": result,
@@ -397,7 +438,7 @@ class ActionDispatcher:
                 "execution_time_ms": execution_time,
                 "timestamp": datetime.now(timezone.utc).isoformat()
             }
-            
+
         except PermissionError:
             logger.warning("Action execution denied", extra=log_context)
             raise
@@ -407,17 +448,17 @@ class ActionDispatcher:
         except asyncio.TimeoutError:
             execution_time = (time.time() - execution_start) * 1000
             logger.error(
-                "Action execution timed out", 
+                "Action execution timed out",
                 extra={**log_context, "timeout_after_ms": execution_time}
             )
             raise TimeoutError(f"Action {action} timed out after {execution_time:.0f}ms")
         except Exception as e:
             execution_time = (time.time() - execution_start) * 1000
             logger.exception(
-                "Action execution failed", 
+                "Action execution failed",
                 extra={**log_context, "error": str(e), "execution_time_ms": execution_time}
             )
-            
+
             # Log failure for audit
             if config.get("audit", True):
                 await self.audit.log_action_failure(
@@ -428,9 +469,9 @@ class ActionDispatcher:
                     trace_id=trace_id,
                     execution_time_ms=execution_time
                 )
-            
+
             raise
-    
+
     async def _execute_handler(self, handler: Callable, payload: Dict[str, Any], **kwargs) -> Dict[str, Any]:
         """Execute the actual action handler"""
         try:
@@ -439,37 +480,37 @@ class ActionDispatcher:
                 result = await handler(self, payload, **kwargs)
             else:
                 result = handler(self, payload, **kwargs)
-            
+
             # If result is a coroutine (from lambda calling async method), await it
             if asyncio.iscoroutine(result):
                 result = await result
-                
+
             return result
         except Exception as e:
             logger.error(f"Handler execution failed: {e}")
             raise
-    
+
     # ============ UTILITY METHODS ============
-    
+
     def get_action_config(self, action: ActionType) -> Dict[str, Any]:
         """Get configuration for a specific action"""
         return self.ACTION_CONFIG.get(action, {})
-    
+
     def list_available_actions(self, user: Any) -> List[ActionType]:
         """List actions available to a user based on permissions"""
         available_actions = []
-        
+
         for action, config in self.ACTION_CONFIG.items():
             permissions = config.get("permissions", ["admin"])
             if self.auth.has_any_permission(user, permissions):
                 available_actions.append(action)
-        
+
         return available_actions
-    
+
     async def get_action_status(self, action: ActionType) -> Dict[str, Any]:
         """Get status information for an action (rate limits, circuit breaker, etc.)"""
         config = self.ACTION_CONFIG.get(action, {})
-        
+
         return {
             "action": action.value,
             "rate_limit": config.get("rate_limit", {}),

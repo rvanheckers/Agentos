@@ -22,10 +22,12 @@ export const JobsQueueHelpProvider = {
    * @returns {object} Help content object
    */
   getHelp(componentId = null) {
-    // Get dynamic data from current view
-    const totalJobs = window.jobHistory ? window.jobHistory.jobs?.length || 0 : 0;
-    const currentFilter = window.jobHistory ? window.jobHistory.currentFilter?.preset || 'all' : 'all';
-    const itemsPerPage = window.jobHistory ? window.jobHistory.itemsPerPage : 20;
+    // Get dynamic data from current view (safe for SSR/tests)
+    const hasWindow = typeof window !== 'undefined';
+    const jobHistory = hasWindow && window.jobHistory ? window.jobHistory : null;
+    const totalJobs = jobHistory?.jobs?.length ?? 0;
+    const currentFilter = jobHistory?.currentFilter?.preset ?? 'all';
+    const itemsPerPage = jobHistory?.itemsPerPage ?? 20;
     
     const helpContent = {
       // Jobs Overview - main section help
@@ -49,7 +51,7 @@ export const JobsQueueHelpProvider = {
             "Processing time: <2min normaal, >10min onderzoeken",
             "Success rate: >95% gezond, <90% systematisch probleem",
             "Queue length: <10 goed, >50 bottleneck indicatie",
-            "Worker capacity: 20 parallelle jobs (5 workers × 4 concurrency)"
+            "Worker capacity: Dynamisch gebaseerd op configuratie (check System > Workers voor actuele capaciteit)"
           ]
         }
       },
@@ -128,6 +130,99 @@ export const JobsQueueHelpProvider = {
             "🎯 Success Rate: Completed/(Completed + Failed) × 100% over recent period",
             "⏱️ Avg Processing: Mean completion time from queued → completed status",
             "Pipeline Health: >90% success rate + <2min avg processing = optimal"
+          ]
+        }
+      },
+
+      // Individual metric card help content
+      'jobs_queue_total_jobs': {
+        beginner: {
+          title: "Alle Jobs Totaal - Complete Werklast",
+          praktisch: `Dit toont alle ${totalJobs} jobs in je systeem (historisch). Verschil met Dashboard: Dashboard toont alleen "vandaag", dit toont alle jobs ooit.`,
+          wat_te_doen: [
+            "📋 Alle jobs samen = Complete geschiedenis van al je projecten",
+            "📈 Hoog getal = Veel activiteit, systeem wordt goed gebruikt",  
+            "📉 Laag getal = Weinig gebruik of nieuw systeem",
+            "🔍 Voor dagelijkse status: kijk naar Dashboard 'Today's Jobs'"
+          ]
+        },
+        intermediate: {
+          title: "All-time Jobs Metric - Historical Volume Analysis", 
+          praktisch: "Historical job count voor trend analysis en capacity planning. Toont cumulative workload over complete database.",
+          technisch: "COUNT(*) query over jobs table, cached voor performance",
+          metrics: [
+            "Trend analysis: Track growth patterns over time",
+            "Capacity planning: Historical peak loads vs current capacity", 
+            "Usage patterns: Job distribution over days/weeks"
+          ]
+        }
+      },
+
+      'jobs_queue_active_jobs': {
+        beginner: {
+          title: "Actieve Jobs - Wat Draait Er Nu",
+          praktisch: "Jobs die NU bezig zijn met verwerken. Dit zijn je 'lopende projecten' die nog niet klaar zijn.",
+          wat_te_doen: [
+            "⚡ 0-5 jobs = Rustig, systeem heeft capaciteit over",
+            "🟡 6-10 jobs = Normale drukte, systeem loopt lekker", 
+            "🔴 >10 jobs = Druk, mogelijk wachttijden",
+            "💡 Te veel jobs? Overweeg meer workers toevoegen"
+          ]
+        },
+        intermediate: {
+          title: "Active Jobs Load Monitoring - Real-time Capacity",
+          praktisch: "Current processing load indicator voor worker capacity management. Toont real-time queue depth.",
+          technisch: "SUM(status IN ['processing', 'queued']) real-time query",  
+          metrics: [
+            "Load balancing: Distribute work across available workers",
+            "Scaling triggers: >10 jobs = consider horizontal scaling",
+            "Response time impact: High load = longer queue times"
+          ]
+        }
+      },
+
+      'jobs_queue_success_rate': {
+        beginner: {
+          title: "Succes Percentage - Hoe Goed Werkt Het",
+          praktisch: "Percentage jobs dat goed afkomt. Dit toont hoe betrouwbaar je systeem is over alle tijd.",
+          wat_te_doen: [
+            "🟢 >90% = Uitstekend, systeem werkt zeer goed",
+            "🟡 70-90% = Goed, normale prestaties",
+            "🔴 <70% = Aandacht nodig, veel problemen",
+            "📊 Verschil met Dashboard: Dit is historisch, Dashboard is van vandaag"
+          ]
+        },
+        intermediate: {
+          title: "Overall Success Rate - Pipeline Reliability KPI",
+          praktisch: "Historical success rate voor pipeline reliability assessment. Key performance indicator voor system health.",
+          technisch: "Completed/(Completed+Failed) × 100% over all historical data",
+          metrics: [
+            "Reliability trending: Monitor changes over time periods",
+            "Service level objectives: Target >95% voor production readiness",
+            "Failure analysis: Identify patterns in unsuccessful jobs"
+          ]
+        }
+      },
+
+      'jobs_queue_avg_processing': {
+        beginner: {
+          title: "Gemiddelde Verwerkingstijd - Hoe Snel Gaat Het", 
+          praktisch: "Hoe lang jobs gemiddeld nodig hebben om klaar te komen. Dit is de 'snelheid van je fabriek'.",
+          wat_te_doen: [
+            "🟢 <2 min = Supersnel, systeem is geoptimaliseerd",
+            "🟡 2-5 min = Normale snelheid, acceptabele prestaties",
+            "🔴 >5 min = Langzaam, mogelijk optimalisatie nodig",
+            "📊 Verschil met Dashboard: Dit is historisch gemiddelde"
+          ]
+        },
+        intermediate: {
+          title: "Historical Processing Time - Performance Benchmark",
+          praktisch: "Long-term processing time average voor performance trending en bottleneck identification.",
+          technisch: "AVG(completed_at - created_at) voor alle completed jobs",
+          metrics: [
+            "Performance trending: Track improvements/degradations over time",
+            "Capacity planning: Processing time × job volume = resource needs", 
+            "SLA compliance: Target processing time benchmarks"
           ]
         }
       }
@@ -220,6 +315,13 @@ export const JobsQueueHelpProvider = {
       };
     }
 
-    return componentId ? { [componentId]: helpContent[componentId] } : helpContent;
+    if (componentId === null) {
+      return helpContent;
+    }
+    if (!Object.prototype.hasOwnProperty.call(helpContent, componentId)) {
+      return {};
+      // of: throw new Error(`Unknown help component: ${componentId}`);
+    }
+    return { [componentId]: helpContent[componentId] };
   }
 };

@@ -8,6 +8,48 @@
    JOBS & QUEUE LAYOUT - Compact Professional Design
    ================================================================= */
 
+/* Timeframe Filter */
+.timeframe-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.timeframe-filter label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--gray-700);
+}
+
+.timeframe-select {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius);
+  background: white;
+  font-size: var(--text-sm);
+  color: var(--gray-700);
+  cursor: pointer;
+  min-width: 120px;
+}
+
+.timeframe-select:hover {
+  border-color: var(--primary-400);
+}
+
+.timeframe-select:focus {
+  outline: none;
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.smartfilter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
 .jobs-queue-view {
   display: flex;
   flex-direction: column;
@@ -665,9 +707,6 @@
   margin-bottom: var(--space-6);
 }
 
-.smartfilter-header {
-  margin-bottom: var(--space-3);
-}
 
 .smartfilter-header .section-title {
   display: flex;
@@ -1347,5 +1386,4 @@
   }
 }
 
-/* Make JobHistory globally accessible for onclick handlers */
-window.jobHistory = null;
+/* JobHistory globally accessible for onclick handlers - moved to main.js */

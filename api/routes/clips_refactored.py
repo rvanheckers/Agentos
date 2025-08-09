@@ -4,7 +4,6 @@ Provides endpoints for clip management and retrieval.
 """
 
 from fastapi import APIRouter, HTTPException, Query
-from typing import List, Optional
 from api.services.database_service import DatabaseService
 from core.logging_config import get_logger
 
@@ -26,7 +25,7 @@ async def get_recent_clips(limit: int = Query(10, ge=1, le=100)):
     """
     try:
         clips = db_service.get_recent_clips(limit)
-        
+
         # Transform clips data to match frontend expectations
         formatted_clips = []
         for clip in clips:
@@ -47,13 +46,13 @@ async def get_recent_clips(limit: int = Query(10, ge=1, le=100)):
                 },
                 "created_at": clip.get("created_at")
             })
-        
+
         return {
             "status": "success",
             "clips": formatted_clips,
             "total": len(formatted_clips)
         }
-        
+
     except Exception as e:
         logger.error(f"Failed to get recent clips: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve clips: {str(e)}")
@@ -70,20 +69,20 @@ async def get_clip_details(clip_id: str):
     try:
         # Get clip from database via jobs service (which has access to clips)
         from api.services.jobs_service import JobsService
-        jobs_service = JobsService(db_service.db_manager)
-        
+        JobsService(db_service.db_manager)
+
         # Find clip by iterating through recent clips
         clips = db_service.get_recent_clips(100)  # Get more clips to search
         clip = next((c for c in clips if c.get("id") == clip_id), None)
-        
+
         if not clip:
             raise HTTPException(status_code=404, detail="Clip not found")
-        
+
         return {
             "status": "success",
             "clip": clip
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -98,29 +97,29 @@ async def get_clips_statistics():
     try:
         # Get stats from database
         stats = db_service.get_stats()
-        
+
         # Get recent clips for additional analysis
         recent_clips = db_service.get_recent_clips(50)
-        
+
         # Analyze clip types
         clip_types = {}
         platforms = {}
         total_duration = 0
-        
+
         for clip in recent_clips:
             # Count clip types
             clip_type = clip.get("clip_type", "unknown")
             clip_types[clip_type] = clip_types.get(clip_type, 0) + 1
-            
+
             # Count platforms
             platform = clip.get("platform", "unknown")
             platforms[platform] = platforms.get(platform, 0) + 1
-            
+
             # Sum durations
             duration = clip.get("duration", 0)
             if isinstance(duration, (int, float)):
                 total_duration += duration
-        
+
         return {
             "status": "success",
             "stats": {
@@ -132,7 +131,7 @@ async def get_clips_statistics():
                 "recent_clips_analyzed": len(recent_clips)
             }
         }
-        
+
     except Exception as e:
         logger.error(f"Failed to get clips statistics: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve statistics: {str(e)}")

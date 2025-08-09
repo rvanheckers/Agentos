@@ -31,7 +31,7 @@ We hebben een slim cache systeem gebouwd dat werkt als een slimme assistent:
 
 ```
 Gebruiker klikt "Dashboard"
-→ 5ms antwoord! (200x sneller)
+→ 5ms antwoord! (1280x sneller)
 → Data komt uit Redis cache
 → Gebruiker is blij
 ```
@@ -129,7 +129,7 @@ Elke 5 seconden:
 
 | Wat | V3 (Oud) | V4 (Nieuw) | Verbetering |
 |-----|----------|------------|-------------|
-| Dashboard laden | 6400ms | 5ms | 128x sneller |
+| Dashboard laden | 6400ms | 5ms | 1280x sneller |
 | Cache hit rate | 0% | 95%+ | Vrijwel altijd cache |
 | API calls | 6 losse | 1 gecombineerde | 6x minder |
 | Database load | Hoog | Laag | Database is blij |

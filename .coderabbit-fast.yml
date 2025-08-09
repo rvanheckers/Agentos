@@ -1,0 +1,6 @@
+# Ultra-fast CodeRabbit - alleen de essentials (5 regels)
+language: nl
+auto_review: { enabled: true, drafts: false }
+rules: { security: { enabled: true, severity: high }, code_quality: { enabled: true, max_line_length: 120 } }
+exclude: ["**/logs/**", "**/node_modules/**", "**/__pycache__/**", "**/io/**", "**/database/postgresql/backups/**"]
+merge_gate: { require_all_comments_resolved: true }

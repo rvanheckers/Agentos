@@ -3,17 +3,15 @@ Enterprise Admin Actions API
 Single endpoint for all admin actions with full enterprise features
 """
 
-import asyncio
 import time
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any
+from typing import Optional
 from uuid import uuid4
 
 from fastapi import (
-    APIRouter, 
-    HTTPException, 
-    Depends, 
-    Header, 
+    APIRouter,
+    HTTPException,
+    Header,
     Request,
     Response,
     status
@@ -21,10 +19,8 @@ from fastapi import (
 
 # Import our enterprise models and services
 from api.models.action_models import (
-    ActionRequest, 
-    ActionResponse, 
-    ActionError, 
-    ActionType
+    ActionRequest,
+    ActionResponse
 )
 from services.action_dispatcher import action_dispatcher
 from services.authorization_service import authorization_service, User
@@ -52,7 +48,7 @@ async def get_current_user(request: Request) -> User:
     # In production, this would extract user from JWT token or session
     return User(
         id="admin",
-        email="admin@agentos.ai", 
+        email="admin@agentos.ai",
         roles=["admin"],
         permissions=[],
         is_admin=True,
@@ -65,17 +61,17 @@ async def get_current_user(request: Request) -> User:
     summary="Execute Admin Action",
     description="""
     **Enterprise Single Action Endpoint**
-    
+
     Execute any admin action through a unified, type-safe interface with full enterprise features:
-    
+
     - **Type Safety**: Discriminated unions ensure correct payloads
     - **Authorization**: Fine-grained permission checking
     - **Audit Logging**: Comprehensive compliance logging
     - **Distributed Tracing**: Full request tracing with `X-Trace-Id`
-    
+
     **Available Actions:**
     - `job.retry` - Retry a failed job
-    - `job.cancel` - Cancel a running job  
+    - `job.cancel` - Cancel a running job
     - `queue.clear` - Clear job queue (admin only)
     - `worker.restart` - Restart workers
     - `cache.clear` - Clear system cache
@@ -91,28 +87,28 @@ async def execute_action(
     """
     Execute admin action with full enterprise features
     """
-    
+
     # Setup tracing
     trace_id = x_trace_id or generate_trace_id()
     execution_start = time.time()
-    
+
     # Add trace ID to response headers
     response.headers["X-Trace-Id"] = trace_id
-    
+
     # Get user info
     client_ip = current_request.client.host if current_request.client else None
     user_agent = current_request.headers.get("user-agent", "unknown")
-    
+
     logger.info(f"Action execution started: {request.action.value}", extra={
         "trace_id": trace_id,
         "action": request.action.value,
         "ip_address": client_ip
     })
-    
+
     try:
         # Get current user
         user = await get_current_user(current_request)
-        
+
         # Rate limiting check
         rate_limit_passed = await rate_limiter.check(
             user_id=user.id,
@@ -121,7 +117,7 @@ async def execute_action(
             window=60,
             limit_type=LimitType.SLIDING_WINDOW
         )
-        
+
         if not rate_limit_passed:
             await audit_log.log_denied_attempt(
                 user_id=user.id,
@@ -132,20 +128,20 @@ async def execute_action(
                 ip_address=client_ip,
                 user_agent=user_agent
             )
-            
+
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail=f"Rate limit exceeded for action {request.action.value}",
                 headers={"X-Trace-Id": trace_id}
             )
-        
+
         # Authorization check
         authorized = await authorization_service.check_permissions(
             user=user,
             action=request.action.value,
             payload=request.payload.dict()
         )
-        
+
         if not authorized:
             await audit_log.log_denied_attempt(
                 user_id=user.id,
@@ -156,13 +152,13 @@ async def execute_action(
                 ip_address=client_ip,
                 user_agent=user_agent
             )
-            
+
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Insufficient permissions for action {request.action.value}",
                 headers={"X-Trace-Id": trace_id}
             )
-        
+
         # Idempotency check if key provided
         if x_idempotency_key:
             idempotency_result = await idempotency_service.check(
@@ -171,13 +167,13 @@ async def execute_action(
                 user_id=user.id,
                 payload=request.payload.dict()
             )
-            
+
             if idempotency_result["exists"]:
-                logger.info(f"Returning cached result for idempotent request", extra={
+                logger.info("Returning cached result for idempotent request", extra={
                     "trace_id": trace_id,
                     "idempotency_key": x_idempotency_key
                 })
-                
+
                 cached_result = idempotency_result["result"]
                 return ActionResponse(
                     success=cached_result["success"],
@@ -187,7 +183,7 @@ async def execute_action(
                     timestamp=datetime.now(timezone.utc),
                     duration_ms=0.0  # Cached response
                 )
-        
+
         # Execute action via dispatcher
         result = await action_dispatcher.execute(
             action=request.action,
@@ -196,9 +192,9 @@ async def execute_action(
             trace_id=trace_id,
             idempotency_key=x_idempotency_key
         )
-        
+
         execution_time = (time.time() - execution_start) * 1000  # ms
-        
+
         # Audit successful execution
         await audit_log.log_action(
             user_id=user.id,
@@ -210,13 +206,13 @@ async def execute_action(
             ip_address=client_ip,
             user_agent=user_agent
         )
-        
+
         logger.info(f"Action executed successfully: {request.action.value}", extra={
             "trace_id": trace_id,
             "execution_time_ms": execution_time,
             "user_id": user.id
         })
-        
+
         return ActionResponse(
             success=True,
             action=request.action,
@@ -225,21 +221,21 @@ async def execute_action(
             timestamp=datetime.now(timezone.utc),
             duration_ms=execution_time
         )
-        
+
     except HTTPException:
         # Re-raise HTTP exceptions as-is
         raise
-        
+
     except Exception as e:
         execution_time = (time.time() - execution_start) * 1000
-        
+
         # Get user for audit (if we got that far)
         try:
             user = await get_current_user(current_request)
             user_id = user.id
-        except:
+        except Exception:
             user_id = "unknown"
-        
+
         # Audit failure
         await audit_log.log_action_failure(
             user_id=user_id,
@@ -251,14 +247,14 @@ async def execute_action(
             ip_address=client_ip,
             user_agent=user_agent
         )
-        
+
         logger.error(f"Action failed: {request.action.value}", extra={
             "trace_id": trace_id,
             "error": str(e),
             "execution_time_ms": execution_time,
             "user_id": user_id
         })
-        
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Action failed: {str(e)}",

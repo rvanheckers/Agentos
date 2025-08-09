@@ -13,24 +13,23 @@ import os
 import subprocess
 import time
 from typing import Dict, List, Any
-from datetime import datetime
 
 class TemplateEngine:
     """
     Atomic agent for applying video templates.
-    
+
     Provides professional video templates, layouts, and presets
     for different content types and platforms.
     """
-    
+
     def __init__(self):
         self.version = "1.0.0"
         self.templates_dir = "./templates"
-    
+
     def apply_template(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Apply video template to content.
-        
+
         Args:
             input_data: {
                 "video_path": str,           # input video file
@@ -72,7 +71,7 @@ class TemplateEngine:
                     "transition_duration": float # transition duration
                 }
             }
-            
+
         Returns:
             {
                 "success": bool,
@@ -89,25 +88,25 @@ class TemplateEngine:
                 "agent_version": str
             }
         """
-        
+
         start_time = time.time()
-        
+
         try:
             # Validate inputs
             if not input_data.get("video_path"):
                 return self._error("video_path is required")
-            
+
             if not input_data.get("output_path"):
                 return self._error("output_path is required")
-            
+
             template_name = input_data.get("template_name", "basic")
             if not template_name:
                 return self._error("template_name is required")
-            
+
             video_path = input_data["video_path"]
             if not os.path.exists(video_path):
                 return self._error(f"Video file not found: {video_path}")
-            
+
             # Get parameters
             output_path = input_data["output_path"]
             template_name = input_data["template_name"]
@@ -115,15 +114,15 @@ class TemplateEngine:
             customization = input_data.get("customization", {})
             content = input_data.get("content", {})
             timing = input_data.get("timing", {})
-            
+
             # Get template configuration
             template_config = self._get_template_config(template_name, platform)
             if not template_config:
                 return self._error(f"Template '{template_name}' not found")
-            
+
             # Create output directory
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            
+
             # Apply template (mock for basic template)
             if template_name == "basic":
                 # For basic template, just copy the video file
@@ -133,15 +132,15 @@ class TemplateEngine:
                     video_path, output_path, template_config,
                     customization, content, timing
                 )
-            
+
             if not success:
                 return self._error("Failed to apply template")
-            
+
             # Get applied customizations
             customizations_applied = self._get_applied_customizations(customization)
-            
+
             processing_time = time.time() - start_time
-            
+
             return {
                 "success": True,
                 "output_video": output_path,
@@ -156,13 +155,13 @@ class TemplateEngine:
                 "processing_time": processing_time,
                 "agent_version": self.version
             }
-            
+
         except Exception as e:
             return self._error(f"Template application failed: {str(e)}")
-    
+
     def _get_template_config(self, template_name: str, platform: str) -> Dict[str, Any]:
         """Get template configuration"""
-        
+
         templates = {
             "basic": {
                 "style": "simple",
@@ -342,9 +341,9 @@ class TemplateEngine:
                 "effects": ["fade_in", "fade_out", "smooth_transitions"]
             }
         }
-        
+
         return templates.get(template_name)
-    
+
     def _apply_basic_template(self, video_path: str, output_path: str) -> bool:
         """Apply basic template (simple copy for demo)"""
         try:
@@ -353,22 +352,22 @@ class TemplateEngine:
             return True
         except Exception:
             return False
-    
+
     def _apply_template_to_video(self, video_path: str, output_path: str,
                                 template_config: Dict[str, Any], customization: Dict[str, Any],
                                 content: Dict[str, Any], timing: Dict[str, Any]) -> bool:
         """Apply template to video using FFmpeg"""
-        
+
         try:
             # Build filter chain for template
             filter_chain = self._build_template_filter_chain(
                 template_config, customization, content, timing
             )
-            
+
             # Get resolution settings
             resolution = template_config.get("resolution", "1920x1080")
             width, height = resolution.split('x')
-            
+
             # Build FFmpeg command
             cmd = [
                 'ffmpeg', '-i', video_path,
@@ -378,22 +377,22 @@ class TemplateEngine:
                 '-movflags', '+faststart',
                 '-y', output_path
             ]
-            
+
             # Execute FFmpeg command
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-            
+
             return result.returncode == 0 and os.path.exists(output_path)
-            
+
         except Exception:
             return False
-    
+
     def _build_template_filter_chain(self, template_config: Dict[str, Any],
                                    customization: Dict[str, Any], content: Dict[str, Any],
                                    timing: Dict[str, Any]) -> str:
         """Build FFmpeg filter chain for template"""
-        
+
         filters = []
-        
+
         # Apply template effects
         effects = template_config.get("effects", [])
         for effect in effects:
@@ -409,84 +408,84 @@ class TemplateEngine:
                 filters.append("eq=saturation=1.5")
             elif effect == "neon_glow":
                 filters.append("glow=intensity=0.5")
-        
+
         # Apply customization colors
         colors = customization.get("colors", {})
         if colors.get("primary"):
             # Color adjustment based on primary color
             filters.append("colorbalance=rs=0.1:gs=0.1:bs=0.1")
-        
+
         # Add text overlays
         title = content.get("title", "")
         if title:
             title_config = template_config.get("overlays", {}).get("title", {})
             font_size = title_config.get("size", 48)
             color = title_config.get("color", "#FFFFFF")
-            
+
             # Simple text overlay
             text_filter = f"drawtext=text='{title}':x=(w-text_w)/2:y=50:fontsize={font_size}:fontcolor={color}:box=1:boxcolor=black@0.5"
             filters.append(text_filter)
-        
+
         # Add subtitle
         subtitle = content.get("subtitle", "")
         if subtitle:
             subtitle_config = template_config.get("overlays", {}).get("subtitle", {})
             font_size = subtitle_config.get("size", 24)
             color = subtitle_config.get("color", "#CCCCCC")
-            
+
             text_filter = f"drawtext=text='{subtitle}':x=(w-text_w)/2:y=h-100:fontsize={font_size}:fontcolor={color}:box=1:boxcolor=black@0.5"
             filters.append(text_filter)
-        
+
         # Add hashtags
         hashtags = content.get("hashtags", [])
         if hashtags:
             hashtag_text = " ".join(hashtags)
             text_filter = f"drawtext=text='{hashtag_text}':x=(w-text_w)/2:y=h-50:fontsize=18:fontcolor=white:box=1:boxcolor=black@0.5"
             filters.append(text_filter)
-        
+
         return ','.join(filters) if filters else 'null'
-    
+
     def _get_applied_customizations(self, customization: Dict[str, Any]) -> List[str]:
         """Get list of applied customizations"""
-        
+
         applied = []
-        
+
         if customization.get("colors"):
             applied.append("Custom color scheme")
-        
+
         if customization.get("fonts"):
             applied.append("Custom fonts")
-        
+
         if customization.get("branding"):
             applied.append("Brand customization")
-        
+
         if customization.get("layout"):
             applied.append("Layout customization")
-        
+
         return applied
-    
+
     def _get_video_duration(self, video_path: str) -> float:
         """Get video duration using ffprobe"""
-        
+
         try:
             cmd = [
                 'ffprobe', '-v', 'quiet', '-show_entries', 'format=duration',
                 '-of', 'csv=p=0', video_path
             ]
-            
+
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-            
+
             if result.returncode == 0:
                 return float(result.stdout.strip())
-            
+
         except Exception:
             pass
-        
+
         return 0.0
-    
+
     def get_available_templates(self) -> Dict[str, Any]:
         """Get list of available templates"""
-        
+
         return {
             "templates": [
                 {
@@ -526,7 +525,7 @@ class TemplateEngine:
                 }
             ]
         }
-    
+
     def _error(self, message: str) -> Dict[str, Any]:
         """Return standardized error response"""
         return {
@@ -545,13 +544,13 @@ def main():
             "error_code": "INVALID_ARGUMENTS"
         }))
         sys.exit(1)
-    
+
     try:
         input_data = json.loads(sys.argv[1])
         engine = TemplateEngine()
         result = engine.apply_template(input_data)
         print(json.dumps(result, indent=2))
-        
+
     except json.JSONDecodeError:
         print(json.dumps({
             "success": False,

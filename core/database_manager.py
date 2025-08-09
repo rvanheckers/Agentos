@@ -16,15 +16,12 @@ Features:
 - Error handling
 """
 
-from typing import List, Dict, Any, Optional, Union
+from typing import Dict, Any
 from datetime import datetime, timezone, timedelta
 import uuid
 import logging
 import contextlib
-import psycopg2
-from psycopg2.extras import RealDictCursor
-import sqlalchemy as sa
-from sqlalchemy import create_engine, text, MetaData, Table, Column, String, DateTime, Integer, Text, Boolean, Float, UUID, Index, ForeignKey
+from sqlalchemy import create_engine, text, Column, String, DateTime, Integer, Text, Boolean, Float, ForeignKey
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from sqlalchemy.pool import QueuePool
 from sqlalchemy.dialects.postgresql import UUID as PostgreSQLUUID
@@ -38,7 +35,7 @@ Base = declarative_base()
 # Database Models
 class Job(Base):
     __tablename__ = 'jobs'
-    
+
     id = Column(PostgreSQLUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(String(36), nullable=False, index=True)
     video_url = Column(Text, nullable=False)
@@ -54,14 +51,14 @@ class Job(Base):
     priority = Column(Integer, default=5, index=True)
     retry_count = Column(Integer, default=0)
     worker_id = Column(String(50))
-    
+
     # Relationships
     clips = relationship("Clip", back_populates="job", cascade="all, delete-orphan")
     processing_steps = relationship("ProcessingStep", back_populates="job", cascade="all, delete-orphan")
 
 class Clip(Base):
     __tablename__ = 'clips'
-    
+
     id = Column(PostgreSQLUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     job_id = Column(PostgreSQLUUID(as_uuid=True), ForeignKey('jobs.id'), nullable=False, index=True)
     clip_number = Column(Integer, nullable=False, default=1)  # Add missing clip_number column
@@ -73,13 +70,13 @@ class Clip(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
     file_size = Column(Integer)
     thumbnail_path = Column(Text)
-    
+
     # Relationships
     job = relationship("Job", back_populates="clips")
 
 class ProcessingStep(Base):
     __tablename__ = 'processing_steps'
-    
+
     id = Column(PostgreSQLUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     job_id = Column(PostgreSQLUUID(as_uuid=True), ForeignKey('jobs.id'), nullable=False, index=True)
     step_name = Column(String(100), nullable=False)
@@ -90,13 +87,13 @@ class ProcessingStep(Base):
     agent_output = Column(Text)
     error_message = Column(Text)
     metadata_json = Column(Text)
-    
+
     # Relationships
     job = relationship("Job", back_populates="processing_steps")
 
 class SystemEvent(Base):
     __tablename__ = 'system_events'
-    
+
     id = Column(PostgreSQLUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     event_type = Column(String(50), nullable=False, index=True)
     message = Column(Text)
@@ -107,7 +104,7 @@ class SystemEvent(Base):
 
 class SystemConfig(Base):
     __tablename__ = 'system_config'
-    
+
     id = Column(PostgreSQLUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     key = Column(String(100), unique=True, nullable=False, index=True)
     value = Column(Text)
@@ -120,14 +117,14 @@ class PostgreSQLManager:
     """
     PostgreSQL Database Manager met connection pooling en high-performance features
     """
-    
+
     def __init__(self, database_url: str = None):
         self.database_url = database_url or "postgresql://agentos_user:secure_agentos_2024@localhost:5432/agentos_production"
         self.engine = None
         self.SessionLocal = None
         self._initialize_engine()
         logger.info("✅ PostgreSQL Manager initialized with connection pooling")
-    
+
     def _initialize_engine(self):
         """Initialize SQLAlchemy engine with connection pooling"""
         try:
@@ -146,19 +143,19 @@ class PostgreSQLManager:
                     "application_name": "AgentOS_AdminUI"
                 }
             )
-            
+
             # Test connection
             with self.engine.connect() as conn:
                 result = conn.execute(text("SELECT 1"))
                 logger.info(f"✅ PostgreSQL connection test successful: {result.scalar()}")
-            
+
             # Create session factory
             self.SessionLocal = sessionmaker(bind=self.engine)
-            
+
         except Exception as e:
             logger.error(f"❌ Failed to initialize PostgreSQL engine: {e}")
             raise
-    
+
     @contextlib.contextmanager
     def get_session(self):
         """Context manager for database sessions"""
@@ -171,7 +168,7 @@ class PostgreSQLManager:
             raise
         finally:
             session.close()
-    
+
     def update_job_status(self, job_id: str, status: str, progress: int = None, error_message: str = None):
         """Update job status in database"""
         try:
@@ -187,14 +184,14 @@ class PostgreSQLManager:
                         job.started_at = datetime.now(timezone.utc)
                     elif status == 'completed':
                         job.completed_at = datetime.now(timezone.utc)
-                    
+
                     session.commit()
                     logger.info(f"✅ Job {job_id} updated: {status} ({progress}%)")
                 else:
                     logger.warning(f"⚠️ Job {job_id} not found for status update")
         except Exception as e:
             logger.error(f"❌ Failed to update job status: {e}")
-    
+
     def save_clip(self, job_id: str, file_path: str, duration: float = None, title: str = None, description: str = None):
         """Save clip to database"""
         try:
@@ -213,7 +210,7 @@ class PostgreSQLManager:
         except Exception as e:
             logger.error(f"❌ Failed to save clip: {e}")
             return None
-    
+
     def log_system_event(self, event_type: str, message: str, severity: str = 'info', component: str = None, metadata: dict = None):
         """Log system event to database"""
         try:
@@ -230,7 +227,7 @@ class PostgreSQLManager:
                 logger.info(f"📝 System event logged: {event_type}")
         except Exception as e:
             logger.error(f"❌ Failed to log system event: {e}")
-    
+
     def get_job_by_id(self, job_id: str):
         """Get job by ID"""
         try:
@@ -240,7 +237,7 @@ class PostgreSQLManager:
         except Exception as e:
             logger.error(f"❌ Failed to get job {job_id}: {e}")
             return None
-    
+
     def create_tables(self):
         """Create all database tables"""
         try:
@@ -249,7 +246,7 @@ class PostgreSQLManager:
         except Exception as e:
             logger.error(f"❌ Failed to create tables: {e}")
             raise
-    
+
     def get_recent_clips(self, limit: int = 10):
         """Get recent clips for dashboard"""
         try:
@@ -258,7 +255,7 @@ class PostgreSQLManager:
                               .order_by(Clip.created_at.desc())\
                               .limit(limit)\
                               .all()
-                
+
                 result = []
                 for clip in clips:
                     result.append({
@@ -270,12 +267,12 @@ class PostgreSQLManager:
                         "duration": clip.duration,
                         "created_at": clip.created_at.isoformat() if clip.created_at else None
                     })
-                
+
                 return result
         except Exception as e:
             logger.error(f"❌ Failed to get recent clips: {e}")
             return []
-    
+
     def get_stats(self):
         """Get database statistics for admin dashboard"""
         try:
@@ -285,26 +282,26 @@ class PostgreSQLManager:
                 total_clips = session.query(Clip).count()
                 total_processing_steps = session.query(ProcessingStep).count()
                 total_system_events = session.query(SystemEvent).count()
-                
+
                 # Get status counts
                 pending_jobs = session.query(Job).filter(Job.status == 'pending').count()
                 processing_jobs = session.query(Job).filter(Job.status == 'processing').count()
                 completed_jobs = session.query(Job).filter(Job.status == 'completed').count()
                 failed_jobs = session.query(Job).filter(Job.status == 'failed').count()
-                
+
                 # Get recent activity (last 24 hours)
                 yesterday = datetime.now(timezone.utc) - timedelta(days=1)
                 recent_jobs = session.query(Job).filter(Job.created_at >= yesterday).count()
                 recent_clips = session.query(Clip).filter(Clip.created_at >= yesterday).count()
                 recent_events = session.query(SystemEvent).filter(SystemEvent.created_at >= yesterday).count()
-                
+
                 # Calculate success rate (last 100 jobs)
                 last_100_jobs = session.query(Job).order_by(Job.created_at.desc()).limit(100).all()
                 success_rate = 0
                 if last_100_jobs:
                     completed_count = sum(1 for job in last_100_jobs if job.status == 'completed')
                     success_rate = (completed_count / len(last_100_jobs)) * 100
-                
+
                 return {
                     "total_jobs": total_jobs,
                     "total_clips": total_clips,
@@ -343,19 +340,19 @@ class PostgreSQLManager:
                 "last_updated": datetime.now(timezone.utc).isoformat(),
                 "error": str(e)
             }
-    
+
     def get_combined_recent_activity(self, limit: int = 20):
         """Get combined recent activity from system events, jobs, and processing steps"""
         try:
             with self.get_session() as session:
                 activities = []
-                
+
                 # Get recent system events
                 recent_events = session.query(SystemEvent)\
                                      .order_by(SystemEvent.created_at.desc())\
                                      .limit(limit//2)\
                                      .all()
-                
+
                 for event in recent_events:
                     activities.append({
                         "id": str(event.id),
@@ -367,14 +364,14 @@ class PostgreSQLManager:
                         "timestamp": event.created_at.isoformat() if event.created_at else None,
                         "metadata": event.metadata_json
                     })
-                
+
                 # Get recent job completions
                 recent_jobs = session.query(Job)\
                                    .filter(Job.status.in_(['completed', 'failed']))\
                                    .order_by(Job.completed_at.desc())\
                                    .limit(limit//2)\
                                    .all()
-                
+
                 for job in recent_jobs:
                     activities.append({
                         "id": str(job.id),
@@ -386,17 +383,17 @@ class PostgreSQLManager:
                         "timestamp": (job.completed_at or job.created_at).isoformat() if (job.completed_at or job.created_at) else None,
                         "metadata": f'{{"video_title": "{job.video_title or "Unknown"}", "progress": {job.progress}}}'
                     })
-                
+
                 # Sort all activities by timestamp (most recent first)
                 activities.sort(key=lambda x: x['timestamp'] or '', reverse=True)
-                
+
                 # Limit to requested count
                 return activities[:limit]
-                
+
         except Exception as e:
             logger.error(f"❌ Failed to get combined recent activity: {e}")
             return []
-    
+
     def get_database_health(self) -> Dict[str, Any]:
         """
         Get database health metrics for system monitoring
@@ -406,23 +403,23 @@ class PostgreSQLManager:
             with self.engine.connect() as connection:
                 # Get connection count
                 result = connection.execute(text("""
-                    SELECT count(*) as active_connections 
-                    FROM pg_stat_activity 
+                    SELECT count(*) as active_connections
+                    FROM pg_stat_activity
                     WHERE state = 'active'
                 """))
                 active_connections = result.fetchone()[0]
-                
+
                 # Get database size
                 result = connection.execute(text("""
                     SELECT pg_size_pretty(pg_database_size(current_database())) as db_size
                 """))
                 db_size = result.fetchone()[0]
-                
+
                 # Basic performance test
                 start_time = datetime.now()
                 connection.execute(text("SELECT 1"))
                 query_time = (datetime.now() - start_time).total_seconds() * 1000
-                
+
                 return {
                     "status": "healthy",
                     "connections": active_connections,
@@ -432,7 +429,7 @@ class PostgreSQLManager:
                     "pool_checked_out": self.engine.pool.checkedout(),
                     "timestamp": datetime.now(timezone.utc).isoformat()
                 }
-                
+
         except Exception as e:
             logger.error(f"Database health check failed: {e}")
             return {

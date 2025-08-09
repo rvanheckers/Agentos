@@ -40,30 +40,30 @@ async def get_admin_ssot_data(
 ):
     """
     Single Source of Truth endpoint voor alle admin UI data.
-    
+
     Consolideert alle admin data in één API call:
     - Dashboard data (workers, queue, jobs, system health)
     - Queue data (current queue, job history, worker assignments)
     - Agents/Workers data (status, configuration, performance)
     - Analytics data (usage stats, performance metrics, trends)
     - System data (controls, configuration, maintenance)
-    
+
     Performance target: <100ms
     Caching: 20-30s TTL via AdminDataManager
-    
+
     Args:
         time_range: Analytics time range (1h, 24h, 7d, 30d)
         log_filters: Optional JSON string for log filtering
-        
+
     Returns:
         JSON object met alle admin data geconsolideerd
     """
     start_time = time.time()
-    
+
     try:
         # Initialize AdminDataManager
         admin_data = AdminDataManager()
-        
+
         # Parse log filters if provided
         filters = None
         if log_filters:
@@ -73,22 +73,22 @@ async def get_admin_ssot_data(
             except json.JSONDecodeError:
                 logger.warning(f"Invalid log_filters JSON: {log_filters}")
                 filters = None
-        
+
         # V4 PARALLEL EXECUTION: Use async AdminDataManager for 128x faster performance
         logger.debug(f"V4: Fetching admin SSOT data with parallel execution (time_range={time_range})")
-        
+
         # V4 CACHE-FIRST ARCHITECTURE: Use optimized cache path for default time_range
         if time_range == "24h":
             # FAST PATH: Use complete AdminDataManager response - no flattening needed!
             response_data = await admin_data.get_all_data()
-            
+
             # Just add time_range for consistency with custom path
             response_data['time_range'] = time_range
         else:
             # For custom time_range, build response with parallel execution but correct analytics
             logger.info(f"V4: Starting custom parallel execution for time_range={time_range}")
             parallel_start = time.time()
-            
+
             # Execute all data collection in parallel with correct time_range
             dashboard_task = asyncio.create_task(admin_data._get_dashboard_data_async())
             queue_task = asyncio.create_task(admin_data._get_queue_data_async())
@@ -97,26 +97,26 @@ async def get_admin_ssot_data(
             logs_task = asyncio.create_task(admin_data._get_logs_data_async())
             system_task = asyncio.create_task(admin_data._get_system_control_data_async())
             config_task = asyncio.create_task(admin_data._get_configuration_data_async())
-            
+
             results = await asyncio.gather(
                 dashboard_task, queue_task, analytics_task, agents_task,
                 logs_task, system_task, config_task,
                 return_exceptions=True
             )
-            
+
             parallel_end = time.time()
             logger.info(f"V4: Parallel execution completed in {(parallel_end - parallel_start)*1000:.2f}ms")
-            
+
             # Build response data with timing
             end_time = time.time()
             response_time = (end_time - start_time) * 1000
-            
+
             # CRITICAL FIX: Use flat structure consistent with get_all_data()
             dashboard_data = results[0] if not isinstance(results[0], Exception) else {'error': str(results[0])}
-            
+
             response_data = {
                 'workers': dashboard_data.get('workers', {}),
-                'queue': dashboard_data.get('queue', {}), 
+                'queue': dashboard_data.get('queue', {}),
                 'jobs': dashboard_data.get('jobs', {}),
                 'system': dashboard_data.get('system', {}),
                 'recent_activity': dashboard_data.get('recent_activity', []),
@@ -130,38 +130,38 @@ async def get_admin_ssot_data(
                 'status': 'success',
                 'architecture': 'v4_parallel_execution'
             }
-            
+
             # V4 WEBSOCKET BROADCAST: Send complete admin data to WebSocket clients
             admin_data.broadcast_admin_update(response_data)
-        
+
         # Include logs if filters provided
         if filters:
             response_data["logs"] = await admin_data._get_logs_data_async(filters)
-        
+
         # Add time_range to response
         response_data["time_range"] = time_range
-        
+
         # Performance logging
         end_time = time.time()
         response_time = (end_time - start_time) * 1000  # ms
-        
+
         # Use response time from AdminDataManager if available, otherwise calculate
         if "response_time_ms" not in response_data:
             response_data["response_time_ms"] = round(response_time, 2)
-        
+
         if response_time > 100:
             logger.warning(f"SSOT endpoint slow: {response_time:.2f}ms (target: <100ms)")
         else:
             logger.debug(f"SSOT endpoint performance: {response_time:.2f}ms")
-        
+
         return response_data
-        
+
     except Exception as e:
         end_time = time.time()
         response_time = (end_time - start_time) * 1000
-        
+
         logger.error(f"Failed to get admin SSOT data: {str(e)}")
-        
+
         # Return error response met performance data
         return {
             "timestamp": datetime.now().isoformat(),
@@ -177,21 +177,21 @@ async def get_dashboard_only():
     Voor use cases waar alleen dashboard refresh nodig is.
     """
     start_time = time.time()
-    
+
     try:
         admin_data = AdminDataManager()
         dashboard_data = await admin_data._get_dashboard_data_async()
-        
+
         end_time = time.time()
         response_time = (end_time - start_time) * 1000
-        
+
         return {
             "timestamp": datetime.now().isoformat(),
             "dashboard": dashboard_data,
             "response_time_ms": round(response_time, 2),
             "status": "success"
         }
-        
+
     except Exception as e:
         logger.error(f"Failed to get dashboard data: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -204,16 +204,16 @@ async def ssot_health_check():
     """
     try:
         admin_data = AdminDataManager()
-        
+
         # Quick test van onderliggende services
         test_results = {
             "admin_data_manager": "ok",
             "jobs_service": "unknown",
-            "queue_service": "unknown", 
+            "queue_service": "unknown",
             "analytics_service": "unknown",
             "agents_service": "unknown"
         }
-        
+
         # Test basic functionality
         try:
             dashboard = await admin_data._get_dashboard_data_async()
@@ -223,13 +223,13 @@ async def ssot_health_check():
                 test_results["dashboard_data"] = "error"
         except Exception as e:
             test_results["dashboard_data"] = f"error: {str(e)}"
-        
+
         return {
             "status": "healthy",
             "timestamp": datetime.now().isoformat(),
             "services": test_results
         }
-        
+
     except Exception as e:
         logger.error(f"SSOT health check failed: {str(e)}")
         return {

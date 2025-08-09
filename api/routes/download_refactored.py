@@ -8,7 +8,6 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from typing import Dict, Any, Optional
 from api.services.download_service import DownloadService
-from api.services.auth_dependencies import get_current_user, get_admin_user
 import logging
 
 logger = logging.getLogger("agentos.api.routes.download")

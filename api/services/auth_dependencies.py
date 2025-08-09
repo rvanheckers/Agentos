@@ -5,7 +5,7 @@ Tijdelijke authenticatie dependencies met hardcoded users voor development.
 TODO: Vervangen door echte JWT authenticatie in productie.
 Gebruikt door refactored routes voor get_current_user en get_admin_user.
 """
-from fastapi import Depends, HTTPException, Header
+from fastapi import HTTPException, Header
 from typing import Optional, Dict
 
 # Mock users for development
@@ -32,10 +32,10 @@ async def get_admin_user(authorization: Optional[str] = Header(None)) -> Dict:
     # For development, return admin user
     # In production, validate JWT and check admin role
     user = MOCK_USERS["admin1"]
-    
+
     if not user.get("is_admin", False):
         raise HTTPException(status_code=403, detail="Admin access required")
-    
+
     return user
 
 # Backwards compatibility

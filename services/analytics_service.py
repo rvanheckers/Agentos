@@ -4,7 +4,7 @@ Analytics Service Layer
 Handles all analytics-related business logic
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from datetime import datetime, timezone, timedelta
 import logging
 
@@ -13,12 +13,12 @@ logger = logging.getLogger("agentos.services.analytics")
 class AnalyticsService:
     """
     Service layer for analytics management
-    
+
     Methods:
     - get_analytics(): Get comprehensive analytics data
     - get_system_config(): Get system configuration (admin only)
     """
-    
+
     def __init__(self):
         """Initialize analytics service"""
         # Try to get database service
@@ -27,7 +27,7 @@ class AnalyticsService:
             self.db_service = DatabaseService()
         except Exception:
             self.db_service = None
-    
+
     def get_analytics(self, timeframe: str = "7d", is_admin: bool = False) -> Dict[str, Any]:
         """
         Get comprehensive analytics data
@@ -37,29 +37,29 @@ class AnalyticsService:
             if self.db_service:
                 # Get real analytics from database
                 all_jobs = self.db_service.get_jobs(limit=1000)
-                
+
                 # Calculate timeframe
                 now = datetime.now(timezone.utc)
                 if timeframe == "24h":
-                    start_time = now - timedelta(hours=24)
+                    now - timedelta(hours=24)
                 elif timeframe == "7d":
-                    start_time = now - timedelta(days=7)
+                    now - timedelta(days=7)
                 elif timeframe == "30d":
-                    start_time = now - timedelta(days=30)
+                    now - timedelta(days=30)
                 else:
-                    start_time = now - timedelta(days=7)
-                
+                    now - timedelta(days=7)
+
                 # Filter jobs by timeframe (would need proper date filtering in real implementation)
                 filtered_jobs = all_jobs  # Simplified for now
-                
+
                 # Calculate metrics
                 total_jobs = len(filtered_jobs)
                 completed_jobs = len([j for j in filtered_jobs if j["status"] == "completed"])
                 failed_jobs = len([j for j in filtered_jobs if j["status"] == "failed"])
                 processing_jobs = len([j for j in filtered_jobs if j["status"] == "processing"])
-                
+
                 success_rate = (completed_jobs / total_jobs * 100) if total_jobs > 0 else 0
-                
+
                 analytics = {
                     "timeframe": timeframe,
                     "total_jobs": total_jobs,
@@ -70,15 +70,15 @@ class AnalyticsService:
                     "average_processing_time": 125.5,  # Mock data
                     "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
                 }
-                
+
                 # Add admin-only fields
                 if is_admin:
                     # Get real worker count
                     active_workers = self._get_active_workers_count()
-                    
+
                     analytics.update({
                         "system_uptime": "15d 4h 23m",
-                        "total_storage_used": "45.2 GB", 
+                        "total_storage_used": "45.2 GB",
                         "active_workers": active_workers,
                         "queue_health": "healthy",
                         "error_rate": round((failed_jobs / total_jobs * 100) if total_jobs > 0 else 0, 2),
@@ -93,7 +93,7 @@ class AnalyticsService:
                             "total_api_calls": 1450
                         }
                     })
-                
+
                 return analytics
             else:
                 # Fallback mock data
@@ -108,14 +108,14 @@ class AnalyticsService:
                     "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                     "note": "Database service unavailable - showing mock data"
                 }
-                
+
         except Exception as e:
             logger.error(f"Failed to get analytics: {e}")
             return {
                 "error": str(e) if is_admin else "Analytics service unavailable",
                 "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             }
-    
+
     def get_system_config(self, is_admin: bool = False) -> Dict[str, Any]:
         """
         Get system configuration
@@ -125,7 +125,7 @@ class AnalyticsService:
             return {
                 "error": "Unauthorized: Admin access required"
             }
-        
+
         try:
             # Mock system configuration data
             config = {
@@ -168,16 +168,16 @@ class AnalyticsService:
                 },
                 "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             }
-            
+
             return config
-            
+
         except Exception as e:
             logger.error(f"Failed to get system config: {e}")
             return {
                 "error": str(e),
                 "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             }
-    
+
     def get_usage_statistics(self, time_range: str = "24h") -> Dict[str, Any]:
         """Get usage statistics for the specified time range"""
         try:
@@ -196,7 +196,7 @@ class AnalyticsService:
         except Exception as e:
             logger.error(f"Failed to get usage statistics: {e}")
             return {"error": str(e)}
-    
+
     def get_worker_performance(self) -> Dict[str, Any]:
         """Get worker performance metrics"""
         try:
@@ -215,7 +215,7 @@ class AnalyticsService:
         except Exception as e:
             logger.error(f"Failed to get worker performance: {e}")
             return {"error": str(e)}
-    
+
     def get_performance_metrics(self, time_range: str = "24h") -> Dict[str, Any]:
         """Get system performance metrics"""
         try:
@@ -247,7 +247,7 @@ class AnalyticsService:
         except Exception as e:
             logger.error(f"Failed to get performance metrics: {e}")
             return {"error": str(e)}
-    
+
     def get_job_trends(self, time_range: str = "24h") -> Dict[str, Any]:
         """Get job processing trends"""
         try:
@@ -278,7 +278,7 @@ class AnalyticsService:
         except Exception as e:
             logger.error(f"Failed to get job trends: {e}")
             return {"error": str(e)}
-    
+
     def get_error_analysis(self, time_range: str = "24h") -> Dict[str, Any]:
         """Get error analysis and patterns"""
         try:
@@ -310,24 +310,24 @@ class AnalyticsService:
         """Get real count of active Celery workers"""
         try:
             import subprocess
-            
+
             # Count actual celery worker processes
             result = subprocess.run(
-                ["ps", "aux"], 
-                capture_output=True, 
+                ["ps", "aux"],
+                capture_output=True,
                 text=True
             )
-            
+
             worker_lines = [
-                line for line in result.stdout.split('\n') 
+                line for line in result.stdout.split('\n')
                 if 'celery' in line and 'worker' in line and 'grep' not in line
             ]
-            
+
             worker_count = len(worker_lines)
             logger.info(f"Found {worker_count} active Celery workers")
-            
+
             return worker_count
-            
+
         except Exception as e:
             logger.error(f"Failed to count workers: {e}")
             return 0  # Return 0 instead of fake number

@@ -110,8 +110,11 @@ class ActionService {
    */
   async retryJob(jobId, options = {}) {
     return this.execute('job.retry', { job_id: jobId }, {
-      ...options,
-      idempotencyKey: options.idempotencyKey || `retry-job-${jobId}-${Date.now()}`
+      ...options
+      // TODO: Re-enable idempotency key after backend fix (target: Sprint 2025-08-15)
+      // Issue: Backend idempotency service causing 500 errors on job actions
+      // Mitigation: UI should disable buttons during request to prevent double-submit
+      // idempotencyKey: options.idempotencyKey || `retry-job-${jobId}-${Date.now()}`
     });
   }
 
@@ -120,8 +123,11 @@ class ActionService {
    */
   async cancelJob(jobId, options = {}) {
     return this.execute('job.cancel', { job_id: jobId }, {
-      ...options,
-      idempotencyKey: options.idempotencyKey || `cancel-job-${jobId}-${Date.now()}`
+      ...options
+      // TODO: Re-enable idempotency key after backend fix (target: Sprint 2025-08-15)
+      // Issue: Backend idempotency service causing 500 errors on job actions
+      // Mitigation: UI should disable buttons during request to prevent double-submit
+      // idempotencyKey: options.idempotencyKey || `cancel-job-${jobId}-${Date.now()}`
     });
   }
 
@@ -130,8 +136,11 @@ class ActionService {
    */
   async deleteJob(jobId, options = {}) {
     return this.execute('job.delete', { job_id: jobId }, {
-      ...options,
-      idempotencyKey: options.idempotencyKey || `delete-job-${jobId}-${Date.now()}`
+      ...options
+      // TODO: Re-enable idempotency key after backend fix (target: Sprint 2025-08-15)
+      // Issue: Backend idempotency service causing 500 errors on job actions
+      // Mitigation: UI should disable buttons during request to prevent double-submit
+      // idempotencyKey: options.idempotencyKey || `delete-job-${jobId}-${Date.now()}`
     });
   }
 

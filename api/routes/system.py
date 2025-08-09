@@ -2,12 +2,11 @@
 System routes for the AgentOS API
 """
 from fastapi import APIRouter, HTTPException
-from typing import List, Optional
 from datetime import datetime, timedelta, timezone
 import random
 import time
 import os
-from api.services.log_reader_service import get_logs_by_category, get_worker_logs, get_log_stats
+from api.services.log_reader_service import get_logs_by_category, get_worker_logs
 from core.logging_config import get_logger
 
 logger = get_logger("api.routes.system")
@@ -25,23 +24,23 @@ def get_worker_summary():
     """
     import glob
     import psutil
-    
+
     # Get worker types (files in /workers/ directory)
     workers_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "workers")
     worker_files = glob.glob(os.path.join(workers_dir, "*.py"))
     worker_files = [f for f in worker_files if not os.path.basename(f).startswith('__')]
-    
+
     # Get running instances (processes) - only actual Python processes
     running_instances = []
     for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'create_time']):
         try:
             cmdline = proc.info.get('cmdline', [])
             process_name = proc.info.get('name', '').lower()
-            
+
             # Only count actual Python processes, not bash wrappers
             is_python_process = process_name in ['python', 'python3', 'python.exe', 'python3.exe']
             has_worker_script = cmdline and 'video_worker.py' in ' '.join(cmdline)
-            
+
             if is_python_process and has_worker_script:
                 uptime_seconds = time.time() - proc.info.get('create_time', time.time())
                 running_instances.append({
@@ -52,7 +51,7 @@ def get_worker_summary():
                 })
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             continue
-    
+
     return {
         "worker_types": len(worker_files),
         "worker_files": [os.path.basename(f) for f in worker_files],
@@ -72,13 +71,13 @@ async def get_system_health():
             cpu_percent = psutil.cpu_percent(interval=1)
             memory = psutil.virtual_memory()
             disk = psutil.disk_usage('/')
-            
+
             # Calculate uptime since startup
             uptime_seconds = time.time() - startup_time
             uptime_hours = int(uptime_seconds / 3600)
             uptime_minutes = int((uptime_seconds % 3600) / 60)
             uptime_formatted = f"{uptime_hours}h {uptime_minutes}m"
-            
+
             return {
                 "status": "healthy" if cpu_percent < 80 and memory.percent < 80 else "warning",
                 "uptime": uptime_formatted,
@@ -93,7 +92,7 @@ async def get_system_health():
             uptime_hours = int(uptime_seconds / 3600)
             uptime_minutes = int((uptime_seconds % 3600) / 60)
             uptime_formatted = f"{uptime_hours}h {uptime_minutes}m"
-            
+
             return {
                 "status": "healthy",
                 "uptime": uptime_formatted,
@@ -126,10 +125,10 @@ async def get_recent_activity(limit: int = 10):
     try:
         from api.services.database_service import DatabaseService
         db_service = DatabaseService()
-        
+
         # Get recent jobs from database for real activity
         recent_jobs = db_service.get_jobs(limit=limit)
-        
+
         activities = []
         for job in recent_jobs:
             # Convert job events to activity items
@@ -169,10 +168,10 @@ async def get_recent_activity(limit: int = 10):
                     "timestamp": job.get('created_at'),
                     "user": "system"
                 })
-        
+
         # Sort by timestamp (most recent first)
         activities.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
-        
+
         # Add some system status activities if we have fewer than 3 real activities
         if len(activities) < 3:
             activities.extend([
@@ -193,13 +192,13 @@ async def get_recent_activity(limit: int = 10):
                     "user": "system"
                 }
             ])
-        
+
         return {
             "activities": activities[:limit],
             "total": len(activities),
             "real_data": True  # Indicator that this is real database data
         }
-        
+
     except Exception as e:
         print(f"❌ Error getting real activity data: {e}")
         # Fallback to mock data if database fails
@@ -221,7 +220,7 @@ async def get_recent_activity(limit: int = 10):
                 "user": "system"
             }
         ]
-        
+
         return {
             "activities": fallback_activities[:limit],
             "total": len(fallback_activities),
@@ -245,7 +244,7 @@ async def get_recent_activity(limit: int = 10):
             cpu_cores = psutil.cpu_count(logical=False)
             cpu_logical = psutil.cpu_count(logical=True)
             cpu_usage = psutil.cpu_percent(interval=1)
-            
+
             # Simulate VideoClipper's intelligent batching logic
             if available_memory_gb > 8 and cpu_cores >= 8 and cpu_usage < 50:
                 optimal_parallel = 10
@@ -263,7 +262,7 @@ async def get_recent_activity(limit: int = 10):
                 optimal_parallel = 2
                 status = "Constrained"
                 message = "Resource constraints detected"
-            
+
             return {
                 "status": status,
                 "message": message,
@@ -288,7 +287,7 @@ async def get_recent_activity(limit: int = 10):
                 "memoryUsagePercent": 45,
                 "totalMemory": "16.0GB"
             }
-    except Exception as e:
+    except Exception:
         return {
             "status": "Unknown",
             "message": "Unable to determine system status",
@@ -319,7 +318,7 @@ async def get_worker_status():
             },
             {
                 "id": "worker_2",
-                "status": "active", 
+                "status": "active",
                 "pid": 12346,
                 "heartbeat_age": 3,
                 "last_seen": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z").replace('+00:00', 'Z'),
@@ -328,7 +327,7 @@ async def get_worker_status():
                 "cpu_usage": random.randint(20, 80)
             }
         ]
-        
+
         return {
             "available": True,
             "workers": workers,
@@ -353,26 +352,26 @@ async def get_system_metrics():
     """Get system metrics - Admin endpoint"""
     try:
         import psutil
-        
+
         # CPU usage
         cpu_percent = psutil.cpu_percent(interval=1)
-        
+
         # Memory usage
         memory = psutil.virtual_memory()
         memory_percent = memory.percent
         memory_used_gb = memory.used / (1024**3)
         memory_total_gb = memory.total / (1024**3)
-        
+
         # Disk usage
         disk = psutil.disk_usage('./')
         disk_percent = (disk.used / disk.total) * 100
         disk_free_gb = disk.free / (1024**3)
         disk_total_gb = disk.total / (1024**3)
-        
+
         # System uptime (from startup)
         uptime_seconds = time.time() - startup_time
         uptime_hours = uptime_seconds / 3600
-        
+
         return {
             "cpu": {
                 "percent": round(cpu_percent, 1),
@@ -397,7 +396,7 @@ async def get_system_metrics():
             },
             "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z").replace('+00:00', 'Z')
         }
-        
+
     except ImportError:
         # Fallback to mock data if psutil not available
         return {
@@ -432,12 +431,12 @@ async def get_current_config():
 
 @router.get("/logs")
 async def get_admin_logs(
-    category: str = "all", 
+    category: str = "all",
     lines: int = 100
 ):
     """
     Get logs by category for admin dashboard
-    
+
     Categories: all, api, workers, errors, admin, websocket, io, structured
     """
     try:
@@ -445,33 +444,33 @@ async def get_admin_logs(
         valid_categories = ["all", "api", "workers", "errors", "admin", "websocket", "io", "structured"]
         if category not in valid_categories:
             raise HTTPException(
-                status_code=400, 
+                status_code=400,
                 detail=f"Invalid category. Available: {valid_categories}"
             )
-        
+
         # Validate lines parameter
         if lines < 1 or lines > 1000:
             raise HTTPException(
                 status_code=400,
                 detail="Lines must be between 1 and 1000"
             )
-        
+
         # Get logs using the log reader service
         log_data = get_logs_by_category(category, lines)
-        
+
         return {
             "status": "success",
             "data": log_data
         }
-        
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve logs: {str(e)}")
 
-@router.get("/workers/{worker_id}/logs")  
+@router.get("/workers/{worker_id}/logs")
 async def get_worker_logs_endpoint(
-    worker_id: str, 
+    worker_id: str,
     lines: int = 100
 ):
     """Get specific worker logs"""
@@ -482,22 +481,22 @@ async def get_worker_logs_endpoint(
                 status_code=400,
                 detail="Worker ID must be provided and less than 50 characters"
             )
-        
+
         # Validate lines parameter
         if lines < 1 or lines > 1000:
             raise HTTPException(
                 status_code=400,
                 detail="Lines must be between 1 and 1000"
             )
-        
+
         # Get worker logs using the log reader service
         log_data = get_worker_logs(worker_id, lines)
-        
+
         return {
             "status": "success",
             "data": log_data
         }
-        
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -516,23 +515,23 @@ async def get_dashboard_summary():
     """
     try:
         from core.database_manager import PostgreSQLManager
-        from datetime import datetime, timedelta
-        
+        from datetime import datetime
+
         db = PostgreSQLManager()
-        
+
         # Get system health (reuse existing logic)
         try:
             import psutil
             cpu_percent = psutil.cpu_percent(interval=0.1)
             memory = psutil.virtual_memory()
             disk = psutil.disk_usage('/')
-            
+
             # Calculate uptime since startup
             uptime_seconds = time.time() - startup_time
             uptime_hours = int(uptime_seconds / 3600)
             uptime_minutes = int((uptime_seconds % 3600) / 60)
             uptime_formatted = f"{uptime_hours}h {uptime_minutes}m"
-            
+
             system_health = {
                 "status": "healthy" if cpu_percent < 80 and memory.percent < 80 else "warning",
                 "uptime": uptime_formatted,
@@ -547,7 +546,7 @@ async def get_dashboard_summary():
             uptime_hours = int(uptime_seconds / 3600)
             uptime_minutes = int((uptime_seconds % 3600) / 60)
             uptime_formatted = f"{uptime_hours}h {uptime_minutes}m"
-            
+
             system_health = {
                 "status": "healthy",
                 "uptime": uptime_formatted,
@@ -556,14 +555,14 @@ async def get_dashboard_summary():
                 "disk_usage": random.randint(20, 60),
                 "last_check": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z").replace('+00:00', 'Z')
             }
-        
+
         # Get database stats
         db_stats = db.get_stats()
-        
+
         # Get today's jobs (filter by today)
         today = datetime.now().date()
-        today_start = datetime.combine(today, datetime.min.time())
-        
+        datetime.combine(today, datetime.min.time())
+
         # Calculate today's specific metrics
         today_jobs = {
             "total": db_stats.get("total_jobs", 0),
@@ -573,17 +572,17 @@ async def get_dashboard_summary():
             "failed": db_stats.get("failed_jobs", 0),
             "success_rate": db_stats.get("success_rate", 0)
         }
-        
+
         # 🔄 Use Celery workers endpoint for worker data
         try:
             # Import the celery workers route function
             from api.routes.celery_workers import get_workers_details as celery_get_workers_details
             celery_workers_data = await celery_get_workers_details()
-            
+
             # Extract worker status from Celery worker data
             total_workers = celery_workers_data.get("total", 1)
             active_workers = celery_workers_data.get("active", 0)
-            
+
             workers_status = {
                 "active": active_workers,     # Active Celery workers
                 "total": total_workers,       # Total Celery workers
@@ -599,7 +598,7 @@ async def get_dashboard_summary():
                 "last_check": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z").replace('+00:00', 'Z'),
                 "error": str(e)
             }
-        
+
         # Mock queue status (would be replaced with Redis queue monitoring)
         queue_status = {
             "pending": today_jobs["queued"],
@@ -608,7 +607,7 @@ async def get_dashboard_summary():
             "failed_today": today_jobs["failed"],
             "last_check": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z").replace('+00:00', 'Z')
         }
-        
+
         return {
             "status": "success",
             "data": {
@@ -619,7 +618,7 @@ async def get_dashboard_summary():
                 "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z").replace('+00:00', 'Z')
             }
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get dashboard summary: {str(e)}")
 
@@ -631,12 +630,12 @@ async def get_dashboard_recent_activity(limit: int = 20):
     """
     try:
         from core.database_manager import PostgreSQLManager
-        
+
         db = PostgreSQLManager()
-        
+
         # Get combined recent activity
         activities = db.get_combined_recent_activity(limit=limit)
-        
+
         return {
             "status": "success",
             "data": {
@@ -645,7 +644,7 @@ async def get_dashboard_recent_activity(limit: int = 20):
                 "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z").replace('+00:00', 'Z')
             }
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get recent activity: {str(e)}")
 
@@ -658,19 +657,19 @@ async def trigger_system_check():
         from core.database_manager import PostgreSQLManager
         from datetime import datetime
         import psutil
-        
+
         db = PostgreSQLManager()
         check_time = datetime.now()
-        
+
         # Perform basic system check
         system_checks = {}
-        
+
         # 1. System resources check
         try:
             cpu_percent = psutil.cpu_percent(interval=0.5)
             memory = psutil.virtual_memory()
             disk = psutil.disk_usage('/')
-            
+
             system_checks["resources"] = {
                 "cpu_usage": cpu_percent,
                 "memory_usage": memory.percent,
@@ -682,7 +681,7 @@ async def trigger_system_check():
                 "status": "error",
                 "error": str(e)
             }
-        
+
         # 2. Database connectivity check - simplified for PostgreSQL manager
         try:
             # Test database connection by querying jobs table
@@ -690,7 +689,7 @@ async def trigger_system_check():
             from core.database_manager import Job
             job_count = session.query(Job).count()
             session.close()
-            
+
             system_checks["database"] = {
                 "status": "healthy",
                 "connection": "ok",
@@ -702,16 +701,16 @@ async def trigger_system_check():
                 "connection": "failed",
                 "error": str(e)
             }
-        
+
         # 3. File system check
         try:
             import os
             io_path = "/mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/AgentOS/io"
-            
+
             if os.path.exists(io_path):
                 input_exist = os.path.exists(os.path.join(io_path, "input"))
                 output_exist = os.path.exists(os.path.join(io_path, "output"))
-                
+
                 system_checks["filesystem"] = {
                     "status": "healthy" if all([input_exist, output_exist]) else "warning",
                     "io_directory": "exists",
@@ -729,7 +728,7 @@ async def trigger_system_check():
                 "status": "error",
                 "error": str(e)
             }
-        
+
         # 4. Overall system status
         all_statuses = [check.get("status", "unknown") for check in system_checks.values()]
         if "error" in all_statuses:
@@ -738,7 +737,7 @@ async def trigger_system_check():
             overall_status = "warning"
         else:
             overall_status = "healthy"
-        
+
         # Log system event using available method
         try:
             event_id = db.log_system_event(
@@ -756,7 +755,7 @@ async def trigger_system_check():
         except Exception as log_error:
             logger.warning(f"Failed to log system check event: {log_error}")
             event_id = None
-        
+
         return {
             "status": "success",
             "data": {
@@ -766,7 +765,7 @@ async def trigger_system_check():
                 "event_id": str(event_id) if event_id else None
             }
         }
-        
+
     except Exception as e:
         logger.error(f"System check failed: {e}")
         raise HTTPException(status_code=500, detail=f"System check failed: {str(e)}")
@@ -782,20 +781,20 @@ async def ping_all_workers():
     """
     try:
         from core.database_manager import PostgreSQLManager
-        
+
         db = PostgreSQLManager()
-        
+
         # Use industry standard worker summary
         worker_summary = get_worker_summary()
         running_instances = worker_summary["instance_details"]
-        
+
         ping_results = []
         successful_pings = 0
-        
+
         for instance in running_instances:
             worker_type = instance.get("worker_type")
             pid = instance.get("pid")
-            
+
             try:
                 # Check if process is still alive
                 import psutil
@@ -826,12 +825,12 @@ async def ping_all_workers():
                 })
             except Exception as e:
                 ping_results.append({
-                    "worker_id": worker_id,
+                    "worker_type": worker_type,
                     "pid": pid,
                     "status": "ping_failed",
                     "error": str(e)
                 })
-        
+
         # Log system event with transparent worker info
         event_metadata = {
             "worker_types": worker_summary["worker_types"],
@@ -841,14 +840,14 @@ async def ping_all_workers():
             "failed_pings": len(running_instances) - successful_pings,
             "ping_results": ping_results
         }
-        
+
         event_id = db.log_system_event(
             event_type="worker_ping_all",
             description=f"Manual worker ping executed - {worker_summary['status_text']}",
             user_id="admin",
             metadata=event_metadata
         )
-        
+
         return {
             "status": "success",
             "data": {
@@ -860,7 +859,7 @@ async def ping_all_workers():
                 "ping_time": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z").replace('+00:00', 'Z')
             }
         }
-        
+
     except Exception as e:
         # Log failed ping attempt
         try:
@@ -871,9 +870,9 @@ async def ping_all_workers():
                 user_id="admin",
                 metadata={"error": str(e)}
             )
-        except:
+        except Exception:
             pass
-            
+
         raise HTTPException(status_code=500, detail=f"Worker ping failed: {str(e)}")
 
 # Queue-purge endpoint verwijderd - gebruik queue_refactored.py versie met service layer
@@ -886,13 +885,13 @@ async def toggle_maintenance_mode():
     try:
         from core.database_manager import PostgreSQLManager
         import os
-        
+
         db = PostgreSQLManager()
-        
+
         # Check current maintenance status via flag file
         maintenance_flag_path = "/tmp/agentos_maintenance"
         currently_in_maintenance = os.path.exists(maintenance_flag_path)
-        
+
         # Toggle maintenance mode
         if currently_in_maintenance:
             # Disable maintenance mode
@@ -913,14 +912,14 @@ async def toggle_maintenance_mode():
                 description = "Maintenance mode enabled - new jobs blocked"
             except Exception as e:
                 raise Exception(f"Failed to enable maintenance mode: {e}")
-        
+
         # Log system event
         try:
             event_id = db.log_system_event(
                 event_type="maintenance_mode_toggle",
                 message=description,
                 severity="info",
-                component="admin_ui", 
+                component="admin_ui",
                 metadata={
                     "previous_status": currently_in_maintenance,
                     "new_status": new_status,
@@ -931,7 +930,7 @@ async def toggle_maintenance_mode():
         except Exception as log_error:
             logger.warning(f"Failed to log maintenance toggle event: {log_error}")
             event_id = None
-        
+
         return {
             "status": "success",
             "data": {
@@ -944,7 +943,7 @@ async def toggle_maintenance_mode():
                 "flag_file": maintenance_flag_path
             }
         }
-        
+
     except Exception as e:
         logger.error(f"Maintenance toggle failed: {e}")
         raise HTTPException(status_code=500, detail=f"Maintenance toggle failed: {str(e)}")
@@ -956,38 +955,38 @@ async def restart_failed_jobs():
     """
     try:
         from core.database_manager import PostgreSQLManager, Job
-        from datetime import datetime, timedelta
-        
+        from datetime import datetime
+
         db = PostgreSQLManager()
-        
+
         # Get failed jobs from today using PostgreSQL session
         today = datetime.now().date()
         today_start = datetime.combine(today, datetime.min.time())
         today_end = datetime.combine(today, datetime.max.time())
-        
+
         restart_results = []
         successful_restarts = 0
-        
+
         try:
             session = db.get_session()
-            
+
             # Query failed jobs from today
             failed_jobs = session.query(Job).filter(
                 Job.status == 'failed',
                 Job.created_at >= today_start,
                 Job.created_at <= today_end
             ).all()
-            
+
             for job in failed_jobs:
                 try:
                     # Reset job status to queued using available update method
                     success = db.update_job_status(
-                        str(job.id), 
-                        'queued', 
-                        progress=0, 
+                        str(job.id),
+                        'queued',
+                        progress=0,
                         error_message=None
                     )
-                    
+
                     if success:
                         restart_results.append({
                             "job_id": str(job.id),
@@ -1005,16 +1004,16 @@ async def restart_failed_jobs():
                 except Exception as e:
                     restart_results.append({
                         "job_id": str(job.id),
-                        "status": "restart_failed", 
+                        "status": "restart_failed",
                         "error": str(e)
                     })
-            
+
             session.close()
-            
+
         except Exception as db_error:
             failed_jobs = []
             logger.error(f"Failed to query failed jobs: {db_error}")
-        
+
         # Log system event
         try:
             event_id = db.log_system_event(
@@ -1032,7 +1031,7 @@ async def restart_failed_jobs():
         except Exception as log_error:
             logger.warning(f"Failed to log restart event: {log_error}")
             event_id = None
-        
+
         return {
             "status": "success",
             "data": {
@@ -1045,12 +1044,12 @@ async def restart_failed_jobs():
                 "date_filter": today.isoformat()
             }
         }
-        
+
     except Exception as e:
         logger.error(f"Restart failed jobs failed: {e}")
         raise HTTPException(status_code=500, detail=f"Restart failed jobs failed: {str(e)}")
 
-@router.post("/daily-report-export") 
+@router.post("/daily-report-export")
 async def daily_report_export():
     """
     Genereert dagrapport van alle jobs, workers en systeem activiteit
@@ -1059,31 +1058,31 @@ async def daily_report_export():
     """
     try:
         from core.database_manager import PostgreSQLManager
-        from datetime import datetime, timedelta
+        from datetime import datetime
         import psutil
-        
+
         # Get current time and date
         current_time = datetime.now()
         current_date = current_time.date()
         today_start = datetime.combine(current_date, datetime.min.time())
         today_end = datetime.combine(current_date, datetime.max.time())
-        
+
         db = PostgreSQLManager()
-        
+
         # 1. Get real system stats from database
         try:
             db_stats = db.get_stats()
-            
+
             # Get today's jobs
             today_jobs = db.get_jobs_by_date_range(today_start, today_end) if hasattr(db, 'get_jobs_by_date_range') else []
-            
+
             # Calculate real stats
             total_jobs = len(today_jobs) if today_jobs else db_stats.get('total_jobs', 0)
             completed_jobs = len([j for j in today_jobs if j.status == 'completed']) if today_jobs else 0
             failed_jobs = len([j for j in today_jobs if j.status == 'failed']) if today_jobs else 0
             processing_jobs = len([j for j in today_jobs if j.status in ['processing', 'queued']]) if today_jobs else 0
             success_rate = (completed_jobs / total_jobs * 100) if total_jobs > 0 else 0
-            
+
             system_stats = {
                 "total_jobs": total_jobs,
                 "completed_jobs": completed_jobs,
@@ -1103,14 +1102,14 @@ async def daily_report_export():
                 "data_source": "fallback",
                 "error": str(e)
             }
-        
+
         # 2. Get real worker status using industry standard summary
         try:
             worker_summary = get_worker_summary()
-            
+
             worker_status = {
                 "worker_types": worker_summary["worker_types"],
-                "worker_files": worker_summary["worker_files"], 
+                "worker_files": worker_summary["worker_files"],
                 "running_instances": worker_summary["running_instances"],
                 "instance_details": worker_summary["instance_details"],
                 "display_summary": worker_summary["display_summary"],
@@ -1127,13 +1126,13 @@ async def daily_report_export():
                 "data_source": "fallback",
                 "error": str(e)
             }
-        
+
         # 3. Get real system health
         try:
             cpu_usage = psutil.cpu_percent(interval=0.1)
             memory = psutil.virtual_memory()
             disk = psutil.disk_usage('/')
-            
+
             system_health = {
                 "cpu_usage": round(cpu_usage, 1),
                 "memory_usage": round(memory.percent, 1),
@@ -1151,11 +1150,11 @@ async def daily_report_export():
                 "status": "unknown",
                 "data_source": "psutil_not_available"
             }
-        
+
         # 4. Get recent activity from database
         try:
             recent_events = db.get_recent_system_events(limit=10) if hasattr(db, 'get_recent_system_events') else []
-            
+
             recent_activity = {
                 "total_events": len(recent_events),
                 "events": [
@@ -1176,7 +1175,7 @@ async def daily_report_export():
                 "data_source": "fallback",
                 "error": str(e)
             }
-        
+
         # Build complete report
         report_data = {
             "report_metadata": {
@@ -1197,13 +1196,13 @@ async def daily_report_export():
                 "database_connection": "active"
             }
         }
-        
+
         # Calculate report size
         import json
         report_size = len(json.dumps(report_data))
-        
+
         return {
-            "status": "success", 
+            "status": "success",
             "data": {
                 "report_filename": f"agentos_daily_report_{current_date.strftime('%Y%m%d')}.json",
                 "report_date": current_date.isoformat(),
@@ -1216,7 +1215,7 @@ async def daily_report_export():
                 "implementation_note": "Production version with real data from database and system monitoring"
             }
         }
-        
+
     except Exception as e:
         logger.error(f"Daily report generation failed: {e}")
         raise HTTPException(status_code=500, detail=f"Daily report export failed: {str(e)}")

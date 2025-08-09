@@ -17,19 +17,19 @@ class ActionType(str, Enum):
     JOB_CANCEL = "job.cancel"
     JOB_DELETE = "job.delete"
     JOB_PRIORITY = "job.priority"
-    
+
     # Queue Actions
     QUEUE_CLEAR = "queue.clear"
     QUEUE_PAUSE = "queue.pause"
     QUEUE_RESUME = "queue.resume"
     QUEUE_DRAIN = "queue.drain"
-    
+
     # Worker Actions
     WORKER_RESTART = "worker.restart"
     WORKER_SCALE = "worker.scale"
     WORKER_PAUSE = "worker.pause"
     WORKER_RESUME = "worker.resume"
-    
+
     # System Actions
     SYSTEM_BACKUP = "system.backup"
     SYSTEM_MAINTENANCE = "system.maintenance"
@@ -44,7 +44,7 @@ class JobRetryPayload(BaseModel):
     reason: Optional[str] = Field(None, description="Reason for retry", max_length=500)
     priority: Optional[int] = Field(None, ge=0, le=10, description="New priority (0-10)")
     max_retries: Optional[int] = Field(None, ge=1, le=5, description="Maximum retry attempts")
-    
+
     @validator('reason')
     def validate_reason(cls, v):
         if v and len(v.strip()) == 0:
@@ -72,14 +72,14 @@ class JobPriorityPayload(BaseModel):
 class QueueClearPayload(BaseModel):
     """Payload for clearing queue"""
     status_filter: List[str] = Field(
-        ["pending", "queued"], 
+        ["pending", "queued"],
         description="Job statuses to clear",
         min_items=1
     )
     older_than_hours: Optional[int] = Field(None, ge=1, description="Only clear jobs older than X hours")
     dry_run: bool = Field(False, description="Preview what would be deleted without actually deleting")
     user_filter: Optional[str] = Field(None, description="Only clear jobs from specific user")
-    
+
     @validator('status_filter')
     def validate_status_filter(cls, v):
         valid_statuses = {'pending', 'queued', 'failed', 'cancelled'}
@@ -139,12 +139,12 @@ class SystemMaintenancePayload(BaseModel):
 class CacheClearPayload(BaseModel):
     """Payload for clearing cache"""
     cache_types: List[str] = Field(
-        ["redis", "application"], 
+        ["redis", "application"],
         description="Types of cache to clear",
         min_items=1
     )
     pattern: Optional[str] = Field(None, description="Cache key pattern to clear (supports wildcards)")
-    
+
     @validator('cache_types')
     def validate_cache_types(cls, v):
         valid_types = {'redis', 'application', 'database', 'cdn'}
@@ -156,7 +156,7 @@ class CacheClearPayload(BaseModel):
 class CacheWarmPayload(BaseModel):
     """Payload for warming cache"""
     cache_types: List[str] = Field(
-        ["dashboard", "queue"], 
+        ["dashboard", "queue"],
         description="Types of cache to warm",
         min_items=1
     )
@@ -236,19 +236,19 @@ ActionRequest = Union[
     JobCancelAction,
     JobDeleteAction,
     JobPriorityAction,
-    
+
     # Queue Actions
     QueueClearAction,
     QueuePauseAction,
     QueueResumeAction,
     QueueDrainAction,
-    
+
     # Worker Actions
     WorkerRestartAction,
     WorkerScaleAction,
     WorkerPauseAction,
     WorkerResumeAction,
-    
+
     # System Actions
     SystemBackupAction,
     SystemMaintenanceAction,

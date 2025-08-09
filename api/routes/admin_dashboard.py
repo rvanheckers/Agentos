@@ -9,10 +9,9 @@ Enterprise pattern used by Netflix, AWS, and other large platforms.
 """
 
 from fastapi import APIRouter, HTTPException
-from typing import Dict, Any, List
+from typing import Dict, Any
 from datetime import datetime, timezone
 import logging
-import asyncio
 
 # Import existing services
 from services.queue_service import QueueService
@@ -31,32 +30,32 @@ db_service = DatabaseService()
 async def get_complete_dashboard() -> Dict[str, Any]:
     """
     🚀 ENTERPRISE DASHBOARD AGGREGATOR
-    
+
     Single endpoint that provides ALL dashboard data:
     - System health & metrics
     - Worker details & status
-    - Queue status & statistics  
+    - Queue status & statistics
     - Today's jobs & analytics
     - Agent status & categories
     - Recent activity feed
-    
+
     Replaces 6+ API calls with 1 optimized call.
     Response time target: <500ms for complete dashboard.
     """
     try:
         logger.info("🔄 Loading complete dashboard data...")
         start_time = datetime.now()
-        
+
         # Collect all data concurrently for maximum performance
         dashboard_data = {}
-        
+
         # === SYSTEM HEALTH ===
         try:
             import psutil
             memory_info = psutil.virtual_memory()
             cpu_usage = psutil.cpu_percent(interval=0.1)
             disk = psutil.disk_usage('/')
-            
+
             dashboard_data["system"] = {
                 "status": "healthy" if cpu_usage < 80 and memory_info.percent < 80 else "warning",
                 "cpu_usage": round(cpu_usage, 1),
@@ -74,29 +73,29 @@ async def get_complete_dashboard() -> Dict[str, Any]:
                 "uptime": "12h 34m",
                 "last_check": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             }
-        
+
         # === WORKERS STATUS ===
         try:
             # 🚀 PERFORMANCE: Direct Celery connection with timeout
             from core.celery_app import celery_app
             import signal
-            
+
             def timeout_handler(signum, frame):
                 raise TimeoutError("Celery inspect timeout")
-            
+
             # Set 2 second timeout for Celery inspection
             signal.signal(signal.SIGALRM, timeout_handler)
             signal.alarm(2)
-            
+
             try:
                 # Get worker stats directly from Celery app (NO HTTP calls!)
                 inspect = celery_app.control.inspect()
                 stats = inspect.stats()
-                
+
                 worker_count = 0
                 active_count = 0
                 workers_details = []
-                
+
                 if stats:
                     for worker_name, worker_stats in stats.items():
                         worker_count += 1
@@ -108,7 +107,7 @@ async def get_complete_dashboard() -> Dict[str, Any]:
                             "last_seen": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                             "pool": worker_stats.get('pool', {}).get('max-concurrency', 'unknown')
                         })
-                
+
                 dashboard_data["workers"] = {
                     "total": worker_count,
                     "active": active_count,
@@ -119,7 +118,7 @@ async def get_complete_dashboard() -> Dict[str, Any]:
                 logger.info(f"✅ Worker data via direct Celery: {worker_count} workers")
             finally:
                 signal.alarm(0)  # Cancel alarm
-                
+
         except Exception as e:
             logger.warning(f"Could not get worker status via direct Celery: {e}")
             # 🎭 MOCK DATA - Workers endpoint not available
@@ -138,7 +137,7 @@ async def get_complete_dashboard() -> Dict[str, Any]:
                 "is_mock_data": True,
                 "mock_reason": f"Workers endpoint failed: {str(e)}"
             }
-        
+
         # === QUEUE STATUS ===
         try:
             # Use queue_service directly (REAL data from database)
@@ -156,7 +155,7 @@ async def get_complete_dashboard() -> Dict[str, Any]:
                 "is_mock_data": True,
                 "mock_reason": f"Queue service failed: {str(e)}"
             }
-        
+
         # === TODAY'S JOBS ===
         try:
             # 🚀 PERFORMANCE: Direct database service instead of HTTP cascade
@@ -170,7 +169,7 @@ async def get_complete_dashboard() -> Dict[str, Any]:
                 "recent": jobs_data.get("jobs", [])[:5]  # Last 5 jobs
             }
             logger.info(f"✅ Today's jobs via direct DB service: {jobs_data.get('total_jobs', 0)} jobs")
-                
+
         except Exception as e:
             logger.warning(f"Could not get today's jobs via direct DB service: {e}")
             dashboard_data["jobs"] = {
@@ -183,7 +182,7 @@ async def get_complete_dashboard() -> Dict[str, Any]:
                 "is_mock_data": True,
                 "mock_reason": f"Database service failed: {str(e)}"
             }
-        
+
         # === ANALYTICS ===
         try:
             analytics_data = db_service.get_analytics_data()
@@ -201,7 +200,7 @@ async def get_complete_dashboard() -> Dict[str, Any]:
                 "total_jobs": 1247,
                 "clips_generated": 3741
             }
-        
+
         # === AGENTS STATUS ===
         try:
             agents_data = db_service.get_agents_summary()
@@ -221,7 +220,7 @@ async def get_complete_dashboard() -> Dict[str, Any]:
                 "categories": ["Video Processing", "Audio Analysis", "Content Generation"],
                 "recent_activity": []
             }
-        
+
         # === RECENT ACTIVITY FEED ===
         dashboard_data["activity"] = [
             {
@@ -243,11 +242,11 @@ async def get_complete_dashboard() -> Dict[str, Any]:
                 "details": "All services operational"
             }
         ]
-        
+
         # === PERFORMANCE METRICS ===
         end_time = datetime.now()
         processing_time = (end_time - start_time).total_seconds()
-        
+
         response = {
             "status": "success",
             "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -260,14 +259,14 @@ async def get_complete_dashboard() -> Dict[str, Any]:
                 "next_update": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             }
         }
-        
+
         logger.info(f"✅ Complete dashboard loaded in {processing_time*1000:.2f}ms")
         return response
-        
+
     except Exception as e:
         logger.error(f"Failed to load complete dashboard: {e}")
         raise HTTPException(
-            status_code=500, 
+            status_code=500,
             detail=f"Dashboard aggregation failed: {str(e)}"
         )
 
@@ -275,7 +274,7 @@ async def get_complete_dashboard() -> Dict[str, Any]:
 async def get_lightweight_dashboard() -> Dict[str, Any]:
     """
     ⚡ LIGHTWEIGHT DASHBOARD for mobile/slow connections
-    
+
     Essential data only - optimized for <200ms response
     """
     try:
@@ -287,13 +286,13 @@ async def get_lightweight_dashboard() -> Dict[str, Any]:
             "jobs_today": 12,
             "success_rate": 85.5
         }
-        
+
         return {
             "status": "success",
             "data": essential_data,
             "mode": "lightweight"
         }
-        
+
     except Exception as e:
         logger.error(f"Lightweight dashboard failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))

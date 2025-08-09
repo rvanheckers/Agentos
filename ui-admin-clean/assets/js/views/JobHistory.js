@@ -22,6 +22,8 @@ export class JobHistory {
     this.itemsPerPage = 20; // For list view pagination
     this.viewMode = 'list'; // Always use list view
     this.currentFilter = null;
+    this.currentTimeframe = 'all'; // Default timeframe
+    this.allJobs = []; // Store complete job dataset
     this.selectedJob = null;
     this.smartFilter = null;
     this.helpPanel = null;
@@ -41,6 +43,7 @@ export class JobHistory {
     this.render();
     this.setupHelpSystem();
     this.setupSmartFilter();
+    this.setupTimeframeFilter();
     this.setupPaginationListeners();
     await this.loadJobHistory();
     this.setupEventListeners();
@@ -141,6 +144,16 @@ export class JobHistory {
               🔍 Smart Filters
               <button class="help-icon" data-section="job_filters">❓</button>
             </h3>
+            <div class="timeframe-filter">
+              <label for="timeframe-select">📅 Timeframe:</label>
+              <select id="timeframe-select" class="timeframe-select" aria-label="Select job history timeframe">
+                <option value="all">All Time</option>
+                <option value="today">Today Only</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+              </select>
+              <button class="help-icon" data-section="timeframe_filter" title="Help - Tijdsframe Filter">❓</button>
+            </div>
           </div>
           <div id="smartFilterContainer"></div>
         </div>
@@ -173,61 +186,6 @@ export class JobHistory {
           </div>
         </div>
 
-        <!-- Compact Bottom Section -->
-        <div class="bottom-section">
-          <!-- Queue Analytics - Compact -->
-          <div class="queue-analytics compact">
-            <div class="compact-header">
-              <h4>📊 Queue Analytics</h4>
-              <div class="compact-controls">
-                <select id="analytics-timeframe" class="compact-select">
-                  <option value="1h">Last Hour</option>
-                  <option value="6h">Last 6h</option>
-                  <option value="24h">Last 24h</option>
-                </select>
-                <button class="btn-compact" id="refresh-analytics">Refresh</button>
-              </div>
-            </div>
-            <div id="analytics-content" class="compact-content">
-              <div class="analytics-overview">
-                <div class="analytics-item">
-                  <span class="analytics-label">Processing Rate:</span>
-                  <span class="analytics-value" id="processing-rate">--/min</span>
-                  <span class="analytics-change improving" id="rate-trend">↗ +12%</span>
-                </div>
-                <div class="analytics-item">
-                  <span class="analytics-label">Queue Depth:</span>
-                  <span class="analytics-value" id="queue-depth">-- jobs</span>
-                  <span class="analytics-change stable" id="depth-trend">→ 0%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Worker Health - Compact -->
-          <div class="worker-health compact">
-            <div class="compact-header">
-              <h4>⚙️ Worker Health</h4>
-              <div class="compact-controls">
-                <button class="btn-compact" id="refresh-workers">Status</button>
-              </div>
-            </div>
-            <div id="worker-content" class="compact-content">
-              <div class="worker-overview">
-                <div class="worker-item">
-                  <span class="worker-label">Active Workers:</span>
-                  <span class="worker-value" id="active-workers">5/5</span>
-                  <span class="worker-status healthy" id="worker-health">🟢</span>
-                </div>
-                <div class="worker-item">
-                  <span class="worker-label">Avg Load:</span>
-                  <span class="worker-value" id="worker-load">--%</span>
-                  <span class="worker-status" id="load-status">🟡</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
         <!-- Pagination -->
         <div class="jobs-pagination" id="paginationContainer" style="display: none;">
@@ -304,6 +262,81 @@ export class JobHistory {
     } catch (error) {
       console.error('❌ Failed to setup SmartFilter:', error);
     }
+  }
+
+  setupTimeframeFilter() {
+    const timeframeSelect = document.getElementById('timeframe-select');
+    if (!timeframeSelect) {
+      console.warn('⚠️ Timeframe select not found');
+      return;
+    }
+
+    timeframeSelect.addEventListener('change', (e) => {
+      this.currentTimeframe = e.target.value;
+      console.log(`📅 Timeframe changed to: ${this.currentTimeframe}`);
+      
+      // Apply new timeframe filter (no need to reload data)
+      this.applyCurrentFilters();
+      
+      // Show notification
+      this.showTimeframeChangedNotification(this.currentTimeframe);
+    });
+
+    console.log('✅ Timeframe filter setup complete');
+  }
+
+  showTimeframeChangedNotification(timeframe) {
+    const messages = {
+      'all': 'Showing all jobs (complete history)',
+      'today': 'Showing today\'s jobs only - compare with Dashboard!',
+      'week': 'Showing this week\'s jobs',
+      'month': 'Showing this month\'s jobs'
+    };
+    
+    const message = messages[timeframe] || `Showing ${timeframe} jobs`;
+    
+    // Remove existing notifications to prevent DOM buildup
+    const existingNotifications = document.querySelectorAll('.timeframe-notification');
+    existingNotifications.forEach(notification => notification.remove());
+    
+    // Create and show notification
+    const notification = document.createElement('div');
+    notification.className = 'timeframe-notification';
+    notification.innerHTML = `
+      <div class="notification-content">
+        <span>📅 ${message}</span>
+        <button class="notification-close">×</button>
+      </div>
+    `;
+    
+    // Style the notification
+    notification.style.cssText = `
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      background: #e7f3ff;
+      border: 1px solid #bee5eb;
+      border-radius: 8px;
+      padding: 12px 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 1000;
+      animation: slideIn 0.3s ease;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Add close handler
+    const closeBtn = notification.querySelector('.notification-close');
+    closeBtn.addEventListener('click', () => {
+      document.body.removeChild(notification);
+    });
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+      if (document.body.contains(notification)) {
+        document.body.removeChild(notification);
+      }
+    }, 3000);
   }
 
   
@@ -384,15 +417,6 @@ export class JobHistory {
         this.handleToggleMonitoring();
       }
       
-      // Refresh analytics button
-      if (e.target.closest('#refresh-analytics')) {
-        this.updateQueueAnalytics();
-      }
-      
-      // Refresh workers button
-      if (e.target.closest('#refresh-workers')) {
-        this.updateWorkerHealth();
-      }
     });
   }
 
@@ -429,10 +453,10 @@ export class JobHistory {
     console.log('📊 Processing SSOT data for Jobs & Queue view');
     
     // Extract jobs data from SSOT response
-    const dashboardData = ssotData.dashboard || {};
-    const jobs = dashboardData.jobs?.recent_jobs || [];
-    const queueData = dashboardData.queue || {};
-    const recentActivity = dashboardData.recent_activity || [];
+    // V5 fix: jobs are directly in ssotData.jobs.recent_jobs
+    const jobs = ssotData.jobs?.recent_jobs || ssotData.dashboard?.jobs?.recent_jobs || [];
+    const queueData = ssotData.queue || ssotData.dashboard?.queue || {};
+    const recentActivity = ssotData.recent_activity || ssotData.dashboard?.recent_activity || [];
     
     // Process job data
     this.historyData = {
@@ -444,25 +468,16 @@ export class JobHistory {
       source: 'ssot'
     };
     
-    // Enterprise job enrichment with pipeline data
+    // Enterprise job enrichment with pipeline data (on ALL jobs)
     this.enrichJobsWithPipelineData(this.historyData.jobs).then(enrichedJobs => {
-      this.jobs = enrichedJobs;
-      this.totalJobs = this.historyData.total;
+      // Store complete dataset
+      this.allJobs = enrichedJobs;
+      
+      // Apply current filters (timeframe, etc.) - handles all UI updates
+      this.applyCurrentFilters();
       
       // Calculate enterprise analytics
       this.calculateHistoryAnalytics();
-      
-      // Update UI with enterprise data
-      this.updateOverviewMetrics();
-      
-      // Update filter results count
-      if (this.smartFilter) {
-        this.smartFilter.updateResultsCount(this.jobs.length, this.totalJobs);
-      }
-      
-      // Render current view with enterprise features
-      this.renderCurrentView();
-      this.updatePagination();
       
       // Cache data for offline access
       this.cacheHistoryData();
@@ -475,10 +490,12 @@ export class JobHistory {
   getFallbackJobHistory() {
     // Generate realistic mock jobs for demonstration when APIs are unavailable
     const mockJobs = this.generateMockJobs(12);
+    // Apply timeframe filtering to mock jobs
+    const filteredJobs = this.filterJobsByTimeframe(mockJobs);
     
     return {
-      jobs: mockJobs,
-      total: mockJobs.length,
+      jobs: filteredJobs,
+      total: filteredJobs.length,
       page: 1,
       pages: 1,
       data_source: 'fallback'
@@ -630,6 +647,56 @@ export class JobHistory {
       pipeline_events: [],
       data_source: 'fallback'
     };
+  }
+
+  filterJobsByTimeframe(jobs) {
+    if (this.currentTimeframe === 'all') {
+      return jobs; // No filtering needed
+    }
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const thisWeekStart = new Date(today);
+    // Start week on Monday (NL standard) instead of Sunday
+    const dayOfWeek = today.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    thisWeekStart.setDate(today.getDate() - daysToMonday);
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    return jobs.filter(job => {
+      const jobDate = new Date(job.created_at);
+      
+      switch (this.currentTimeframe) {
+        case 'today':
+          return jobDate >= today;
+        case 'week':
+          return jobDate >= thisWeekStart;
+        case 'month':
+          return jobDate >= thisMonthStart;
+        default:
+          return true;
+      }
+    });
+  }
+
+  applyCurrentFilters() {
+    // Apply timeframe filtering to complete dataset
+    this.jobs = this.filterJobsByTimeframe(this.allJobs);
+    this.totalJobs = this.jobs.length;
+    
+    console.log(`📅 Filters applied: ${this.allJobs.length} → ${this.jobs.length} jobs (timeframe: ${this.currentTimeframe})`);
+    
+    // Update UI components
+    this.updateOverviewMetrics();
+    this.renderCurrentView();
+    this.updatePagination();
+    
+    // Update smart filter results (guard against null)
+    if (this.smartFilter) {
+      this.smartFilter.updateResultsCount(this.jobs.length, this.allJobs.length);
+    } else {
+      console.warn('⚠️ SmartFilter not initialized, skipping results count update');
+    }
   }
 
   async enrichJobsWithPipelineData(jobs) {
@@ -855,10 +922,9 @@ export class JobHistory {
       const cached = localStorage.getItem('agentos_history_cache');
       if (cached) {
         this.historyData = JSON.parse(cached);
-        this.jobs = this.historyData.jobs || [];
-        this.totalJobs = this.historyData.total || 0;
-        this.updateOverviewMetrics();
-        this.renderCurrentView();
+        // Store complete cached dataset and apply filters
+        this.allJobs = this.historyData.jobs || [];
+        this.applyCurrentFilters();
       }
     } catch (error) {
       console.warn('Failed to load cached history data:', error);
@@ -1747,6 +1813,8 @@ export class JobHistory {
     const totalJobs = this.jobs.length;
     const activeJobs = this.jobs.filter(job => ['queued', 'processing', 'running'].includes(job.status)).length;
     const completedJobs = this.jobs.filter(job => job.status === 'completed').length;
+    const processingJobs = this.jobs.filter(job => job.status === 'processing').length;
+    const failedJobs = this.jobs.filter(job => job.status === 'failed').length;
     const successRate = totalJobs > 0 ? Math.round((completedJobs / totalJobs) * 100) : 0;
     
     // Calculate average processing time from completed jobs
@@ -1757,13 +1825,28 @@ export class JobHistory {
       ? Math.round(completedJobsWithTime.reduce((sum, job) => sum + job.performance_metrics.total_duration, 0) / completedJobsWithTime.length)
       : 0;
 
-    // Total Jobs
+    // Total Jobs (with timeframe awareness)
+    const timeframeTitles = {
+      'all': 'All-time Jobs',
+      'today': 'Today\'s Jobs',
+      'week': 'This Week\'s Jobs', 
+      'month': 'This Month\'s Jobs'
+    };
+    
+    const timeframeDescriptions = {
+      'all': 'Complete job history',
+      'today': 'Jobs created today',
+      'week': 'Jobs from this week',
+      'month': 'Jobs from this month'
+    };
+    
     this.createMetricCard('total-jobs-card', {
-      title: 'Total Jobs',
+      title: timeframeTitles[this.currentTimeframe] || 'Jobs',
       value: totalJobs.toString(),
-      description: 'In processing pipeline',
+      description: timeframeDescriptions[this.currentTimeframe] || 'Jobs in selected timeframe',
       status: 'neutral',
-      icon: '📋'
+      icon: '📋',
+      helpId: 'jobs_queue_total_jobs'
     });
 
     // Active Jobs
@@ -1772,43 +1855,48 @@ export class JobHistory {
       value: activeJobs.toString(),
       description: `${activeJobs} currently processing`,
       status: activeJobs > 10 ? 'warning' : 'good',
-      icon: '⚡'
+      icon: '⚡',
+      helpId: 'jobs_queue_active_jobs'
     });
 
-    // Success Rate
+    // Success Rate (Overall)
     this.createMetricCard('success-rate-card', {
-      title: 'Success Rate',
+      title: 'Overall Success Rate',
       value: `${successRate}%`,
-      description: 'Pipeline reliability',
+      description: 'All-time pipeline reliability',
       status: successRate > 90 ? 'good' : (successRate > 70 ? 'warning' : 'danger'),
-      icon: '🎯'
+      icon: '🎯',
+      helpId: 'jobs_queue_success_rate'
     });
 
-    // Average Processing Time
+    // Average Processing Time (Overall)
     this.createMetricCard('avg-processing-card', {
-      title: 'Avg Processing',
+      title: 'Avg Processing Time',
       value: `${avgProcessingTime}s`,
-      description: 'Per job completion',
+      description: 'Historical performance',
       status: avgProcessingTime < 120 ? 'good' : (avgProcessingTime < 300 ? 'warning' : 'danger'),
-      icon: '⏱️'
+      icon: '⏱️',
+      helpId: 'jobs_queue_avg_processing'
     });
 
-    // Update queue analytics
-    this.updateQueueAnalytics();
-    
-    // Update worker health
-    this.updateWorkerHealth();
   }
 
   createMetricCard(containerId, data) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
+    const helpButton = data.helpId ? `
+      <button class="help-icon" data-service="${data.helpId}" title="Help voor ${data.title}">❓</button>
+    ` : '';
+
     container.innerHTML = `
       <div class="metric-card metric-card--${data.status}">
         <div class="metric-card__header">
           <div class="metric-card__icon">${data.icon}</div>
-          <div class="metric-card__title">${data.title}</div>
+          <div class="metric-card__title">
+            ${data.title}
+            ${helpButton}
+          </div>
         </div>
         <div class="metric-card__content">
           <div class="metric-card__value">${data.value}</div>
@@ -1818,69 +1906,7 @@ export class JobHistory {
     `;
   }
 
-  updateQueueAnalytics() {
-    // Mock queue analytics - would be real data from /api/queue/analytics
-    const processingRate = Math.round(15 + Math.random() * 10); // jobs per minute
-    const queueDepth = Math.round(5 + Math.random() * 15); // waiting jobs
-    
-    const processingRateEl = document.getElementById('processing-rate');
-    const queueDepthEl = document.getElementById('queue-depth');
-    
-    if (processingRateEl) processingRateEl.textContent = `${processingRate}/min`;
-    if (queueDepthEl) queueDepthEl.textContent = `${queueDepth} jobs`;
-    
-    // Mock trends
-    const rateTrend = processingRate > 20 ? 'improving' : processingRate < 15 ? 'degrading' : 'stable';
-    const depthTrend = queueDepth < 10 ? 'improving' : queueDepth > 20 ? 'degrading' : 'stable';
-    
-    const rateTrendEl = document.getElementById('rate-trend');
-    const depthTrendEl = document.getElementById('depth-trend');
-    
-    if (rateTrendEl) {
-      const rateChange = rateTrend === 'improving' ? '↗ +12%' : 
-                        rateTrend === 'degrading' ? '↘ -8%' : '→ +2%';
-      rateTrendEl.textContent = rateChange;
-      rateTrendEl.className = `analytics-change ${rateTrend}`;
-    }
-    
-    if (depthTrendEl) {
-      const depthChange = depthTrend === 'improving' ? '↗ -15%' : 
-                         depthTrend === 'degrading' ? '↘ +25%' : '→ 0%';
-      depthTrendEl.textContent = depthChange;
-      depthTrendEl.className = `analytics-change ${depthTrend}`;
-    }
-  }
 
-  updateWorkerHealth() {
-    // Mock worker health - would be real data from /api/workers/health
-    const activeWorkers = 5;
-    const totalWorkers = 5;
-    const avgLoad = Math.round(45 + Math.random() * 30); // CPU load percentage
-    
-    const activeWorkersEl = document.getElementById('active-workers');
-    const workerLoadEl = document.getElementById('worker-load');
-    
-    if (activeWorkersEl) activeWorkersEl.textContent = `${activeWorkers}/${totalWorkers}`;
-    if (workerLoadEl) workerLoadEl.textContent = `${avgLoad}%`;
-    
-    // Update health indicators
-    const workerHealthEl = document.getElementById('worker-health');
-    const loadStatusEl = document.getElementById('load-status');
-    
-    if (workerHealthEl) {
-      const isHealthy = activeWorkers === totalWorkers;
-      workerHealthEl.textContent = isHealthy ? '🟢' : '🔴';
-      workerHealthEl.className = `worker-status ${isHealthy ? 'healthy' : 'warning'}`;
-    }
-    
-    if (loadStatusEl) {
-      const loadStatus = avgLoad < 70 ? 'healthy' : avgLoad < 85 ? 'warning' : 'danger';
-      const loadIcon = loadStatus === 'healthy' ? '🟢' : 
-                      loadStatus === 'warning' ? '🟡' : '🔴';
-      loadStatusEl.textContent = loadIcon;
-      loadStatusEl.className = `worker-status ${loadStatus}`;
-    }
-  }
 
   updateStatistics() {
     // Fallback to new overview metrics
@@ -2291,7 +2317,7 @@ export class JobHistory {
   async handleManualRefresh() {
     try {
       console.log('🔄 Manual refresh triggered');
-      this.showTemporaryNotification('Refreshing job data...', 'info');
+      this.showActionSuccess('Refreshing job data...');
       await this.loadJobHistory();
     } catch (error) {
       console.error('❌ Manual refresh failed:', error);
@@ -2386,94 +2412,33 @@ export class JobHistory {
 
   showActionSuccess(message) {
     console.log(`✅ ${message}`);
-    // Create temporary success notification
-    this.showTemporaryNotification(message, 'success');
+    // Use the existing notification system from main.js
+    const event = new CustomEvent('app:notification', {
+      detail: {
+        type: 'success',
+        title: 'Success',
+        message: message,
+        duration: 3000
+      }
+    });
+    document.dispatchEvent(event);
   }
 
   showActionError(message) {
     console.error(`❌ ${message}`);
-    // Create temporary error notification
-    this.showTemporaryNotification(message, 'error');
-  }
-
-  showTemporaryNotification(message, type = 'info') {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = `action-notification action-notification--${type}`;
-    notification.innerHTML = `
-      <div class="notification-content">
-        <span class="notification-icon">${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
-        <span class="notification-message">${message}</span>
-      </div>
-    `;
-
-    // Add to page header actions
-    const headerActions = document.querySelector('.page-header__actions');
-    if (headerActions) {
-      headerActions.appendChild(notification);
-    }
-
-    // Auto-remove after 3 seconds
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.parentNode.removeChild(notification);
+    // Use the existing notification system from main.js
+    const event = new CustomEvent('app:notification', {
+      detail: {
+        type: 'error',
+        title: 'Error',
+        message: message,
+        duration: 5000
       }
-    }, 3000);
-
-    // Add CSS if not already added
-    if (!document.getElementById('action-notifications-css')) {
-      const style = document.createElement('style');
-      style.id = 'action-notifications-css';
-      style.textContent = `
-        .action-notification {
-          position: fixed;
-          top: 20px;
-          right: 20px;
-          z-index: 1000;
-          padding: 0.75rem 1rem;
-          border-radius: 6px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-          animation: slideInRight 0.3s ease-out;
-        }
-        .action-notification--success {
-          background: #d4edda;
-          color: #155724;
-          border: 1px solid #c3e6cb;
-        }
-        .action-notification--error {
-          background: #f8d7da;
-          color: #721c24;
-          border: 1px solid #f5c6cb;
-        }
-        .action-notification--info {
-          background: #d1ecf1;
-          color: #0c5460;
-          border: 1px solid #bee5eb;
-        }
-        .notification-content {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-        .notification-icon {
-          font-size: 1rem;
-        }
-        .notification-message {
-          font-size: 0.9rem;
-          font-weight: 500;
-        }
-        @keyframes slideInRight {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-        .action-btn--loading {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-      `;
-      document.head.appendChild(style);
-    }
+    });
+    document.dispatchEvent(event);
   }
+
+  // Removed showTemporaryNotification - now using main.js notification system
 
   // Removed auto-refresh - job history doesn't need real-time updates
 

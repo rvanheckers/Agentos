@@ -4,7 +4,6 @@ Test script om constraint enforcer gebruiksvriendelijkheid te testen
 """
 
 from constraint_enforcer import get_enforcer
-import json
 
 def test_constraint_suite():
     enforcer = get_enforcer('../')
@@ -24,7 +23,7 @@ def test_constraint_suite():
         print()
 
     print('📁 BESTAND STATUS (top 5 grootste):')
-    files_sorted = sorted([(k,v) for k,v in status['files'].items() if isinstance(v.get('lines'), int)], 
+    files_sorted = sorted([(k,v) for k,v in status['files'].items() if isinstance(v.get('lines'), int)],
                          key=lambda x: x[1]['lines'], reverse=True)[:5]
     for file_path, file_info in files_sorted:
         icons = {'green': '🟢', 'yellow': '🟡', 'orange': '🟠', 'red': '🔴'}

@@ -15,7 +15,7 @@ logger = logging.getLogger("agentos.services.agents")
 class AgentsService:
     """
     Service layer for AI agents management - Database-First Pattern
-    
+
     Methods:
     - list_agents(): List all available agents
     - execute_video_downloader(): Download video content
@@ -30,7 +30,7 @@ class AgentsService:
     - execute_intelligent_cropper(): Intelligently crop video
     - execute_video_cutter(): Cut video segments
     """
-    
+
     def __init__(self, db_manager=None):
         """Initialize agents service with Database-First integration"""
         # Database-First Integration
@@ -52,14 +52,14 @@ class AgentsService:
                 "category": "input"
             },
             {
-                "name": "script-generator", 
+                "name": "script-generator",
                 "display_name": "Script Generator",
                 "description": "Generates video scripts based on content",
                 "category": "content"
             },
             {
                 "name": "voiceover-creator",
-                "display_name": "Voiceover Creator", 
+                "display_name": "Voiceover Creator",
                 "description": "Creates AI voiceovers for videos",
                 "category": "audio"
             },
@@ -95,7 +95,7 @@ class AgentsService:
             },
             {
                 "name": "face-detector",
-                "display_name": "Face Detector", 
+                "display_name": "Face Detector",
                 "description": "Detects and tracks faces in videos",
                 "category": "analysis"
             },
@@ -112,7 +112,7 @@ class AgentsService:
                 "category": "editing"
             }
         ]
-    
+
     def list_agents(self, category: Optional[str] = None, is_admin: bool = False) -> Dict[str, Any]:
         """
         List all available agents
@@ -120,11 +120,11 @@ class AgentsService:
         """
         try:
             agents = self.available_agents.copy()
-            
+
             # Filter by category if specified
             if category:
                 agents = [agent for agent in agents if agent["category"] == category]
-            
+
             # Add admin-only fields
             if is_admin:
                 for agent in agents:
@@ -134,14 +134,14 @@ class AgentsService:
                         "usage_count": 0,
                         "average_processing_time": 30.5
                     })
-            
+
             return {
                 "agents": agents,
                 "total": len(agents),
                 "categories": list(set(agent["category"] for agent in self.available_agents)),
                 "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to list agents: {e}")
             return {
@@ -149,8 +149,8 @@ class AgentsService:
                 "total": 0,
                 "error": str(e) if is_admin else "Service unavailable"
             }
-    
-    def execute_video_downloader(self, url: str, job_id: str, user_id: Optional[str] = None, 
+
+    def execute_video_downloader(self, url: str, job_id: str, user_id: Optional[str] = None,
                                 is_admin: bool = False) -> Dict[str, Any]:
         """Execute video downloader agent"""
         try:
@@ -166,7 +166,7 @@ class AgentsService:
         except Exception as e:
             logger.error(f"Video downloader failed: {e}")
             return {"error": str(e), "agent": "video-downloader"}
-    
+
     def execute_script_generator(self, topic: str, duration: int, job_id: str,
                                 user_id: Optional[str] = None, is_admin: bool = False) -> Dict[str, Any]:
         """Execute script generator agent"""
@@ -174,7 +174,7 @@ class AgentsService:
             return {
                 "agent": "script-generator",
                 "job_id": job_id,
-                "status": "processing", 
+                "status": "processing",
                 "message": f"Generating script for topic: {topic} ({duration}s)",
                 "estimated_time": "1-3 minutes",
                 "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -182,7 +182,7 @@ class AgentsService:
         except Exception as e:
             logger.error(f"Script generator failed: {e}")
             return {"error": str(e), "agent": "script-generator"}
-    
+
     def execute_voiceover_creator(self, text: str, voice: str, job_id: str,
                                  user_id: Optional[str] = None, is_admin: bool = False) -> Dict[str, Any]:
         """Execute voiceover creator agent"""
@@ -198,7 +198,7 @@ class AgentsService:
         except Exception as e:
             logger.error(f"Voiceover creator failed: {e}")
             return {"error": str(e), "agent": "voiceover-creator"}
-    
+
     def execute_clipper(self, video_path: str, segments: List[Dict], job_id: str,
                        user_id: Optional[str] = None, is_admin: bool = False) -> Dict[str, Any]:
         """Execute clipper agent"""
@@ -214,7 +214,7 @@ class AgentsService:
         except Exception as e:
             logger.error(f"Clipper failed: {e}")
             return {"error": str(e), "agent": "clipper"}
-    
+
     def execute_social_post_generator(self, content: str, platform: str, job_id: str,
                                      user_id: Optional[str] = None, is_admin: bool = False) -> Dict[str, Any]:
         """Execute social post generator agent"""
@@ -230,7 +230,7 @@ class AgentsService:
         except Exception as e:
             logger.error(f"Social post generator failed: {e}")
             return {"error": str(e), "agent": "social-post-generator"}
-    
+
     def execute_video_analyzer(self, video_path: str, analysis_type: str, job_id: str,
                               user_id: Optional[str] = None, is_admin: bool = False) -> Dict[str, Any]:
         """Execute video analyzer agent"""
@@ -246,7 +246,7 @@ class AgentsService:
         except Exception as e:
             logger.error(f"Video analyzer failed: {e}")
             return {"error": str(e), "agent": "video-analyzer"}
-    
+
     def execute_audio_transcriber(self, audio_path: str, language: str, job_id: str,
                                  user_id: Optional[str] = None, is_admin: bool = False) -> Dict[str, Any]:
         """Execute audio transcriber agent"""
@@ -262,7 +262,7 @@ class AgentsService:
         except Exception as e:
             logger.error(f"Audio transcriber failed: {e}")
             return {"error": str(e), "agent": "audio-transcriber"}
-    
+
     def execute_moment_detector(self, video_path: str, moment_type: str, job_id: str,
                                user_id: Optional[str] = None, is_admin: bool = False) -> Dict[str, Any]:
         """Execute moment detector agent"""
@@ -278,7 +278,7 @@ class AgentsService:
         except Exception as e:
             logger.error(f"Moment detector failed: {e}")
             return {"error": str(e), "agent": "moment-detector"}
-    
+
     def execute_face_detector(self, video_path: str, detection_mode: str, job_id: str,
                              user_id: Optional[str] = None, is_admin: bool = False) -> Dict[str, Any]:
         """Execute face detector agent"""
@@ -294,7 +294,7 @@ class AgentsService:
         except Exception as e:
             logger.error(f"Face detector failed: {e}")
             return {"error": str(e), "agent": "face-detector"}
-    
+
     def execute_intelligent_cropper(self, video_path: str, target_ratio: str, job_id: str,
                                    user_id: Optional[str] = None, is_admin: bool = False) -> Dict[str, Any]:
         """Execute intelligent cropper agent"""
@@ -310,7 +310,7 @@ class AgentsService:
         except Exception as e:
             logger.error(f"Intelligent cropper failed: {e}")
             return {"error": str(e), "agent": "intelligent-cropper"}
-    
+
     def execute_video_cutter(self, video_path: str, cut_points: List[float], job_id: str,
                             user_id: Optional[str] = None, is_admin: bool = False) -> Dict[str, Any]:
         """Execute video cutter agent"""
@@ -326,7 +326,7 @@ class AgentsService:
         except Exception as e:
             logger.error(f"Video cutter failed: {e}")
             return {"error": str(e), "agent": "video-cutter"}
-    
+
     # Agent Management Methods for Admin Interface
     def get_agent_info(self, agent_name: str, is_admin: bool = False) -> Dict[str, Any]:
         """Get detailed information about a specific agent"""
@@ -335,7 +335,7 @@ class AgentsService:
             agent = next((a for a in self.available_agents if a["name"] == agent_name), None)
             if not agent:
                 return {"error": f"Agent '{agent_name}' not found"}
-            
+
             # Add runtime information
             agent_info = agent.copy()
             agent_info.update({
@@ -352,20 +352,20 @@ class AgentsService:
                     "memory_limit": "1GB"
                 }
             })
-            
+
             return agent_info
-            
+
         except Exception as e:
             logger.error(f"Failed to get agent info for {agent_name}: {e}")
             return {"error": str(e)}
-    
+
     def get_agent_config(self, agent_name: str, is_admin: bool = False) -> Dict[str, Any]:
         """Get agent configuration"""
         try:
             agent = next((a for a in self.available_agents if a["name"] == agent_name), None)
             if not agent:
                 return {"error": f"Agent '{agent_name}' not found"}
-            
+
             # Return agent-specific configuration
             config = {
                 "agent_name": agent_name,
@@ -379,7 +379,7 @@ class AgentsService:
                 "dependencies": [],
                 "updated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             }
-            
+
             # Agent-specific configurations
             if agent_name == "video-downloader":
                 config["dependencies"] = ["yt-dlp", "ffmpeg"]
@@ -387,20 +387,20 @@ class AgentsService:
             elif agent_name == "audio-transcriber":
                 config["dependencies"] = ["whisper", "torch"]
                 config["models"] = ["base", "small", "medium", "large"]
-            
+
             return config
-            
+
         except Exception as e:
             logger.error(f"Failed to get agent config for {agent_name}: {e}")
             return {"error": str(e)}
-    
+
     def get_agent_health(self, agent_name: str, is_admin: bool = False) -> Dict[str, Any]:
         """Get agent health status"""
         try:
             agent = next((a for a in self.available_agents if a["name"] == agent_name), None)
             if not agent:
                 return {"error": f"Agent '{agent_name}' not found"}
-            
+
             return {
                 "agent_name": agent_name,
                 "status": "healthy",
@@ -415,18 +415,18 @@ class AgentsService:
                 "error_rate": 2.1,
                 "response_time_avg": 2.3  # seconds
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to get agent health for {agent_name}: {e}")
             return {"error": str(e)}
-    
+
     def get_agent_status(self, agent_name: str, is_admin: bool = False) -> Dict[str, Any]:
         """Get agent operational status"""
         try:
             agent = next((a for a in self.available_agents if a["name"] == agent_name), None)
             if not agent:
                 return {"error": f"Agent '{agent_name}' not found"}
-            
+
             return {
                 "agent_name": agent_name,
                 "operational_status": "running",
@@ -438,22 +438,22 @@ class AgentsService:
                 "version": "1.0.0",
                 "environment": "production"
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to get agent status for {agent_name}: {e}")
             return {"error": str(e)}
-    
+
     def get_agents_status(self) -> Dict[str, Any]:
         """Get status overview of all agents for AdminDataManager"""
         try:
             agents_status = []
-            
+
             for agent in self.available_agents:
                 agent_name = agent["name"]
-                
+
                 # Get individual agent status
                 status_data = self.get_agent_status(agent_name, is_admin=True)
-                
+
                 # Add agent metadata
                 agent_info = {
                     "name": agent_name,
@@ -469,9 +469,9 @@ class AgentsService:
                     "last_activity": status_data.get("last_activity"),
                     "environment": status_data.get("environment", "production")
                 }
-                
+
                 agents_status.append(agent_info)
-            
+
             return {
                 "success": True,
                 "total_agents": len(agents_status),
@@ -479,7 +479,7 @@ class AgentsService:
                 "agents": agents_status,
                 "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to get agents status: {e}")
             return {
@@ -488,15 +488,15 @@ class AgentsService:
                 "agents": [],
                 "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             }
-    
+
     def get_agents_configuration(self) -> Dict[str, Any]:
         """Get configuration overview of all agents for AdminDataManager"""
         try:
             agents_config = []
-            
+
             for agent in self.available_agents:
                 agent_name = agent["name"]
-                
+
                 # Build configuration info
                 config_info = {
                     "name": agent_name,
@@ -517,9 +517,9 @@ class AgentsService:
                     "version": agent.get("version", "1.0.0"),
                     "last_updated": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
                 }
-                
+
                 agents_config.append(config_info)
-            
+
             return {
                 "success": True,
                 "total_configs": len(agents_config),
@@ -527,7 +527,7 @@ class AgentsService:
                 "configurations": agents_config,
                 "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to get agents configuration: {e}")
             return {
@@ -536,14 +536,14 @@ class AgentsService:
                 "configurations": [],
                 "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             }
-    
+
     def get_agent_logs(self, agent_name: str, limit: int = 100, is_admin: bool = False) -> Dict[str, Any]:
         """Get recent agent logs"""
         try:
             agent = next((a for a in self.available_agents if a["name"] == agent_name), None)
             if not agent:
                 return {"error": f"Agent '{agent_name}' not found"}
-            
+
             # Mock log entries - in real implementation, read from log files
             logs = []
             for i in range(min(limit, 20)):
@@ -554,25 +554,25 @@ class AgentsService:
                     "message": f"Agent {agent_name} processed task successfully" if i % 3 != 0 else f"Agent {agent_name} waiting for tasks",
                     "task_id": f"task_{1000 + i}"
                 })
-            
+
             return {
                 "agent_name": agent_name,
                 "logs": logs,
                 "total_lines": len(logs),
                 "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to get agent logs for {agent_name}: {e}")
             return {"error": str(e)}
-    
+
     def get_agent_metrics(self, agent_name: str, is_admin: bool = False) -> Dict[str, Any]:
         """Get agent performance metrics"""
         try:
             agent = next((a for a in self.available_agents if a["name"] == agent_name), None)
             if not agent:
                 return {"error": f"Agent '{agent_name}' not found"}
-            
+
             return {
                 "agent_name": agent_name,
                 "performance_metrics": {
@@ -600,11 +600,11 @@ class AgentsService:
                 },
                 "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to get agent metrics for {agent_name}: {e}")
             return {"error": str(e)}
-    
+
     # Additional agent management methods
     def execute_agent(self, agent_name: str, params: Dict[str, Any], is_admin: bool = False) -> Dict[str, Any]:
         """Execute agent with given parameters"""
@@ -612,7 +612,7 @@ class AgentsService:
             agent = next((a for a in self.available_agents if a["name"] == agent_name), None)
             if not agent:
                 return {"error": f"Agent '{agent_name}' not found"}
-            
+
             return {
                 "agent_name": agent_name,
                 "status": "started",
@@ -622,54 +622,54 @@ class AgentsService:
                 "estimated_time": "30-60 seconds",
                 "started_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to execute agent {agent_name}: {e}")
             return {"error": str(e)}
-    
+
     def stop_agent(self, agent_name: str, is_admin: bool = False) -> Dict[str, Any]:
         """Stop a running agent"""
         try:
             agent = next((a for a in self.available_agents if a["name"] == agent_name), None)
             if not agent:
                 return {"error": f"Agent '{agent_name}' not found"}
-            
+
             return {
                 "agent_name": agent_name,
                 "status": "stopped",
                 "message": f"Agent {agent_name} stopped successfully",
                 "stopped_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to stop agent {agent_name}: {e}")
             return {"error": str(e)}
-    
+
     def restart_agent(self, agent_name: str, is_admin: bool = False) -> Dict[str, Any]:
         """Restart a specific agent"""
         try:
             agent = next((a for a in self.available_agents if a["name"] == agent_name), None)
             if not agent:
                 return {"error": f"Agent '{agent_name}' not found"}
-            
+
             return {
                 "agent_name": agent_name,
                 "status": "restarted",
                 "message": f"Agent {agent_name} restarted successfully",
                 "restarted_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to restart agent {agent_name}: {e}")
             return {"error": str(e)}
-    
+
     def update_agent_config(self, agent_name: str, config: Dict[str, Any], is_admin: bool = False) -> Dict[str, Any]:
         """Update agent configuration"""
         try:
             agent = next((a for a in self.available_agents if a["name"] == agent_name), None)
             if not agent:
                 return {"error": f"Agent '{agent_name}' not found"}
-            
+
             return {
                 "agent_name": agent_name,
                 "status": "updated",
@@ -677,18 +677,18 @@ class AgentsService:
                 "updated_config": config,
                 "updated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to update agent config for {agent_name}: {e}")
             return {"error": str(e)}
-    
+
     def test_agent(self, agent_name: str, test_params: Dict[str, Any], is_admin: bool = False) -> Dict[str, Any]:
         """Test agent with test parameters"""
         try:
             agent = next((a for a in self.available_agents if a["name"] == agent_name), None)
             if not agent:
                 return {"error": f"Agent '{agent_name}' not found"}
-            
+
             return {
                 "agent_name": agent_name,
                 "test_status": "passed",
@@ -702,7 +702,7 @@ class AgentsService:
                 "test_params": test_params,
                 "tested_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to test agent {agent_name}: {e}")
             return {"error": str(e)}

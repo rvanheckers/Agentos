@@ -9,26 +9,24 @@ Single responsibility: Create engaging social media content.
 
 import json
 import sys
-import os
 import time
 from typing import Dict, List, Any
-from datetime import datetime
 
 class SocialPostGenerator:
     """
     Atomic agent for generating social media posts.
-    
+
     Creates platform-specific posts with optimal formatting,
     hashtags, and engagement strategies.
     """
-    
+
     def __init__(self):
         self.version = "1.0.0"
-    
+
     def generate_posts(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Generate social media posts for multiple platforms.
-        
+
         Args:
             input_data: {
                 "video_path": str,           # optional, for video-based posts
@@ -42,7 +40,7 @@ class SocialPostGenerator:
                 "include_mentions": bool,    # optional, include @mentions
                 "post_type": str            # "promotion", "educational", "entertainment", "announcement"
             }
-            
+
         Returns:
             {
                 "success": bool,
@@ -68,16 +66,16 @@ class SocialPostGenerator:
                 "agent_version": str
             }
         """
-        
+
         start_time = time.time()
-        
+
         try:
             # Validate inputs
             if not input_data.get("topic"):
                 return self._error("topic is required")
-            
+
             # Get parameters
-            video_path = input_data.get("video_path", "")
+            input_data.get("video_path", "")
             topic = input_data["topic"]
             script = input_data.get("script", "")
             moments = input_data.get("moments", [])
@@ -87,7 +85,7 @@ class SocialPostGenerator:
             include_hashtags = input_data.get("include_hashtags", True)
             include_mentions = input_data.get("include_mentions", False)
             post_type = input_data.get("post_type", "promotional")
-            
+
             # Generate posts for each platform
             posts = {}
             for platform in platforms:
@@ -95,14 +93,14 @@ class SocialPostGenerator:
                     platform, topic, script, moments, tone, target_audience,
                     include_hashtags, include_mentions, post_type
                 )
-            
+
             # Generate cross-platform strategy
             cross_platform_strategy = self._generate_cross_platform_strategy(
                 platforms, topic, tone, post_type
             )
-            
+
             processing_time = time.time() - start_time
-            
+
             return {
                 "success": True,
                 "posts": posts,
@@ -110,16 +108,16 @@ class SocialPostGenerator:
                 "processing_time": processing_time,
                 "agent_version": self.version
             }
-            
+
         except Exception as e:
             return self._error(f"Post generation failed: {str(e)}")
-    
+
     def _generate_platform_post(self, platform: str, topic: str, script: str,
                                moments: List[dict], tone: str, target_audience: str,
                                include_hashtags: bool, include_mentions: bool,
                                post_type: str) -> Dict[str, Any]:
         """Generate post for specific platform"""
-        
+
         platform_configs = {
             "tiktok": {
                 "max_chars": 2200,
@@ -152,29 +150,29 @@ class SocialPostGenerator:
                 "hook_required": False
             }
         }
-        
+
         config = platform_configs.get(platform, platform_configs["instagram"])
-        
+
         # Generate main text
         text = self._generate_post_text(
             platform, topic, script, moments, tone, config, post_type
         )
-        
+
         # Generate hashtags
         hashtags = []
         if include_hashtags:
             hashtags = self._generate_hashtags(
                 platform, topic, config["hashtag_limit"]
             )
-        
+
         # Generate mentions
         mentions = []
         if include_mentions:
             mentions = self._generate_mentions(platform, topic)
-        
+
         # Calculate engagement tips
         engagement_tips = self._generate_engagement_tips(platform, post_type)
-        
+
         return {
             "text": text,
             "hashtags": hashtags,
@@ -183,12 +181,12 @@ class SocialPostGenerator:
             "engagement_tips": engagement_tips,
             "platform_config": config
         }
-    
+
     def _generate_post_text(self, platform: str, topic: str, script: str,
                            moments: List[dict], tone: str, config: Dict[str, Any],
                            post_type: str) -> str:
         """Generate main post text"""
-        
+
         # Platform-specific hooks
         hooks = {
             "tiktok": [
@@ -222,15 +220,15 @@ class SocialPostGenerator:
                 f"Professional development: {topic}"
             ]
         }
-        
+
         # Build post content
         post_parts = []
-        
+
         # Add hook if required
         if config.get("hook_required", False):
             hook_options = hooks.get(platform, hooks["instagram"])
             post_parts.append(hook_options[0])
-        
+
         # Add main content based on script or moments
         if script:
             # Use script summary
@@ -252,23 +250,23 @@ class SocialPostGenerator:
             else:  # promotional
                 post_parts.append(f"Just dropped a new video about {topic}!")
                 post_parts.append(f"Everything you need to know about {topic} in one place.")
-        
+
         # Add platform-specific CTA
         cta = self._generate_platform_cta(platform, post_type)
         post_parts.append(cta)
-        
+
         # Join parts and ensure character limit
         full_text = "\\n\\n".join(post_parts)
-        
+
         # Truncate if needed
         if len(full_text) > config["max_chars"]:
             full_text = full_text[:config["max_chars"]-3] + "..."
-        
+
         return full_text
-    
+
     def _generate_hashtags(self, platform: str, topic: str, limit: int) -> List[str]:
         """Generate platform-specific hashtags"""
-        
+
         # Platform-specific hashtags
         platform_tags = {
             "tiktok": ["#fyp", "#viral", "#trending", "#foryou", "#tiktok"],
@@ -277,28 +275,28 @@ class SocialPostGenerator:
             "twitter": ["#twitter", "#thread", "#trending", "#discussion"],
             "linkedin": ["#linkedin", "#professional", "#industry", "#career", "#business"]
         }
-        
+
         # Topic-based hashtags
         topic_words = topic.lower().replace(" ", "").split()
         topic_tags = [f"#{word}" for word in topic_words if len(word) > 2]
-        
+
         # Generic content hashtags
         content_tags = ["#tips", "#advice", "#learning", "#knowledge", "#insights"]
-        
+
         # Combine and limit
         all_tags = platform_tags.get(platform, []) + topic_tags + content_tags
         return list(set(all_tags))[:limit]
-    
+
     def _generate_mentions(self, platform: str, topic: str) -> List[str]:
         """Generate relevant mentions"""
-        
+
         # This would typically include relevant accounts, but for now return empty
         # In a real implementation, you'd have a database of relevant accounts
         return []
-    
+
     def _generate_engagement_tips(self, platform: str, post_type: str) -> List[str]:
         """Generate engagement tips for the platform"""
-        
+
         tips = {
             "tiktok": [
                 "Post during peak hours (6-10 PM)",
@@ -336,12 +334,12 @@ class SocialPostGenerator:
                 "Post 2-3 times per week"
             ]
         }
-        
+
         return tips.get(platform, tips["instagram"])[:3]
-    
+
     def _generate_platform_cta(self, platform: str, post_type: str) -> str:
         """Generate platform-specific call-to-action"""
-        
+
         ctas = {
             "tiktok": [
                 "Follow for more tips! 🚀",
@@ -374,24 +372,24 @@ class SocialPostGenerator:
                 "Follow for industry updates! 📈"
             ]
         }
-        
+
         platform_ctas = ctas.get(platform, ctas["instagram"])
         return platform_ctas[0]  # Return first option
-    
+
     def _summarize_script(self, script: str, max_length: int) -> str:
         """Summarize script for social media"""
-        
+
         if len(script) <= max_length:
             return script
-        
+
         # Simple summarization - take first part and add ellipsis
         summary = script[:max_length-3] + "..."
         return summary
-    
+
     def _generate_cross_platform_strategy(self, platforms: List[str], topic: str,
                                          tone: str, post_type: str) -> Dict[str, Any]:
         """Generate cross-platform posting strategy"""
-        
+
         return {
             "posting_schedule": "Stagger posts 1-2 hours apart to maximize reach",
             "content_variations": [
@@ -402,7 +400,7 @@ class SocialPostGenerator:
             ],
             "engagement_strategy": "Monitor all platforms for first 2 hours after posting"
         }
-    
+
     def _error(self, message: str) -> Dict[str, Any]:
         """Return standardized error response"""
         return {
@@ -421,13 +419,13 @@ def main():
             "error_code": "INVALID_ARGUMENTS"
         }))
         sys.exit(1)
-    
+
     try:
         input_data = json.loads(sys.argv[1])
         generator = SocialPostGenerator()
         result = generator.generate_posts(input_data)
         print(json.dumps(result, indent=2))
-        
+
     except json.JSONDecodeError:
         print(json.dumps({
             "success": False,

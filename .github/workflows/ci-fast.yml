@@ -1,0 +1,33 @@
+# Snelle CI pipeline - alleen de basics
+name: ⚡ Fast CI
+
+on:
+  push:
+    branches: [ "feature/quick-*", "hotfix/*", "bugfix/*" ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  fast-check:
+    name: ⚡ Quick Quality Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+    - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5
+      with:
+        python-version: '3.11'
+
+    - name: 📦 Install essentials
+      run: |
+        pip install ruff bandit
+
+    - name: 🎨 Quick lint
+      run: ruff check . --select=E,W,F --ignore=E501
+
+    - name: 🔒 Security scan
+      continue-on-error: true
+      run: bandit -r . -ll -i
+
+    - name: ✅ Basic syntax check
+      run: python -m compileall -q -f -j 2 .

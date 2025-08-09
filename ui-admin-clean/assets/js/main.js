@@ -530,8 +530,27 @@ class App {
   async clearQueue() {
     try {
       console.log('🧹 Clearing queue...');
-      await this.apiClient.request('/api/admin/queue/clear', { method: 'POST' });
+      
+      // Use Enterprise Action System V5
+      const response = await this.apiClient.request('/api/admin/action', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'queue.clear',
+          payload: { queue_name: 'default' }
+        }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('Clear queue response:', response);
       alert('✅ Queue cleared successfully');
+      
+      // Trigger data refresh for immediate UI update
+      if (this.centralDataService) {
+        this.centralDataService.refresh();
+      }
+      
     } catch (error) {
       console.error('Failed to clear queue:', error);
       alert('❌ Failed to clear queue');

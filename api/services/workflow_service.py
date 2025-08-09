@@ -6,7 +6,7 @@ Coördineert meerdere agents voor complete video processing pipelines.
 Ondersteunt admin/user filtering voor workflow toegang en monitoring.
 Gebruikt door workflow_refactored.py voor centrale workflow logic.
 """
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from datetime import datetime, timezone
 import random
 import logging
@@ -16,10 +16,10 @@ logger = logging.getLogger(__name__)
 
 class WorkflowService:
     """Central service for all workflow-related operations"""
-    
+
     def __init__(self):
         self.active_workflows = {}  # In-memory storage for demo
-    
+
     def create_youtube_to_tiktok_workflow(self, data: Dict[str, Any], is_admin: bool = False) -> Dict[str, Any]:
         """Create YouTube to TikTok conversion workflow
         Admin can create workflows for any user, users create for themselves"""
@@ -29,13 +29,13 @@ class WorkflowService:
             voice_preference = data.get("voice_preference", "female_professional")
             target_audience = data.get("target_audience", "general")
             user_id = data.get("user_id", "anonymous")
-            
+
             if not youtube_url:
                 raise ValueError("youtube_url is required")
-            
+
             # Generate workflow ID
             workflow_id = f"workflow_{random.randint(10000, 99999)}"
-            
+
             # Define workflow steps
             base_steps = [
                 {
@@ -75,7 +75,7 @@ class WorkflowService:
                     "status": "pending"
                 }
             ]
-            
+
             # Admin gets additional steps
             if is_admin:
                 base_steps.extend([
@@ -92,9 +92,9 @@ class WorkflowService:
                         "status": "pending"
                     }
                 ])
-            
+
             total_estimated_time = sum(step["estimated_duration"] for step in base_steps)
-            
+
             # Store workflow
             workflow_data = {
                 "workflow_id": workflow_id,
@@ -111,11 +111,11 @@ class WorkflowService:
                 "is_admin": is_admin,
                 "progress": 0
             }
-            
+
             self.active_workflows[workflow_id] = workflow_data
-            
+
             logger.info(f"Created YouTube to TikTok workflow {workflow_id} (admin: {is_admin})")
-            
+
             return {
                 "success": True,
                 "workflow_id": workflow_id,
@@ -131,21 +131,21 @@ class WorkflowService:
                 "message": "YouTube to TikTok workflow started successfully",
                 "admin_workflow": is_admin
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to create YouTube to TikTok workflow: {e}")
             raise e
-    
+
     def get_workflow_status(self, workflow_id: str, is_admin: bool = False) -> Dict[str, Any]:
         """Get workflow status
         Admin can see any workflow, users can see their own workflows"""
         try:
             workflow = self.active_workflows.get(workflow_id)
-            
+
             if not workflow:
                 # Generate mock status for demo
                 progress = random.randint(10, 90)
-                
+
                 # Determine current step based on progress
                 if progress < 20:
                     current_step = "download"
@@ -162,7 +162,7 @@ class WorkflowService:
                 else:
                     current_step = "enhancement"
                     current_step_desc = "Adding final touches"
-                
+
                 base_status = {
                     "workflow_id": workflow_id,
                     "status": "processing",
@@ -172,7 +172,7 @@ class WorkflowService:
                     "estimated_completion": f"{random.randint(2, 10)} minutes remaining",
                     "last_updated": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
                 }
-                
+
                 # Admin gets additional info
                 if is_admin:
                     base_status.update({
@@ -189,9 +189,9 @@ class WorkflowService:
                             "queue_position": random.randint(1, 5)
                         }
                     })
-                
+
                 return base_status
-            
+
             # Return actual stored workflow data
             workflow_status = {
                 "workflow_id": workflow_id,
@@ -202,7 +202,7 @@ class WorkflowService:
                 "created_at": workflow["created_at"],
                 "last_updated": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             }
-            
+
             # Admin gets full workflow data
             if is_admin:
                 workflow_status.update({
@@ -210,9 +210,9 @@ class WorkflowService:
                     "user_id": workflow.get("user_id"),
                     "full_workflow_data": workflow
                 })
-            
+
             return workflow_status
-            
+
         except Exception as e:
             logger.error(f"Failed to get workflow status for {workflow_id}: {e}")
             return {
@@ -221,7 +221,7 @@ class WorkflowService:
                 "error": str(e),
                 "admin_access": is_admin
             }
-    
+
     def create_batch_workflow(self, data: Dict[str, Any], is_admin: bool = False) -> Dict[str, Any]:
         """Create batch processing workflow
         Admin can create batch workflows, users get limited batch processing"""
@@ -230,17 +230,17 @@ class WorkflowService:
             workflow_type = data.get("workflow_type", "youtube-to-tiktok")
             batch_settings = data.get("batch_settings", {})
             user_id = data.get("user_id", "anonymous")
-            
+
             if not video_urls:
                 raise ValueError("video_urls list is required")
-            
+
             # Limit batch size for non-admin users
             max_batch_size = 50 if is_admin else 5
             if len(video_urls) > max_batch_size:
                 raise ValueError(f"Batch size limited to {max_batch_size} videos")
-            
+
             batch_id = f"batch_{random.randint(10000, 99999)}"
-            
+
             # Create individual workflows for each video
             individual_workflows = []
             for i, url in enumerate(video_urls):
@@ -249,7 +249,7 @@ class WorkflowService:
                     "user_id": user_id,
                     **batch_settings
                 }
-                
+
                 workflow = self.create_youtube_to_tiktok_workflow(workflow_data, is_admin)
                 individual_workflows.append({
                     "index": i + 1,
@@ -257,7 +257,7 @@ class WorkflowService:
                     "workflow_id": workflow["workflow_id"],
                     "status": "queued"
                 })
-            
+
             batch_workflow = {
                 "batch_id": batch_id,
                 "workflow_type": workflow_type,
@@ -269,12 +269,12 @@ class WorkflowService:
                 "estimated_total_time": f"{len(video_urls) * 10} minutes",
                 "is_admin": is_admin
             }
-            
+
             # Store batch workflow
             self.active_workflows[batch_id] = batch_workflow
-            
+
             logger.info(f"Created batch workflow {batch_id} with {len(video_urls)} videos (admin: {is_admin})")
-            
+
             return {
                 "success": True,
                 "batch_id": batch_id,
@@ -286,11 +286,11 @@ class WorkflowService:
                 "message": f"Batch workflow created with {len(video_urls)} videos",
                 "admin_batch": is_admin
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to create batch workflow: {e}")
             raise e
-    
+
     def get_workflow_list(self, user_id: Optional[str] = None, is_admin: bool = False) -> Dict[str, Any]:
         """Get list of workflows
         Admin sees all workflows, users see their own workflows"""
@@ -301,22 +301,22 @@ class WorkflowService:
             else:
                 # Users see only their own workflows
                 workflows = [
-                    wf for wf in self.active_workflows.values() 
+                    wf for wf in self.active_workflows.values()
                     if wf.get("user_id") == user_id or wf.get("user_id") == "anonymous"
                 ]
-            
+
             # Create summary
             total_workflows = len(workflows)
             active_workflows = len([wf for wf in workflows if wf.get("status") == "processing"])
             completed_workflows = len([wf for wf in workflows if wf.get("status") == "completed"])
-            
+
             result = {
                 "total_workflows": total_workflows,
                 "active_workflows": active_workflows,
                 "completed_workflows": completed_workflows,
                 "workflows": workflows[:10] if not is_admin else workflows  # Limit for users
             }
-            
+
             if is_admin:
                 result.update({
                     "admin_access": True,
@@ -326,9 +326,9 @@ class WorkflowService:
                         "success_rate": "95%"
                     }
                 })
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Failed to get workflow list: {e}")
             return {

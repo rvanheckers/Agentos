@@ -7,14 +7,14 @@ In de admin UI worden deze "Managers" genoemd voor business logic monitoring.
 
 Metrics per Manager:
 - Response times
-- Success rates  
+- Success rates
 - Error counts
 - Load statistics
 - Uptime monitoring
 """
 from fastapi import APIRouter, HTTPException, Depends
-from typing import List, Optional, Dict, Any
-from datetime import datetime, timedelta
+from typing import Dict
+from datetime import datetime
 import time
 import psutil
 import logging
@@ -28,14 +28,14 @@ from api.services.auth_dependencies import get_admin_user
 # from database.postgresql_manager import get_db_manager
 get_db_manager = None
 
-# Import services with error handling  
+# Import services with error handling
 try:
     from services.jobs_service import JobsService
 except ImportError:
     JobsService = None
 
 try:
-    from services.agents_service import AgentsService  
+    from services.agents_service import AgentsService
 except ImportError:
     AgentsService = None
 
@@ -81,25 +81,25 @@ if AgentsService:
         managers["agents"] = AgentsService()
     except Exception as e:
         logger.warning(f"Failed to initialize AgentsService: {e}")
-        
+
 if WorkersService:
     try:
         managers["workers"] = WorkersService()
     except Exception as e:
         logger.warning(f"Failed to initialize WorkersService: {e}")
-        
+
 if QueueService:
     try:
         managers["queue"] = QueueService()
     except Exception as e:
         logger.warning(f"Failed to initialize QueueService: {e}")
-        
+
 if UploadService:
     try:
         managers["upload"] = UploadService()
     except Exception as e:
         logger.warning(f"Failed to initialize UploadService: {e}")
-        
+
 if AnalyticsService:
     try:
         managers["analytics"] = AnalyticsService()
@@ -122,31 +122,31 @@ async def get_managers_help():
     try:
         import json
         import os
-        
+
         # Load help content from help.json
         help_file_path = os.path.join(os.path.dirname(__file__), '..', '..', 'ui-v2', 'docs', 'help.json')
-        
+
         try:
             with open(help_file_path, 'r', encoding='utf-8') as f:
                 help_data = json.load(f)
-            
+
             # Return managers help section
             managers_help = help_data.get('nl', {}).get('managers', {})
-            
+
             if not managers_help:
                 # Fallback if help not found
                 return {
                     "available": False,
                     "message": "Manager help content not available"
                 }
-            
+
             return {
                 "available": True,
                 "content": managers_help,
                 "available_managers": list(managers.keys()),
                 "timestamp": datetime.utcnow().isoformat()
             }
-            
+
         except FileNotFoundError:
             return {
                 "available": False,
@@ -162,7 +162,7 @@ async def get_managers_help():
                 "available": False,
                 "message": "Help file format error"
             }
-            
+
     except Exception as e:
         logger.error(f"Failed to load managers help: {e}")
         return {
@@ -177,42 +177,42 @@ async def get_manager_help(manager_name: str):
     try:
         import json
         import os
-        
+
         # Validate manager exists
         if manager_name not in managers:
             raise HTTPException(status_code=404, detail=f"Manager '{manager_name}' not found")
-        
+
         # Load help content
         help_file_path = os.path.join(os.path.dirname(__file__), '..', '..', 'ui-v2', 'docs', 'help.json')
-        
+
         try:
             with open(help_file_path, 'r', encoding='utf-8') as f:
                 help_data = json.load(f)
-            
+
             managers_help = help_data.get('nl', {}).get('managers', {})
             manager_help = managers_help.get(manager_name, {})
-            
+
             if not manager_help:
                 return {
                     "manager_name": manager_name,
                     "available": False,
                     "message": f"No help available for manager '{manager_name}'"
                 }
-            
+
             return {
                 "manager_name": manager_name,
                 "available": True,
                 "help": manager_help,
                 "timestamp": datetime.utcnow().isoformat()
             }
-            
+
         except FileNotFoundError:
             return {
                 "manager_name": manager_name,
                 "available": False,
                 "message": "Help file not found"
             }
-            
+
     except HTTPException:
         raise
     except Exception as e:
@@ -231,12 +231,12 @@ async def get_managers_status(current_user = Depends(get_admin_user)):
             "unhealthy": 0,
             "managers": {}
         }
-        
+
         for name, service in managers.items():
             try:
                 # Test if service responds
                 start_time = time.time()
-                
+
                 # Call a lightweight method to test responsiveness
                 if hasattr(service, 'get_stats'):
                     service.get_stats()
@@ -245,30 +245,30 @@ async def get_managers_status(current_user = Depends(get_admin_user)):
                 else:
                     # Fallback - just instantiate
                     service.__class__()
-                
+
                 response_time = (time.time() - start_time) * 1000  # ms
-                
+
                 status_summary["managers"][name] = {
                     "status": "healthy",
                     "response_time_ms": round(response_time, 2),
                     "last_check": datetime.utcnow().isoformat()
                 }
                 status_summary["healthy"] += 1
-                
+
             except Exception as e:
                 status_summary["managers"][name] = {
-                    "status": "unhealthy", 
+                    "status": "unhealthy",
                     "error": str(e),
                     "last_check": datetime.utcnow().isoformat()
                 }
                 status_summary["unhealthy"] += 1
                 logger.error(f"Manager {name} health check failed: {e}")
-        
+
         # Overall system health
         status_summary["overall_health"] = "healthy" if status_summary["unhealthy"] == 0 else "degraded"
-        
+
         return status_summary
-        
+
     except Exception as e:
         logger.error(f"Managers status check failed: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to check managers status: {str(e)}")
@@ -277,20 +277,20 @@ async def get_managers_status(current_user = Depends(get_admin_user)):
 @admin_router.get("/managers/{manager_name}/metrics")
 async def get_manager_metrics(manager_name: str, current_user = Depends(get_admin_user)):
     """Get detailed performance metrics for specific manager"""
-    
+
     if manager_name not in managers:
         raise HTTPException(status_code=404, detail=f"Manager '{manager_name}' not found")
-    
+
     try:
         service = managers[manager_name]
-        
+
         # Performance test
         start_time = time.time()
         method_results = {}
-        
+
         # Test common methods
         test_methods = ['get_stats', 'get_status', 'get_summary']
-        
+
         for method_name in test_methods:
             if hasattr(service, method_name):
                 try:
@@ -298,7 +298,7 @@ async def get_manager_metrics(manager_name: str, current_user = Depends(get_admi
                     method = getattr(service, method_name)
                     result = method()
                     method_time = (time.time() - method_start) * 1000
-                    
+
                     method_results[method_name] = {
                         "response_time_ms": round(method_time, 2),
                         "success": True,
@@ -310,16 +310,16 @@ async def get_manager_metrics(manager_name: str, current_user = Depends(get_admi
                         "success": False,
                         "error": str(e)
                     }
-        
+
         total_time = (time.time() - start_time) * 1000
-        
+
         # System resource usage
         process = psutil.Process()
-        
+
         # Calculate success rate
         successful_methods = len([r for r in method_results.values() if r.get("success")])
         success_rate = successful_methods / len(method_results) if method_results else 0
-        
+
         metrics = {
             "manager_name": manager_name,
             "timestamp": datetime.utcnow().isoformat(),
@@ -337,7 +337,7 @@ async def get_manager_metrics(manager_name: str, current_user = Depends(get_admi
             },
             "health_score": calculate_health_score(method_results, total_time)
         }
-        
+
         # Log performance data to database voor historical tracking
         try:
             db_manager = get_db_manager()
@@ -352,9 +352,9 @@ async def get_manager_metrics(manager_name: str, current_user = Depends(get_admi
             })
         except Exception as e:
             logger.warning(f"Failed to log performance data for {manager_name}: {e}")
-        
+
         return metrics
-        
+
     except Exception as e:
         logger.error(f"Failed to get metrics for manager {manager_name}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get manager metrics: {str(e)}")
@@ -374,30 +374,30 @@ async def get_managers_performance_summary(current_user = Depends(get_admin_user
             },
             "managers": []
         }
-        
+
         total_response_times = []
-        
+
         for name, service in managers.items():
             try:
                 # Quick performance test
                 start_time = time.time()
-                
+
                 # Test primary method
                 if hasattr(service, 'get_stats'):
                     service.get_stats()
                 elif hasattr(service, 'get_status'):
                     service.get_status()
-                
+
                 response_time = (time.time() - start_time) * 1000
                 total_response_times.append(response_time)
-                
+
                 manager_summary = {
                     "name": name,
                     "status": "healthy",
                     "response_time_ms": round(response_time, 2),
                     "health_indicator": "🟢" if response_time < 100 else "🟡" if response_time < 500 else "🔴"
                 }
-                
+
                 # Log performance data for this manager
                 try:
                     db_manager = get_db_manager()
@@ -411,9 +411,9 @@ async def get_managers_performance_summary(current_user = Depends(get_admin_user
                     })
                 except Exception as log_e:
                     logger.warning(f"Failed to log performance data for {name}: {log_e}")
-                
+
                 summary["overview"]["healthy_managers"] += 1
-                
+
             except Exception as e:
                 manager_summary = {
                     "name": name,
@@ -422,18 +422,18 @@ async def get_managers_performance_summary(current_user = Depends(get_admin_user
                     "health_indicator": "🔴"
                 }
                 logger.warning(f"Manager {name} performance test failed: {e}")
-            
+
             summary["managers"].append(manager_summary)
-        
+
         # Calculate overview metrics
         if total_response_times:
             summary["overview"]["avg_response_time_ms"] = round(sum(total_response_times) / len(total_response_times), 2)
-        
+
         summary["overview"]["total_methods_tested"] = len(total_response_times)
         summary["overview"]["system_health"] = "🟢 Healthy" if summary["overview"]["healthy_managers"] == len(managers) else "🟡 Degraded"
-        
+
         return summary
-        
+
     except Exception as e:
         logger.error(f"Failed to get managers performance summary: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get performance summary: {str(e)}")
@@ -451,10 +451,10 @@ async def get_manager_performance_history(
         # Validate manager exists
         if manager_name not in managers:
             raise HTTPException(status_code=404, detail=f"Manager '{manager_name}' not found")
-        
+
         db_manager = get_db_manager()
         history_data = db_manager.get_manager_performance_history(manager_name, start_date, end_date)
-        
+
         return {
             "manager_name": manager_name,
             "start_date": start_date,
@@ -462,7 +462,7 @@ async def get_manager_performance_history(
             "data_points": len(history_data),
             "history": history_data
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -483,7 +483,7 @@ async def get_all_managers_performance_history(
     try:
         db_manager = get_db_manager()
         all_history_data = db_manager.get_all_managers_performance_history(start_date, end_date)
-        
+
         # Add summary statistics
         summary = {
             "start_date": start_date,
@@ -492,12 +492,12 @@ async def get_all_managers_performance_history(
             "total_data_points": sum(len(data) for data in all_history_data.values()),
             "managers": list(all_history_data.keys())
         }
-        
+
         return {
             "summary": summary,
             "data": all_history_data
         }
-        
+
     except Exception as e:
         logger.error(f"Failed to get all managers performance history: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get performance history: {str(e)}")
@@ -505,14 +505,14 @@ async def get_all_managers_performance_history(
 
 def calculate_health_score(method_results: Dict, total_time_ms: float) -> str:
     """Calculate health score based on performance metrics"""
-    
+
     if not method_results:
         return "Unknown"
-    
+
     successful_methods = len([r for r in method_results.values() if r.get("success")])
     total_methods = len(method_results)
     success_rate = successful_methods / total_methods
-    
+
     # Score based on success rate and response time
     if success_rate == 1.0 and total_time_ms < 100:
         return "Excellent"
