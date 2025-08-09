@@ -16,8 +16,9 @@ def main():
         print("🎯 AGENTOS SCRIPT SIZE MONITOR")
         print("=" * 50)
 
-        # Initialize enforcer for current AgentOS project only
-        enforcer = SmartConstraintEnforcer(".")  # Current directory, not parent
+        # Initialize enforcer for entire AgentOS project from repository root
+        project_root = Path(__file__).parent.parent  # Go up from script-monitoring to AgentOS root
+        enforcer = SmartConstraintEnforcer(str(project_root))
         status = enforcer.get_current_status()
 
         # Show main status
