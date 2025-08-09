@@ -198,7 +198,7 @@ class DatabaseService:
                 from services.jobs_service import JobsService
                 jobs_service = JobsService()
                 return jobs_service.get_job_statistics(is_admin=True)
-            except:
+            except Exception:
                 return {
                     "success_rate": 0,
                     "avg_processing_time": 0,

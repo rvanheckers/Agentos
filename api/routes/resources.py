@@ -20,6 +20,7 @@ from fastapi import APIRouter, HTTPException, Query
 from typing import Dict, Any, Optional, Literal
 from datetime import datetime, timezone
 import logging
+import time
 
 # Import existing services
 from services.jobs_service import JobsService
@@ -37,7 +38,6 @@ queue_service = QueueService()
 db_service = DatabaseService()
 
 # PERFORMANCE CACHE: Workers data cache to avoid slow Celery inspect calls
-import time
 _workers_cache = {
     "data": None,
     "timestamp": 0,

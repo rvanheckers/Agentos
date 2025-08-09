@@ -113,7 +113,7 @@ class IdempotencyService:
             # Corrupt cache entry, remove it
             try:
                 self.redis_client.delete(cache_key)
-            except:
+            except Exception:
                 pass
             return None
 
@@ -278,7 +278,7 @@ class IdempotencyService:
                                 oldest_timestamp = timestamp
                             if not newest_timestamp or timestamp > newest_timestamp:
                                 newest_timestamp = timestamp
-                except:
+                except Exception:
                     continue
 
             return {

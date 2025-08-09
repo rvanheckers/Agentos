@@ -825,7 +825,7 @@ async def ping_all_workers():
                 })
             except Exception as e:
                 ping_results.append({
-                    "worker_id": worker_id,
+                    "worker_type": worker_type,
                     "pid": pid,
                     "status": "ping_failed",
                     "error": str(e)
@@ -870,7 +870,7 @@ async def ping_all_workers():
                 user_id="admin",
                 metadata={"error": str(e)}
             )
-        except:
+        except Exception:
             pass
 
         raise HTTPException(status_code=500, detail=f"Worker ping failed: {str(e)}")

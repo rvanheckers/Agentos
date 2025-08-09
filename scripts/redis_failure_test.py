@@ -38,7 +38,7 @@ def check_redis():
     try:
         result = subprocess.run(['redis-cli', 'ping'], capture_output=True, text=True)
         return result.stdout.strip() == 'PONG'
-    except:
+    except Exception:
         return False
 
 def submit_job():

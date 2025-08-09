@@ -98,7 +98,7 @@ def check_jobs_status(job_ids):
                     failed += 1
                 else:
                     processing += 1
-        except:
+        except Exception:
             failed += 1
 
     return completed, failed, processing

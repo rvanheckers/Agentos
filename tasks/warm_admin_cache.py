@@ -12,6 +12,8 @@ import json
 import redis
 import logging
 import uuid
+import sys
+import os
 from datetime import datetime
 from celery import shared_task
 
@@ -24,11 +26,9 @@ class AdminDataEncoder(json.JSONEncoder):
             return obj.isoformat()
         return super().default(obj)
 
-# Import AdminDataManager
-import sys
-import os
+# Import AdminDataManager after path setup
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from services.admin_data_manager import AdminDataManager
+from services.admin_data_manager import AdminDataManager  # noqa: E402
 
 logger = logging.getLogger(__name__)
 

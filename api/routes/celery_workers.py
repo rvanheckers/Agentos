@@ -78,7 +78,7 @@ def get_celery_worker_stats():
                         try:
                             concurrency = int(line.split('max-concurrency')[1].split()[0].strip(':,'))
                             stats['max_concurrency'] = concurrency
-                        except:
+                        except (ValueError, IndexError):
                             pass
 
             return stats

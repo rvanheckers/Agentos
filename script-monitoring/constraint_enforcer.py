@@ -126,7 +126,7 @@ class SmartConstraintEnforcer:
         elif level == "orange":
             suggestion = f"Increase BASE_LINES to {core_lines + 50}, MAX_LINES to {core_lines + 200}" if to_red < 50 else "Refactor largest files"
             largest_files = sorted([(k, v['lines']) for k, v in (file_status or {}).items() if isinstance(v.get('lines'), int)], key=lambda x: x[1], reverse=True)[:2]
-            files_info = f" (largest: {', '.join([f'{f}:{l}' for f, l in largest_files])})" if largest_files else ""
+            files_info = f" (largest: {', '.join([f'{filename}:{lines}' for filename, lines in largest_files])})" if largest_files else ""
             return f"🟠 CAPACITY WARNING: Only {remaining} lines remaining! Consider: {suggestion}{files_info}"
         elif level == "red":
             return f"🔴 MANDATORY: Refactor before adding code! Over limit by {abs(remaining)} lines"

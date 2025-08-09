@@ -27,7 +27,7 @@ from celery.utils.log import get_task_logger
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(project_root)
 
-from core.celery_app import celery_app
+from core.celery_app import celery_app  # noqa: E402
 
 logger = get_task_logger(__name__)
 
@@ -58,7 +58,7 @@ def report_worker_status(self):
             cpu_percent = psutil.cpu_percent(interval=None)
             memory_info = psutil.virtual_memory()
             memory_usage_mb = round(memory_info.used / (1024 * 1024), 1)
-        except:
+        except Exception:
             cpu_percent = 0.0
             memory_usage_mb = 0.0
 
@@ -231,7 +231,7 @@ def monitoring_health_check():
                     # Consider fresh if updated within last 2 minutes
                     if (now - last_heartbeat).total_seconds() < 120:
                         fresh_workers += 1
-            except:
+            except Exception:
                 continue
 
         return {

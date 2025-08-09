@@ -29,6 +29,7 @@ import os
 import sys
 from celery import Celery
 from celery.schedules import crontab
+from celery.signals import task_prerun, task_postrun, task_failure
 from kombu import Queue
 
 # Add project root to path
@@ -178,7 +179,6 @@ celery_app.conf.update(
 celery_app.autodiscover_tasks(['tasks.video_processing', 'tasks.agents', 'tasks.maintenance', 'tasks.monitoring', 'tasks.cache_warming'])
 
 # Celery signals voor logging en monitoring
-from celery.signals import task_prerun, task_postrun, task_failure
 
 @task_prerun.connect
 def task_prerun_handler(sender=None, task_id=None, task=None, args=None, kwargs=None, **kwds):

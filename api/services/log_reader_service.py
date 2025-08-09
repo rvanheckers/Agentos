@@ -197,7 +197,7 @@ class LogReaderService:
             # Simple implementation - read all lines and take last N
             all_lines = file_obj.readlines()
             return all_lines[-lines:] if len(all_lines) > lines else all_lines
-        except:
+        except Exception:
             return []
 
     def _parse_json_log(self, line: str) -> Optional[LogEntry]:

@@ -233,7 +233,7 @@ async def execute_action(
         try:
             user = await get_current_user(current_request)
             user_id = user.id
-        except:
+        except Exception:
             user_id = "unknown"
 
         # Audit failure

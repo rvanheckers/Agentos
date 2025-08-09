@@ -307,7 +307,7 @@ class EndpointHealthChecker:
             try:
                 with open(filepath, 'r') as f:
                     previous_report = json.load(f)
-            except:
+            except Exception:
                 pass
 
         # Add change detection to report
