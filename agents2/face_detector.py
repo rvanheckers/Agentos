@@ -6,8 +6,6 @@ Voor WSL/no-GPU environments
 
 import json
 import sys
-import os
-import time
 import random
 
 def main():

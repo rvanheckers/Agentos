@@ -6,8 +6,6 @@ Generates realistic mock responses for development without API costs.
 """
 
 import random
-import time
-from datetime import datetime
 from typing import List, Dict, Any
 
 class MockDataGenerator:
@@ -161,10 +159,10 @@ class MockDataGenerator:
         else:
             templates = [
                 f"So the interesting thing about {topic} is that it's constantly evolving.",
-                f"Let me show you something really cool about this.",
-                f"This is where it gets really interesting.",
-                f"Now, you might be wondering why this matters.",
-                f"Here's a pro tip that not many people know about.",
+                "Let me show you something really cool about this.",
+                "This is where it gets really interesting.",
+                "Now, you might be wondering why this matters.",
+                "Here's a pro tip that not many people know about.",
                 random.choice(self.viral_phrases)
             ]
             return random.choice(templates)

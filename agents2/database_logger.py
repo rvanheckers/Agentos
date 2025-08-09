@@ -27,7 +27,7 @@ class VideoDownloader(DatabaseLoggerMixin):
 
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any
 import json
 
 

@@ -13,7 +13,6 @@ import os
 import subprocess
 import time
 from typing import Dict, List, Any
-from datetime import datetime
 
 class ThumbnailGenerator:
     """
@@ -301,7 +300,7 @@ class ThumbnailGenerator:
             # Add play button if requested
             if add_play_button:
                 # Simple play button using shapes
-                play_button = f"drawbox=x=(w-80)/2:y=(h-60)/2:w=80:h=60:color=black@0.5:t=fill,drawtext=text='▶':x=(w-text_w)/2:y=(h-text_h)/2:fontsize=40:fontcolor=white"
+                play_button = "drawbox=x=(w-80)/2:y=(h-60)/2:w=80:h=60:color=black@0.5:t=fill,drawtext=text='▶':x=(w-text_w)/2:y=(h-text_h)/2:fontsize=40:fontcolor=white"
                 filters.append(play_button)
             
             if filters:

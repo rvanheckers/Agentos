@@ -31,11 +31,8 @@ Output JSON format:
 import json
 import sys
 import os
-import time
-import subprocess
 import re
 from urllib.parse import urlparse
-from pathlib import Path
 from contextlib import contextmanager
 from io import StringIO
 
@@ -592,7 +589,7 @@ class VideoDownloader:
             
         # Method 3: Last resort - newest file in directory
         # (but log a warning that we're not sure)
-        print(f"WARNING: Could not definitively identify downloaded file, using newest")
+        print("WARNING: Could not definitively identify downloaded file, using newest")
         newest_file = None
         newest_time = 0
         

@@ -259,7 +259,7 @@ class FastAudioTranscriber:
                             "text": text,
                             "confidence": 0.9
                         })
-                except:
+                except Exception:
                     continue
 
         return segments
@@ -301,7 +301,7 @@ class FastAudioTranscriber:
     def _generate_simple_transcript(self, duration):
         """Generate simple transcript for pipeline testing"""
         # Create evenly spaced segments
-        segments = []
+        # segments = []  # Unused variable
         segment_length = 15  # 15 seconds per segment
         num_segments = max(1, int(duration // segment_length))
 
@@ -334,7 +334,7 @@ class FastAudioTranscriber:
         try:
             result = subprocess.run(['ffmpeg', '-version'], capture_output=True, text=True, timeout=5)
             return result.returncode == 0
-        except:
+        except Exception:
             return False
 
     def _error(self, message):

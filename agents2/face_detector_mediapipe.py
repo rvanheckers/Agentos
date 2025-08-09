@@ -40,7 +40,7 @@ class SimpleFaceDetector:
                     min_detection_confidence=0.5
                 )
                 self.face_detection_available = True
-            except Exception as e:
+            except Exception:
                 self.face_detection_available = False
     
     def detect_faces(self, input_data):

@@ -12,8 +12,7 @@ import sys
 import os
 import subprocess
 import time
-from typing import Dict, List, Any
-from datetime import datetime
+from typing import Dict, Any
 
 class VoiceoverCreator:
     """
@@ -184,7 +183,7 @@ class VoiceoverCreator:
                                format_type, language, emotion, pause_duration)
                 if result["success"]:
                     return result
-            except Exception as e:
+            except Exception:
                 continue
         
         # If all engines fail, create a simple placeholder
@@ -235,7 +234,7 @@ class VoiceoverCreator:
                     "engine": "festival"
                 }
             
-        except Exception as e:
+        except Exception:
             pass
         
         return {"success": False, "error": "Festival TTS failed"}
@@ -281,7 +280,7 @@ class VoiceoverCreator:
                     "engine": "espeak"
                 }
             
-        except Exception as e:
+        except Exception:
             pass
         
         return {"success": False, "error": "eSpeak TTS failed"}
@@ -320,7 +319,7 @@ class VoiceoverCreator:
                     "engine": "system_tts"
                 }
             
-        except Exception as e:
+        except Exception:
             pass
         
         return {"success": False, "error": "System TTS failed"}
@@ -360,7 +359,7 @@ class VoiceoverCreator:
             
         except ImportError:
             pass
-        except Exception as e:
+        except Exception:
             pass
         
         return {"success": False, "error": "Python TTS failed"}
@@ -387,7 +386,7 @@ class VoiceoverCreator:
                     "engine": "placeholder"
                 }
             
-        except Exception as e:
+        except Exception:
             pass
         
         return {"success": False, "error": "Could not create placeholder audio"}
@@ -520,7 +519,6 @@ class VoiceoverCreator:
         
         # Check Python TTS
         try:
-            import pyttsx3
             availability["python_tts"] = True
         except:
             pass

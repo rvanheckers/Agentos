@@ -9,10 +9,8 @@ Single responsibility: Create engaging social media content.
 
 import json
 import sys
-import os
 import time
 from typing import Dict, List, Any
-from datetime import datetime
 
 class SocialPostGenerator:
     """

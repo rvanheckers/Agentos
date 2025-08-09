@@ -13,7 +13,6 @@ import os
 import subprocess
 import time
 from typing import Dict, List, Any
-from datetime import datetime
 
 class VisualEffects:
     """
@@ -180,8 +179,8 @@ class VisualEffects:
             "saturation": f"eq=saturation={1 + intensity}",
             "blur": f"boxblur={int(intensity * 10)}",
             "sharpen": f"unsharp=5:5:{intensity * 2}:5:5:{intensity * 2}",
-            "vintage": f"colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131",
-            "sepia": f"colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131",
+            "vintage": "colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131",
+            "sepia": "colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131",
             "grayscale": "colorchannelmixer=.299:.587:.114:0:.299:.587:.114:0:.299:.587:.114",
             "invert": "negate",
             "vignette": f"vignette=PI/4:{intensity}",
