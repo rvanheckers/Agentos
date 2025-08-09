@@ -17,7 +17,7 @@ from typing import Dict, List, Any, Tuple
 class IntelligentCropper:
     """
     Atomic agent for calculating intelligent crop coordinates.
-    
+
     Uses face detection data and content analysis to determine
     optimal crop areas for different aspect ratios.
     """
@@ -28,7 +28,7 @@ class IntelligentCropper:
     def calculate_crop(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Calculate intelligent crop coordinates.
-        
+
         Args:
             input_data: {
                 "video_path": str,
@@ -38,7 +38,7 @@ class IntelligentCropper:
                 "padding": float,            # optional, padding around subjects (0.0-0.5)
                 "priority": str              # "faces", "center", "content"
             }
-            
+
         Returns:
             {
                 "success": bool,

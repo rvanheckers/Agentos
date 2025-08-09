@@ -17,7 +17,7 @@ from typing import Dict, Any
 class VoiceoverCreator:
     """
     Atomic agent for creating voiceovers from text.
-    
+
     Generates natural-sounding voiceovers for video content
     using various text-to-speech engines and voice options.
     """
@@ -29,7 +29,7 @@ class VoiceoverCreator:
     def create_voiceover(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Create voiceover from text.
-        
+
         Args:
             input_data: {
                 "text": str,                 # text to convert to speech
@@ -45,7 +45,7 @@ class VoiceoverCreator:
                 "background_music": str,     # optional background music file
                 "music_volume": float        # background music volume (0.0-1.0)
             }
-            
+
         Returns:
             {
                 "success": bool,

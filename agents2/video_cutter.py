@@ -18,7 +18,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 class VideoCutter:
     """
     Atomic agent for cutting video at specific timestamps.
-    
+
     Single responsibility: Cut video segments using FFmpeg.
     """
 
@@ -29,7 +29,7 @@ class VideoCutter:
     def cut_video(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Cut video at specified timestamps - Celery compatible (no database logging).
-        
+
         Args:
             input_data: {
                 "job_id": str,           # Optional for Celery compatibility
@@ -43,7 +43,7 @@ class VideoCutter:
                 "format": str,           # optional, default: mp4
                 "copy_streams": bool     # optional, default: False (faster)
             }
-            
+
         Returns:
             {
                 "success": bool,

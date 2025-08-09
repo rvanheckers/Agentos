@@ -17,7 +17,7 @@ from typing import Dict, List, Any
 class ThumbnailGenerator:
     """
     Atomic agent for generating video thumbnails.
-    
+
     Creates platform-specific thumbnails with text overlays,
     effects, and optimized dimensions.
     """
@@ -28,7 +28,7 @@ class ThumbnailGenerator:
     def generate_thumbnail(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Generate thumbnail for video content.
-        
+
         Args:
             input_data: {
                 "video_path": str,           # source video file
@@ -45,7 +45,7 @@ class ThumbnailGenerator:
                 "blur_background": bool,     # optional, blur background behind text
                 "template": str              # optional, template to use
             }
-            
+
         Returns:
             {
                 "success": bool,

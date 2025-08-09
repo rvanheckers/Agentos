@@ -29,7 +29,7 @@ except ImportError:
 class MomentDetector:
     """
     Atomic agent for detecting viral moments in video content.
-    
+
     Uses audio transcription and visual analysis to identify
     the most engaging segments for social media clips.
     """
@@ -42,7 +42,7 @@ class MomentDetector:
     def detect_moments(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Detect viral moments in video content.
-        
+
         Args:
             input_data: {
                 "video_path": str,
@@ -53,7 +53,7 @@ class MomentDetector:
                 "max_duration": float,       # maximum moment duration in seconds
                 "max_moments": int           # maximum number of moments to detect
             }
-            
+
         Returns:
             {
                 "success": bool,
@@ -346,16 +346,16 @@ class MomentDetector:
 
             prompt = f"""
             Analyze this video transcript and identify the most viral/engaging moments for social media clips.
-            
+
             TRANSCRIPT:
             {transcript}
-            
+
             REQUIREMENTS:
             - Find {max_moments} most viral moments
             - Each moment should be {min_duration}-{max_duration} seconds long
             - Look for: emotional peaks, funny moments, surprising content, educational insights, action sequences
             - Rate each moment's viral potential (0.0-1.0)
-            
+
             Return a JSON array with this exact format:
             [
                 {{
@@ -368,7 +368,7 @@ class MomentDetector:
                     "keywords": ["keyword1", "keyword2"]
                 }}
             ]
-            
+
             ONLY return the JSON array, no other text.
             """
 

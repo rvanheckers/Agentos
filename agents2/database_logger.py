@@ -13,7 +13,7 @@ class VideoDownloader(DatabaseLoggerMixin):
     def __init__(self):
         super().__init__()
         self.agent_name = "video_downloader"
-    
+
     def execute(self, input_data):
         with self.log_execution(input_data.get('job_id'), 1) as logger:
             try:
@@ -43,7 +43,7 @@ class DatabaseLoggerMixin:
     def log_execution(self, job_id: str, step_number: int, input_data: Any = None):
         """
         Context manager voor het loggen van agent execution
-        
+
         Usage:
             with self.log_execution(job_id, 1, input_data) as logger:
                 result = do_work()
@@ -155,7 +155,7 @@ def log_agent_step(agent_name: str, job_id: str, step_number: int,
                    success: bool = True, error_message: str = None):
     """
     Direct een processing step loggen zonder context manager
-    
+
     Voor simpele agents die geen complexe logging nodig hebben
     """
     try:

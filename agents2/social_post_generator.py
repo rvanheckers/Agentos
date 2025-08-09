@@ -15,7 +15,7 @@ from typing import Dict, List, Any
 class SocialPostGenerator:
     """
     Atomic agent for generating social media posts.
-    
+
     Creates platform-specific posts with optimal formatting,
     hashtags, and engagement strategies.
     """
@@ -26,7 +26,7 @@ class SocialPostGenerator:
     def generate_posts(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Generate social media posts for multiple platforms.
-        
+
         Args:
             input_data: {
                 "video_path": str,           # optional, for video-based posts
@@ -40,7 +40,7 @@ class SocialPostGenerator:
                 "include_mentions": bool,    # optional, include @mentions
                 "post_type": str            # "promotion", "educational", "entertainment", "announcement"
             }
-            
+
         Returns:
             {
                 "success": bool,

@@ -22,7 +22,7 @@ except ImportError:
 class ScriptGenerator:
     """
     Atomic agent for generating video scripts.
-    
+
     Creates engaging scripts for different video formats
     and social media platforms.
     """
@@ -33,7 +33,7 @@ class ScriptGenerator:
     def generate_script(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Generate script for video content.
-        
+
         Args:
             input_data: {
                 "topic": str,                # main topic/subject
@@ -46,7 +46,7 @@ class ScriptGenerator:
                 "include_hooks": bool,       # optional, include attention-grabbing hooks
                 "include_cta": bool          # optional, include call-to-action
             }
-            
+
         Returns:
             {
                 "success": bool,

@@ -154,7 +154,7 @@ Original: "{content}"
 
 Make it:
 - Hook viewers in first 3 seconds
-- {tone} tone for {audience} audience  
+- {tone} tone for {audience} audience
 - Maximum {max_length} characters
 - Include 3-5 relevant hashtags
 - Add engaging elements (emojis, calls-to-action)
@@ -197,7 +197,7 @@ Make it:
 
 Format:
 ENHANCED: [enhanced content]
-HASHTAGS: #creative #hashtags  
+HASHTAGS: #creative #hashtags
 ENGAGEMENT_SCORE: 0.X (0-1 creativity score)
 """
         }
@@ -290,7 +290,7 @@ ENGAGEMENT_SCORE: 0.X (0-1 creativity score)
 class ExternalAIEnhancer:
     """
     Third-party AI Enhancement Agent
-    
+
     Demonstrates how external AI services can be integrated into AgentOS
     via the MCP protocol for seamless agent collaboration.
     """
@@ -310,7 +310,7 @@ class ExternalAIEnhancer:
     def enhance_content(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Enhance content using external AI service
-        
+
         Args:
             input_data: {
                 "content": str,              # Content to enhance
@@ -320,7 +320,7 @@ class ExternalAIEnhancer:
                 "max_length": int,           # Max output length
                 "include_hashtags": bool     # Include hashtags
             }
-            
+
         Returns:
             {
                 "success": bool,
@@ -426,7 +426,7 @@ class ExternalAIEnhancer:
 def main(input_data):
     """
     Main entry point for MCP-compatible execution
-    
+
     This decorator makes the agent fully compatible with AgentOS MCP protocol
     while maintaining backwards compatibility with legacy JSON I/O.
     """

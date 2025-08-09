@@ -17,7 +17,7 @@ from typing import Dict, List, Any
 class VisualEffects:
     """
     Atomic agent for applying visual effects to videos.
-    
+
     Provides transitions, filters, overlays, and cinematic effects
     for professional video production.
     """
@@ -28,7 +28,7 @@ class VisualEffects:
     def apply_effects(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Apply visual effects to video.
-        
+
         Args:
             input_data: {
                 "video_path": str,           # input video file
@@ -60,7 +60,7 @@ class VisualEffects:
                 }],
                 "quality": str               # output quality (high, medium, low)
             }
-            
+
         Returns:
             {
                 "success": bool,

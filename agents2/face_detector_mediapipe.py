@@ -45,7 +45,7 @@ class SimpleFaceDetector:
     def detect_faces(self, input_data):
         """
         Detect faces in image/video.
-        
+
         Args:
             input_data: {
                 "image_path": str,          # path to image file
@@ -53,7 +53,7 @@ class SimpleFaceDetector:
                 "draw_boxes": bool,         # draw bounding boxes (default: True)
                 "confidence": float         # detection confidence (default: 0.5)
             }
-            
+
         Returns:
             {
                 "success": bool,

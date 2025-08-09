@@ -17,7 +17,7 @@ from typing import Dict, List, Any
 class TemplateEngine:
     """
     Atomic agent for applying video templates.
-    
+
     Provides professional video templates, layouts, and presets
     for different content types and platforms.
     """
@@ -29,7 +29,7 @@ class TemplateEngine:
     def apply_template(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Apply video template to content.
-        
+
         Args:
             input_data: {
                 "video_path": str,           # input video file
@@ -71,7 +71,7 @@ class TemplateEngine:
                     "transition_duration": float # transition duration
                 }
             }
-            
+
         Returns:
             {
                 "success": bool,
