@@ -36,7 +36,6 @@ kombu==5.3.4
 
 # Database
 sqlalchemy==2.0.23
-sqlite3
 psycopg2-binary==2.9.9
 requests==2.31.0
 
