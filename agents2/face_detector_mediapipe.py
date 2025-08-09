@@ -15,7 +15,6 @@ import time
 # MediaPipe imports with fallback
 try:
     import cv2
-    import numpy as np
     import mediapipe as mp
     FACE_DETECTION_AVAILABLE = True
 except ImportError:

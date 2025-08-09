@@ -66,8 +66,8 @@ class SmartAIService:
             api_key = os.getenv('OPENAI_API_KEY')
             if not api_key:
                 return False
-            import openai
-            return True
+            import importlib.util
+            return importlib.util.find_spec("openai") is not None
         except ImportError:
             return False
     
@@ -77,8 +77,8 @@ class SmartAIService:
             api_key = os.getenv('ANTHROPIC_API_KEY')
             if not api_key:
                 return False
-            import anthropic
-            return True
+            import importlib.util
+            return importlib.util.find_spec("anthropic") is not None
         except ImportError:
             return False
     
@@ -225,7 +225,7 @@ ENGAGEMENT_SCORE: 0.X (0-1 creativity score)
                     try:
                         score_text = line.replace('ENGAGEMENT_SCORE:', '').strip()
                         engagement_score = float(score_text)
-                    except:
+                    except (ValueError, TypeError):
                         engagement_score = 0.8
             
             # If parsing failed, use the full response

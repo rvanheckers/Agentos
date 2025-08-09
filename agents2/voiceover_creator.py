@@ -498,7 +498,7 @@ class VoiceoverCreator:
             result = subprocess.run(['festival', '--version'], 
                                   capture_output=True, timeout=5)
             availability["festival"] = result.returncode == 0
-        except:
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             pass
         
         # Check eSpeak
@@ -506,7 +506,7 @@ class VoiceoverCreator:
             result = subprocess.run(['espeak', '--version'], 
                                   capture_output=True, timeout=5)
             availability["espeak"] = result.returncode == 0
-        except:
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             pass
         
         # Check system TTS (macOS)
@@ -514,13 +514,13 @@ class VoiceoverCreator:
             result = subprocess.run(['say', '--version'], 
                                   capture_output=True, timeout=5)
             availability["system_tts"] = result.returncode == 0
-        except:
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             pass
         
         # Check Python TTS
         try:
             availability["python_tts"] = True
-        except:
+        except Exception:
             pass
         
         return availability

@@ -91,7 +91,7 @@ class ThumbnailGenerator:
             contrast = input_data.get("contrast", 0)
             saturation = input_data.get("saturation", 0)
             blur_background = input_data.get("blur_background", False)
-            template = input_data.get("template", "")
+            input_data.get("template", "")
             
             # Get platform specifications
             platform_specs = self._get_platform_specs(platform)

@@ -75,7 +75,7 @@ class SocialPostGenerator:
                 return self._error("topic is required")
             
             # Get parameters
-            video_path = input_data.get("video_path", "")
+            input_data.get("video_path", "")
             topic = input_data["topic"]
             script = input_data.get("script", "")
             moments = input_data.get("moments", [])

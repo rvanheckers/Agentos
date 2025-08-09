@@ -215,7 +215,7 @@ class VideoCutter:
                 timeout=5
             )
             return result.returncode == 0
-        except:
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             return False
     
     def _error_response(self, error_message: str) -> Dict[str, Any]:

@@ -250,7 +250,7 @@ class IntelligentCropper:
                 return float(width) / float(height)
             else:
                 return float(ratio_str)
-        except:
+        except (ValueError, TypeError, ZeroDivisionError):
             return None
     
     def _calculate_crop_info(self, orig_width: int, orig_height: int,

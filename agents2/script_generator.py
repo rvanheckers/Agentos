@@ -14,8 +14,8 @@ from typing import Dict, List, Any
 
 # MCP Integration
 try:
-    from mcp.adapter import mcp_compatible
-    MCP_AVAILABLE = True
+    import importlib.util
+    MCP_AVAILABLE = importlib.util.find_spec("mcp.adapter") is not None
 except ImportError:
     MCP_AVAILABLE = False
 
