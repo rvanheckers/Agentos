@@ -33,7 +33,7 @@ Deze directory bevat alle **atomic agents** - gespecialiseerde tools die elk é�
 #### **Content Intelligence**
 - **`moment_detector.py`** - ⚡ Viral momenten detectie
 - **`script_generator.py`** - 📝 AI script generatie
-- **`social_post_generator.py`** - 📱 Social media posts
+- **`social_post_generator.py`** - 📱 Socialmediaposts
 
 ### **🌐 Download & Upload Agents**
 
@@ -136,21 +136,21 @@ def main(input_data: Dict[str, Any]) -> Dict[str, Any]:
 ## **🎯 Agent Selection Guide**
 
 ### **Voor Eenvoudige Tasks:**
-```
+```text
 Video knippen → video_cutter.py
 Gezichten detecteren → face_detector.py
 Audio transcriberen → audio_transcriber.py
 ```
 
 ### **Voor Complexe Workflows:**
-```
+```text
 Elite Pipeline → Orchestratie van 5+ agents
 Smart Clipping → face_detector + intelligent_cropper + video_cutter
 Content Analysis → audio_transcriber + moment_detector
 ```
 
 ### **Voor Externe Systemen:**
-```
+```text
 API Client → Kiest exact de agents die nodig zijn
 Geen overhead van onnodige functionaliteit
 Clean, focused interfaces
