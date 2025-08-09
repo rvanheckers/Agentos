@@ -30,7 +30,7 @@ def main():
         
         print(f"\n📊 Overall Status: {icon} {level.upper()}")
         print(f"📈 Total Python lines: {total:,}")
-        print(f"📁 Files exceeding limits: {files_count}")
+        print(f"📁 Files tracked: {files_count}")
         
         # Files by type
         files_by_type = {}
