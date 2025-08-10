@@ -47,6 +47,30 @@
   overflow-y: auto;
 }
 
+/* Hide scrollbar when not needed */
+.activity-feed::-webkit-scrollbar {
+  width: 6px;
+}
+
+.activity-feed::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.activity-feed::-webkit-scrollbar-thumb {
+  background: var(--gray-300);
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.activity-feed:hover::-webkit-scrollbar-thumb {
+  opacity: 1;
+}
+
+.activity-feed::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-400);
+}
+
 .activity-item {
   display: flex;
   gap: var(--space-2);
