@@ -22,11 +22,15 @@ def test_project_structure():
     assert (project_root / "core").exists(), "Core directory should exist"
 
 def test_script_monitoring_suite():
-    """Test that script monitoring suite is functional"""
+    """Test script monitoring - now a local development tool only"""
     script_monitoring_dir = project_root / "script-monitoring"
-    assert script_monitoring_dir.exists(), "Script monitoring directory should exist"
-    assert (script_monitoring_dir / "constraint_enforcer.py").exists(), "Constraint enforcer should exist"
-    assert (script_monitoring_dir / "run_constraint_check.py").exists(), "Run constraint check should exist"
+    if script_monitoring_dir.exists():
+        # If directory exists locally, validate structure
+        assert (script_monitoring_dir / "constraint_enforcer.py").exists(), "Constraint enforcer should exist"
+        assert (script_monitoring_dir / "run_constraint_check.py").exists(), "Run constraint check should exist"
+    else:
+        # Script monitoring is now a local development tool (not in repository)
+        pytest.skip("Script monitoring is now a local development tool (excluded from repository)")
 
 def test_core_imports():
     """Test that core modules can be imported without errors"""

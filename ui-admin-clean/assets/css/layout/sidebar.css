@@ -11,7 +11,7 @@
   width: var(--sidebar-width);
   background: var(--gray-50);
   border-right: 1px solid var(--gray-200);
-  overflow-y: auto;
+  overflow-y: hidden;
   z-index: var(--z-sticky);
   transition: transform var(--transition);
 }
