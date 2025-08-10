@@ -234,8 +234,14 @@ def warm_admin_cache(self):
         # Get admin data - use sync version
         admin_manager = AdminDataManager()
 
-        # Get dashboard data for cache warming
-        dashboard_data = admin_manager.get_dashboard_data()
+        # Get COMPLETE data for cache warming (dashboard + agents_workers + analytics etc.)
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            dashboard_data = loop.run_until_complete(admin_manager._collect_all_data_fresh())
+        finally:
+            loop.close()
 
         # Store in cache with 15 second TTL using custom encoder
         from services.admin_data_manager import AdminDataEncoder

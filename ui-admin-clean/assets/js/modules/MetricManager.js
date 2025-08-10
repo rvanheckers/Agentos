@@ -48,11 +48,11 @@ export class MetricManager {
     const jobsCard = new MetricCard(
       document.getElementById('jobs-card'),
       {
-        title: 'Today\'s Jobs',
+        title: 'Active Jobs',
         value: '0',
-        description: 'Jobs created today',
+        description: 'Currently processing',
         status: 'good',
-        icon: '✅',
+        icon: '⚡',
         helpId: 'jobs_today'
       }
     );
@@ -172,7 +172,12 @@ export class MetricManager {
     const card = this.metricCards.get('jobs');
     const completed = data.completed || 0;
     const failed = data.failed || 0;
+    const processing = data.processing || 0;
+    const pending = data.pending || 0;
     const total = data.total || 0;
+    
+    // Calculate active jobs (processing + pending/queued)
+    const activeJobs = processing + pending;
     
     // CRITICAL FIX: Use API success_rate if available, otherwise calculate
     const apiSuccessRate = data.success_rate;
@@ -180,7 +185,7 @@ export class MetricManager {
     let status = 'good';
     let description = '';
     
-    console.log('🔍 MetricManager jobs data:', { completed, failed, total, apiSuccessRate });
+    console.log('🔍 MetricManager jobs data:', { completed, failed, processing, pending, total, activeJobs, apiSuccessRate });
     
     if (total === 0) {
       status = 'good';
@@ -198,9 +203,9 @@ export class MetricManager {
     }
     
     card.update({
-      value: total.toString(),  // CRITICAL FIX: Show total jobs today, not just completed
+      value: activeJobs.toString(),  // Show active jobs (processing + pending)
       status: status,
-      description: description
+      description: `${activeJobs} active (${processing} processing, ${pending} queued)`
     });
   }
 

@@ -6,6 +6,8 @@
 export class TimeManager {
   constructor() {
     this.timeUpdateInterval = null;
+    // Simple in-memory cache for parsed timestamps (no conflict with Redis/API cache)
+    this.timestampCache = new Map();
     console.log('🌍 TimeManager (0.1% Expert Edition) - Backend UTC timestamps expected');
   }
 
@@ -39,15 +41,15 @@ export class TimeManager {
     const now = new Date();
     const diffMs = now - date;
     
-    // Development debug (only on localhost)
-    if (window.location.hostname === 'localhost') {
-      console.log('🕐 Time parsing:', {
-        input: timestamp,
-        parsed: date.toLocaleString(),
-        now: now.toLocaleString(),
-        diffMin: Math.round(diffMs / 60000)
-      });
-    }
+    // Development debug (disabled to prevent spam with many jobs)
+    // if (window.location.hostname === 'localhost') {
+    //   console.log('🕐 Time parsing:', {
+    //     input: timestamp,
+    //     parsed: date.toLocaleString(),
+    //     now: now.toLocaleString(),
+    //     diffMin: Math.round(diffMs / 60000)
+    //   });
+    // }
 
     // Handle future dates (small tolerance for clock skew)
     if (diffMs < -300000) return 'Future';

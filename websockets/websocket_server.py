@@ -558,7 +558,6 @@ async def start_websocket_server(host: str = "localhost", port: int = 8765):
         port,
         # Socket options to prevent "Address already in use" errors
         process_request=None,
-        create_protocol=None,
         # Important: Configure the underlying socket
         sock=None,
         ssl=None,
