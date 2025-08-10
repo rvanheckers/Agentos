@@ -27,8 +27,9 @@ class SmartConstraintEnforcer:
         self.BASE_LINES = 3000
         self.MAX_LINES = 4000
         self.INFRASTRUCTURE_MAX = 300
-        self._load_custom_limits()
         self.limits = {"main.py": 700, "automation/doc_generator.py": 200, "automation/visual_architecture.py": 250, "automation/validator.py": 150, "automation/dashboard.py": 220, "automation/backup.py": 120, "agents/placement_agent.py": 250, "agents/milestone_agent.py": 180, "constraint_enforcer.py": 350, "utils/vibecoder_dashboard.py": 1000, "utils/vibecoder_context_guardian.py": 200, "utils/milestone_manager.py": 200}
+        self.default_limits = {"py": 500, "js": 400, "ts": 400, "tsx": 400, "css": 200, "html": 150, "json": 100, "yaml": 50, "yml": 50}
+        self._load_custom_limits()
         # Initialize context verification (defer status update to avoid circular dependency)
         self.context_verification_enabled = CONTEXT_VERIFICATION_AVAILABLE
         if self.context_verification_enabled:
@@ -66,20 +67,15 @@ class SmartConstraintEnforcer:
         from utils.file_utils import find_code_files
         all_code_files = find_code_files(self.project_path)
 
-        # Different limits per file type
-        type_limits = {
-            '.py': 500,   # Python - business logic
-            '.js': 400,   # JavaScript - frontend logic
-            '.ts': 400,   # TypeScript - frontend logic
-            '.tsx': 300,  # React components
-            '.vue': 300,  # Vue components
-            '.css': 200,  # CSS stylesheets
-            '.scss': 200, # SCSS stylesheets
-            '.html': 150, # HTML templates
-            '.json': 100, # Config files
-            '.yaml': 50,  # YAML config
-            '.yml': 50    # YAML config
-        }
+        # Use default limits from configuration
+        type_limits = {}
+        for ext_key, limit_val in self.default_limits.items():
+            type_limits[f'.{ext_key}'] = limit_val
+        # Add any missing types
+        if '.scss' not in type_limits:
+            type_limits['.scss'] = type_limits.get('.css', 200)
+        if '.vue' not in type_limits:
+            type_limits['.vue'] = 300
 
         for file_type, files in all_code_files.items():
             limit = type_limits.get(file_type, 300)  # Default 300 lines
@@ -208,6 +204,8 @@ class SmartConstraintEnforcer:
                     self.BASE_LINES = custom_limits.get('base_lines', self.BASE_LINES)
                     self.MAX_LINES = custom_limits.get('max_lines', self.MAX_LINES)
                     self.INFRASTRUCTURE_MAX = custom_limits.get('infrastructure_max', self.INFRASTRUCTURE_MAX)
+                    if 'default_limits' in custom_limits:
+                        self.default_limits.update(custom_limits['default_limits'])
                     if 'file_limits' in custom_limits:
                         self.limits.update(custom_limits['file_limits'])
             except Exception as e:

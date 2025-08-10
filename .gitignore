@@ -263,6 +263,9 @@ endpoint-monitoring/logs/
 monitoring/grafana/data/
 monitoring/prometheus/data/
 
+# Code Health Monitor - lokale development tool (niet voor GitHub)
+code-health-monitor/
+
 ##########################
 # Misc
 ##########################
