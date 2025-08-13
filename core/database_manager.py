@@ -131,8 +131,8 @@ class PostgreSQLManager:
             self.engine = create_engine(
                 self.database_url,
                 poolclass=QueuePool,
-                pool_size=50,           # Increased for concurrency (was 20)
-                max_overflow=100,       # Higher burst capacity (was 30)
+                pool_size=5,            # Conservative for testing/development
+                max_overflow=10,        # Limited overflow to prevent crashes
                 pool_pre_ping=True,     # Validate connections
                 pool_recycle=1800,      # Faster refresh - 30min (was 1 hour)
                 pool_timeout=30,        # Connection acquisition timeout

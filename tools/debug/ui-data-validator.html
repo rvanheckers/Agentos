@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI Data Validator - Real-time Comparison</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: #2d3748;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .controls {
+            background: #f7fafc;
+            padding: 20px;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .btn {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background: #3182ce;
+            transform: translateY(-2px);
+        }
+        .btn-success { background: #48bb78; }
+        .btn-success:hover { background: #38a169; }
+        .btn-danger { background: #f56565; }
+        .btn-danger:hover { background: #e53e3e; }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .data-section {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .data-section.match {
+            border-color: #48bb78;
+            background: #f0fff4;
+        }
+        
+        .data-section.mismatch {
+            border-color: #f56565;
+            background: #fff5f5;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        
+        .section-header {
+            background: #2d3748;
+            color: white;
+            padding: 15px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .section-content {
+            padding: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .metric-item {
+            background: white;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #4299e1;
+        }
+        
+        .metric-item.error {
+            border-left-color: #f56565;
+            background: #fff5f5;
+        }
+        
+        .metric-item.success {
+            border-left-color: #48bb78;
+            background: #f0fff4;
+        }
+        
+        .metric-label {
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+        
+        .metric-value {
+            font-size: 18px;
+            color: #4a5568;
+        }
+        
+        .status-badge {
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status-badge.match {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .status-badge.mismatch {
+            background: #f56565;
+            color: white;
+        }
+        
+        .json-display {
+            background: #1a202c;
+            color: #68d391;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: pre;
+        }
+        
+        .timestamp {
+            color: #718096;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #718096;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4299e1;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .summary {
+            background: #edf2f7;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 10px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .summary-item {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .summary-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        
+        .summary-label {
+            color: #718096;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 UI Data Validator - Real-time Comparison</h1>
+            <p>Compare what the UI shows vs what the API sends vs what the backend calculates</p>
+        </div>
+        
+        <div class="controls">
+            <button class="btn" onclick="runFullValidation()">🔄 Run Full Validation</button>
+            <button class="btn btn-success" onclick="captureUIState()">📸 Capture UI State</button>
+            <button class="btn btn-danger" onclick="clearCache()">🗑️ Clear All Cache</button>
+            <select id="viewSelector" onchange="switchView(this.value)">
+                <option value="dashboard">Dashboard View</option>
+                <option value="queue">Queue & Jobs View</option>
+            </select>
+            <span id="status" style="margin-left: auto; font-weight: bold;"></span>
+        </div>
+        
+        <div class="summary" id="summary" style="display: none;">
+            <h3>Validation Summary</h3>
+            <div class="summary-grid" id="summaryGrid"></div>
+        </div>
+        
+        <div class="comparison-grid">
+            <div class="data-section" id="ui-section">
+                <div class="section-header">
+                    <span>🖥️ UI Display (What User Sees)</span>
+                    <span class="status-badge" id="ui-status"></span>
+                </div>
+                <div class="section-content">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Waiting for capture...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="data-section" id="api-section">
+                <div class="section-header">
+                    <span>🔌 API Response</span>
+                    <span class="status-badge" id="api-status"></span>
+                </div>
+                <div class="section-content">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Fetching API data...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="data-section" id="backend-section">
+                <div class="section-header">
+                    <span>⚙️ Backend Calculation</span>
+                    <span class="status-badge" id="backend-status"></span>
+                </div>
+                <div class="section-content">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Calculating backend values...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="padding: 20px;">
+            <h3>Discrepancy Report</h3>
+            <div id="discrepancy-report" style="margin-top: 10px;"></div>
+        </div>
+    </div>
+
+    <script>
+        let validationData = {
+            ui: null,
+            api: null,
+            backend: null
+        };
+
+        async function runFullValidation() {
+            setStatus('Running validation...', 'info');
+            
+            // Step 1: Capture UI State
+            await captureUIState();
+            
+            // Step 2: Get API Response
+            await fetchAPIData();
+            
+            // Step 3: Get Backend Calculation
+            await fetchBackendData();
+            
+            // Step 4: Compare and Report
+            compareData();
+            
+            setStatus('Validation complete', 'success');
+        }
+
+        async function captureUIState() {
+            const view = document.getElementById('viewSelector').value;
+            const uiData = {};
+            
+            if (view === 'dashboard') {
+                // Capture Dashboard metrics
+                const jobsCard = window.parent.document.querySelector('.metric-card__description');
+                if (jobsCard) {
+                    const match = jobsCard.textContent.match(/(\d+)% success \((\d+)\/(\d+) completed today\)/);
+                    if (match) {
+                        uiData.successRate = parseInt(match[1]);
+                        uiData.completedToday = parseInt(match[2]);
+                        uiData.totalToday = parseInt(match[3]);
+                    }
+                }
+                
+                // Capture all metric cards
+                const cards = window.parent.document.querySelectorAll('.metric-card');
+                uiData.metrics = Array.from(cards).map(card => ({
+                    title: card.querySelector('.metric-card__title')?.textContent?.trim(),
+                    value: card.querySelector('.metric-card__value')?.textContent?.trim(),
+                    description: card.querySelector('.metric-card__description')?.textContent?.trim()
+                }));
+            } else {
+                // Capture Queue & Jobs metrics
+                const metrics = window.parent.document.querySelectorAll('.metric-card');
+                uiData.metrics = Array.from(metrics).map(card => ({
+                    title: card.querySelector('.metric-title')?.textContent?.trim(),
+                    value: card.querySelector('.metric-value')?.textContent?.trim(),
+                    subtitle: card.querySelector('.metric-subtitle')?.textContent?.trim()
+                }));
+            }
+            
+            uiData.timestamp = new Date().toISOString();
+            uiData.view = view;
+            
+            validationData.ui = uiData;
+            displayUIData(uiData);
+        }
+
+        async function fetchAPIData() {
+            try {
+                const response = await fetch('http://localhost:8001/api/admin/ssot');
+                const data = await response.json();
+                
+                validationData.api = {
+                    dashboard: data.dashboard,
+                    queue: data.queue,
+                    jobs: data.jobs,
+                    timestamp: new Date().toISOString()
+                };
+                
+                displayAPIData(validationData.api);
+            } catch (error) {
+                console.error('API fetch failed:', error);
+                setStatus('API fetch failed', 'error');
+            }
+        }
+
+        async function fetchBackendData() {
+            // This would call a special debug endpoint that shows raw backend calculations
+            // For now, we'll simulate it
+            validationData.backend = {
+                queueService: {
+                    completed_today: 'Calculated from DB',
+                    failed_today: 'Calculated from DB'
+                },
+                jobsService: {
+                    total_jobs: 30,
+                    completed_jobs: 5,
+                    failed_jobs: 5
+                },
+                calculated: {
+                    success_rate: '50% (5/(5+5))',
+                    completion_text: '1/5 completed today'
+                },
+                timestamp: new Date().toISOString()
+            };
+            
+            displayBackendData(validationData.backend);
+        }
+
+        function displayUIData(data) {
+            const section = document.querySelector('#ui-section .section-content');
+            section.innerHTML = `
+                <div class="metric-item">
+                    <div class="metric-label">View</div>
+                    <div class="metric-value">${data.view}</div>
+                </div>
+                ${data.completedToday !== undefined ? `
+                    <div class="metric-item">
+                        <div class="metric-label">Completed Today (from UI)</div>
+                        <div class="metric-value">${data.completedToday}</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Total Today (from UI)</div>
+                        <div class="metric-value">${data.totalToday}</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Success Rate (from UI)</div>
+                        <div class="metric-value">${data.successRate}%</div>
+                    </div>
+                ` : ''}
+                <div class="metric-item">
+                    <div class="metric-label">All Captured Metrics</div>
+                    <div class="json-display">${JSON.stringify(data.metrics, null, 2)}</div>
+                </div>
+                <div class="timestamp">Captured: ${data.timestamp}</div>
+            `;
+        }
+
+        function displayAPIData(data) {
+            const section = document.querySelector('#api-section .section-content');
+            const queue = data.dashboard?.queue || {};
+            const jobs = data.dashboard?.jobs || {};
+            
+            section.innerHTML = `
+                <div class="metric-item">
+                    <div class="metric-label">queue.completed_today</div>
+                    <div class="metric-value">${queue.completed_today ?? 'MISSING'}</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">queue.failed_today</div>
+                    <div class="metric-value">${queue.failed_today ?? 'MISSING'}</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">jobs.total_today</div>
+                    <div class="metric-value">${jobs.total_today ?? 'MISSING'}</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">jobs.success_rate</div>
+                    <div class="metric-value">${jobs.success_rate ?? 'MISSING'}%</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Raw Queue Data</div>
+                    <div class="json-display">${JSON.stringify(queue, null, 2)}</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Raw Jobs Data</div>
+                    <div class="json-display">${JSON.stringify(jobs, null, 2)}</div>
+                </div>
+                <div class="timestamp">Fetched: ${data.timestamp}</div>
+            `;
+        }
+
+        function displayBackendData(data) {
+            const section = document.querySelector('#backend-section .section-content');
+            section.innerHTML = `
+                <div class="metric-item">
+                    <div class="metric-label">Backend Calculation</div>
+                    <div class="metric-value">${data.calculated.completion_text}</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Success Rate Formula</div>
+                    <div class="metric-value">${data.calculated.success_rate}</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Raw Service Data</div>
+                    <div class="json-display">${JSON.stringify(data, null, 2)}</div>
+                </div>
+                <div class="timestamp">Calculated: ${data.timestamp}</div>
+            `;
+        }
+
+        function compareData() {
+            const discrepancies = [];
+            
+            if (validationData.ui && validationData.api) {
+                const apiQueue = validationData.api.dashboard?.queue || {};
+                const uiCompleted = validationData.ui.completedToday;
+                const apiCompleted = apiQueue.completed_today;
+                
+                if (uiCompleted !== undefined && apiCompleted !== undefined && uiCompleted !== apiCompleted) {
+                    discrepancies.push({
+                        field: 'completed_today',
+                        ui: uiCompleted,
+                        api: apiCompleted,
+                        match: false
+                    });
+                    document.getElementById('ui-section').classList.add('mismatch');
+                    document.getElementById('api-section').classList.add('mismatch');
+                } else if (uiCompleted === apiCompleted) {
+                    document.getElementById('ui-section').classList.add('match');
+                    document.getElementById('api-section').classList.add('match');
+                }
+            }
+            
+            // Display discrepancy report
+            const report = document.getElementById('discrepancy-report');
+            if (discrepancies.length > 0) {
+                report.innerHTML = `
+                    <div style="background: #fff5f5; border: 2px solid #f56565; padding: 15px; border-radius: 5px;">
+                        <h4 style="color: #c53030; margin-bottom: 10px;">❌ Found ${discrepancies.length} Discrepancies:</h4>
+                        ${discrepancies.map(d => `
+                            <div style="margin: 10px 0; padding: 10px; background: white; border-radius: 3px;">
+                                <strong>${d.field}:</strong><br>
+                                UI shows: <span style="color: #e53e3e;">${d.ui}</span><br>
+                                API sends: <span style="color: #38a169;">${d.api}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                report.innerHTML = `
+                    <div style="background: #f0fff4; border: 2px solid #48bb78; padding: 15px; border-radius: 5px;">
+                        <h4 style="color: #22543d;">✅ All data matches!</h4>
+                    </div>
+                `;
+            }
+            
+            // Update summary
+            updateSummary();
+        }
+
+        function updateSummary() {
+            const summary = document.getElementById('summary');
+            const grid = document.getElementById('summaryGrid');
+            
+            summary.style.display = 'block';
+            
+            const apiQueue = validationData.api?.dashboard?.queue || {};
+            const apiJobs = validationData.api?.dashboard?.jobs || {};
+            
+            grid.innerHTML = `
+                <div class="summary-item">
+                    <div class="summary-value">${apiQueue.completed_today ?? '?'}</div>
+                    <div class="summary-label">API: Completed Today</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${validationData.ui?.completedToday ?? '?'}</div>
+                    <div class="summary-label">UI: Shows Completed</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${apiJobs.total_today ?? '?'}</div>
+                    <div class="summary-label">Total Jobs Today</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${apiJobs.success_rate ?? '?'}%</div>
+                    <div class="summary-label">Success Rate</div>
+                </div>
+            `;
+        }
+
+        async function clearCache() {
+            setStatus('Clearing cache...', 'warning');
+            // This would call an endpoint to clear Redis cache
+            localStorage.clear();
+            sessionStorage.clear();
+            setStatus('Cache cleared', 'success');
+        }
+
+        function setStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.style.color = type === 'error' ? '#e53e3e' : 
+                                type === 'success' ? '#38a169' : 
+                                type === 'warning' ? '#d69e2e' : '#4a5568';
+        }
+
+        function switchView(view) {
+            console.log('Switching to view:', view);
+        }
+
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            setTimeout(runFullValidation, 1000);
+        });
+    </script>
+</body>
+</html>

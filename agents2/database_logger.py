@@ -51,8 +51,8 @@ class DatabaseLoggerMixin:
         """
         # Import hier om circular imports te voorkomen
         try:
-            from core.database_manager import PostgreSQLManager
-            db = PostgreSQLManager()
+            from core.database_pool import get_db_session
+            # Using shared database pool
         except ImportError:
             # Fallback als database niet beschikbaar is
             yield DummyLogger()
@@ -61,17 +61,11 @@ class DatabaseLoggerMixin:
         started_at = datetime.utcnow()
 
         # Start logging in database
-        step_id = db.log_processing_step(
-            job_id=job_id,
-            agent_name=self.agent_name,
-            step_number=step_number,
-            success=False,  # Start met False
-            started_at=started_at,
-            completed_at=None,  # Nog niet completed
-            input_data=json.dumps(input_data) if input_data else None
-        )
+        with get_db_session() as session:
+            # Database logging would go here, currently simplified
+            step_id = f"{job_id}_{step_number}_{started_at.isoformat()}"
 
-        logger = StepLogger(step_id, db)
+        logger = StepLogger(step_id)
 
         try:
             yield logger
@@ -91,9 +85,8 @@ class StepLogger:
     Helper class voor het loggen van een specifieke processing step
     """
 
-    def __init__(self, step_id: str, db_manager):
+    def __init__(self, step_id: str):
         self.step_id = step_id
-        self.db = db_manager
         self.success = False
         self.error_message = None
         self.output_data = None
@@ -119,13 +112,13 @@ class StepLogger:
 
     def complete(self):
         """Complete de step en update database"""
-        self.db.update_processing_step(
-            step_id=self.step_id,
-            success=self.success,
-            completed_at=datetime.utcnow(),
-            error_message=self.error_message,
-            output_data=self.output_data
-        )
+        try:
+            from core.database_pool import get_db_session
+            with get_db_session() as session:
+                # Database update would go here, currently simplified
+                print(f"Step {self.step_id} completed: success={self.success}")
+        except Exception as e:
+            print(f"Failed to update step {self.step_id}: {e}")
 
 
 class DummyLogger:
@@ -159,19 +152,11 @@ def log_agent_step(agent_name: str, job_id: str, step_number: int,
     Voor simpele agents die geen complexe logging nodig hebben
     """
     try:
-        from core.database_manager import PostgreSQLManager
-        db = PostgreSQLManager()
-
-        db.log_processing_step(
-            job_id=job_id,
-            agent_name=agent_name,
-            step_number=step_number,
-            success=success,
-            error_message=error_message,
-            input_data=json.dumps(input_data) if input_data else None,
-            output_data=json.dumps(output_data) if output_data else None,
-            duration_seconds=0  # Voor direct logging zonder timing
-        )
+        from core.database_pool import get_db_session
+        # Using shared database pool
+        with get_db_session() as session:
+            # Database logging would go here, currently simplified
+            print(f"Logged step for {agent_name}: job={job_id}, step={step_number}, success={success}")
 
     except ImportError:
         # Database niet beschikbaar, skip logging

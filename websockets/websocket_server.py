@@ -33,7 +33,7 @@ from pathlib import Path
 # Add project root to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
 
-from core.database_manager import PostgreSQLManager
+from core.database_pool import get_db_session
 from core.logging_config import get_logger
 
 # V4 Event System Integration
@@ -52,7 +52,7 @@ class AdminWebSocketServer:
     def __init__(self, redis_host: str = "localhost", redis_port: int = 6379):
         self.redis_client = redis.Redis(host=redis_host, port=redis_port, decode_responses=True)
         self.pubsub = self.redis_client.pubsub()
-        self.db = PostgreSQLManager()
+        # Using shared database pool
 
         # V4 ROOM-BASED CONNECTION MANAGEMENT
         self.rooms: Dict[str, Set[WebSocketServerProtocol]] = {  # room_name -> websockets

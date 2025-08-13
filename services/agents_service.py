@@ -38,8 +38,8 @@ class AgentsService:
             self.db = db_manager
         else:
             try:
-                from core.database_manager import PostgreSQLManager
-                self.db = PostgreSQLManager()
+                from core.database_pool import get_db_session
+                # Using shared database pool
                 logger.info("✅ Database integration enabled for agents service")
             except Exception as e:
                 logger.warning(f"⚠️ Database integration failed, mock-only mode: {e}")

@@ -32,7 +32,7 @@ from datetime import datetime, timezone
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.celery_app import celery_app
-from core.database_manager import PostgreSQLManager
+from core.database_pool import get_db_session
 from celery import chain
 
 # V4 Event Integration - Now using centralized orchestrator
@@ -158,11 +158,11 @@ def finalize_workflow(self, cut_videos_data: Dict[str, Any]):
         logger.info(f"🎬 V4: Finalizing workflow for job {job_id}")
 
         # Update job status to completed in database
-        db = PostgreSQLManager()
+        # Using shared database pool
 
         try:
             # Update job to completed status
-            with db.get_session() as session:
+            with get_db_session() as session:
                 from core.database_manager import Job
                 job = session.query(Job).filter(Job.id == job_id).first()
                 if job:
@@ -184,7 +184,7 @@ def finalize_workflow(self, cut_videos_data: Dict[str, Any]):
             os.makedirs("./io/output", exist_ok=True)
 
             clips_created = 0
-            with db.get_session() as session:
+            with get_db_session() as session:
                 from core.database_manager import Clip
 
                 # Check if we should use mock data or real AI
@@ -376,8 +376,8 @@ def download_video(self, job_id: str, job_data: Dict[str, Any]):
 
             # Update job progress in database
             try:
-                db = PostgreSQLManager()
-                with db.get_session() as session:
+                # Using shared database pool
+                with get_db_session() as session:
                     from core.database_manager import Job
                     job = session.query(Job).filter(Job.id == job_id).first()
                     if job:
@@ -407,8 +407,8 @@ def transcribe_audio(self, download_data: Dict[str, Any], job_id: str):
 
         # Update job progress in database
         try:
-            db = PostgreSQLManager()
-            with db.get_session() as session:
+            # Using shared database pool
+            with get_db_session() as session:
                 from core.database_manager import Job
                 job = session.query(Job).filter(Job.id == job_id).first()
                 if job:

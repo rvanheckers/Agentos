@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Console Error Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .console { background: #000; color: #0f0; font-family: monospace; padding: 15px; height: 400px; overflow-y: auto; }
+        .error { color: #f00; }
+        .warn { color: #fa0; }
+        .info { color: #0af; }
+        .log { color: #0f0; }
+        button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+        .status { padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .success { background-color: #d4edda; color: #155724; }
+        .fail { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>Analytics Console Error Test</h1>
+    
+    <button onclick="loadAnalyticsAndWait()">Load Analytics & Wait for Errors</button>
+    <button onclick="clearConsole()">Clear Console</button>
+    
+    <div id="status"></div>
+    <div id="console" class="console"></div>
+    
+    <iframe id="testFrame" style="width: 100%; height: 400px; display: none; border: 1px solid #ccc;"></iframe>
+    
+    <script>
+        const consoleDiv = document.getElementById('console');
+        const statusDiv = document.getElementById('status');
+        let consoleMessages = [];
+        
+        // Capture all console output
+        const originalConsole = {
+            log: console.log,
+            error: console.error,
+            warn: console.warn,
+            info: console.info
+        };
+        
+        function logToDiv(type, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            consoleMessages.push({type, message, timestamp});
+            
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = `[${timestamp}] [${type.toUpperCase()}] ${message}`;
+            consoleDiv.appendChild(div);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            logToDiv('log', args.join(' '));
+            originalConsole.log.apply(console, args);
+        };
+        
+        console.error = function(...args) {
+            logToDiv('error', args.join(' '));
+            originalConsole.error.apply(console, args);
+        };
+        
+        console.warn = function(...args) {
+            logToDiv('warn', args.join(' '));
+            originalConsole.warn.apply(console, args);
+        };
+        
+        console.info = function(...args) {
+            logToDiv('info', args.join(' '));
+            originalConsole.info.apply(console, args);
+        };
+        
+        function clearConsole() {
+            consoleDiv.innerHTML = '';
+            consoleMessages = [];
+            statusDiv.innerHTML = '';
+        }
+        
+        function updateStatus(message, type = 'info') {
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        async function loadAnalyticsAndWait() {
+            updateStatus('Loading Analytics view and monitoring console...', 'info');
+            clearConsole();
+            
+            const iframe = document.getElementById('testFrame');
+            iframe.style.display = 'block';
+            
+            let loadTimeout;
+            const errorCount = {errors: 0, warnings: 0};
+            
+            // Start counting errors
+            const startTime = Date.now();
+            
+            iframe.onload = function() {
+                logToDiv('log', '✅ Analytics page loaded in iframe');
+                
+                // Wait for JavaScript to execute and catch any delayed errors
+                loadTimeout = setTimeout(() => {
+                    const errors = consoleMessages.filter(m => m.type === 'error');
+                    const warnings = consoleMessages.filter(m => m.type === 'warn');
+                    const logs = consoleMessages.filter(m => m.type === 'log');
+                    
+                    logToDiv('log', `🔍 Analysis complete after ${Math.round((Date.now() - startTime)/1000)}s:`);
+                    logToDiv('info', `📊 ${logs.length} log messages`);
+                    logToDiv('warn', `⚠️ ${warnings.length} warning messages`);
+                    logToDiv('error', `❌ ${errors.length} error messages`);
+                    
+                    if (errors.length === 0) {
+                        updateStatus('✅ SUCCESS: No console errors detected!', 'success');
+                        logToDiv('log', '🎉 Analytics view loads cleanly without errors');
+                    } else {
+                        updateStatus(`❌ FAIL: ${errors.length} console errors found`, 'fail');
+                        logToDiv('error', `🚨 Issues detected that need fixing:`);
+                        errors.forEach(error => {
+                            logToDiv('error', `   → ${error.message}`);
+                        });
+                    }
+                    
+                    if (warnings.length > 0) {
+                        logToDiv('warn', '⚠️ Warnings found (may need attention):');
+                        warnings.slice(0, 3).forEach(warn => {
+                            logToDiv('warn', `   → ${warn.message}`);
+                        });
+                    }
+                    
+                }, 5000); // Wait 5 seconds for all JavaScript to execute
+            };
+            
+            iframe.onerror = function(error) {
+                logToDiv('error', `❌ Iframe load error: ${error}`);
+                updateStatus('❌ Failed to load Analytics view', 'fail');
+                clearTimeout(loadTimeout);
+            };
+            
+            // Catch any iframe console errors
+            iframe.onload = function() {
+                logToDiv('log', '✅ Analytics iframe loaded, monitoring for errors...');
+                
+                try {
+                    const iframeWindow = iframe.contentWindow;
+                    
+                    // Override iframe console
+                    const iframeConsole = iframeWindow.console;
+                    
+                    iframeWindow.console.error = function(...args) {
+                        logToDiv('error', `[IFRAME] ${args.join(' ')}`);
+                        errorCount.errors++;
+                        iframeConsole.error.apply(iframeConsole, args);
+                    };
+                    
+                    iframeWindow.console.warn = function(...args) {
+                        logToDiv('warn', `[IFRAME] ${args.join(' ')}`);
+                        errorCount.warnings++;
+                        iframeConsole.warn.apply(iframeConsole, args);
+                    };
+                    
+                    iframeWindow.console.log = function(...args) {
+                        logToDiv('log', `[IFRAME] ${args.join(' ')}`);
+                        iframeConsole.log.apply(iframeConsole, args);
+                    };
+                    
+                } catch (e) {
+                    logToDiv('warn', `Could not hook iframe console: ${e.message}`);
+                }
+                
+                // Set completion timeout
+                loadTimeout = setTimeout(() => {
+                    const totalErrors = consoleMessages.filter(m => m.type === 'error').length;
+                    const totalWarnings = consoleMessages.filter(m => m.type === 'warn').length;
+                    
+                    if (totalErrors === 0) {
+                        updateStatus('✅ SUCCESS: Analytics loads without errors!', 'success');
+                    } else {
+                        updateStatus(`❌ ${totalErrors} errors found`, 'fail');
+                    }
+                    
+                    logToDiv('log', `📋 Final Results: ${totalErrors} errors, ${totalWarnings} warnings`);
+                }, 5000);
+            };
+            
+            // Load the analytics page
+            iframe.src = 'index.html#analytics';
+        }
+        
+        logToDiv('log', '🔍 Console monitor ready. Click "Load Analytics" to test.');
+    </script>
+</body>
+</html>

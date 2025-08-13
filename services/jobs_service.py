@@ -4,9 +4,9 @@ Handles all job-related business logic for both admin and user endpoints
 Eliminates 12 duplicate method implementations
 """
 from typing import List, Dict, Optional, Any
-from datetime import datetime, date
+from datetime import datetime, date, timedelta, timezone
 from core.database_manager import Job, Clip
-from core.database_manager import PostgreSQLManager
+from core.database_pool import get_db_session
 from sqlalchemy import desc, func
 import logging
 
@@ -20,12 +20,13 @@ class JobsService:
     """Central service for all job-related operations"""
 
     def __init__(self, db_manager = None):
-        self.db = db_manager or PostgreSQLManager()
+        # ✅ Using shared database pool - no individual connections needed
+        pass
 
     def get_todays_jobs(self, user_id: Optional[str] = None, is_admin: bool = False) -> List[Dict[str, Any]]:
         """Get all jobs created today
         Admin sees all jobs, users see only their own"""
-        with self.db.get_session() as session:
+        with get_db_session() as session:
             query = session.query(Job)
 
             # Filter by date
@@ -43,7 +44,7 @@ class JobsService:
                        limit: int = 100, offset: int = 0) -> Dict[str, Any]:
         """Get job history with pagination
         Admin sees all jobs, users see only their own"""
-        with self.db.get_session() as session:
+        with get_db_session() as session:
             query = session.query(Job)
 
             # Apply user filter for non-admin
@@ -69,7 +70,7 @@ class JobsService:
     def get_job_by_id(self, job_id: str, user_id: Optional[str] = None, is_admin: bool = False) -> Optional[Dict[str, Any]]:
         """Get single job by ID
         Admin can see any job, users can only see their own"""
-        with self.db.get_session() as session:
+        with get_db_session() as session:
             query = session.query(Job).filter(Job.id == job_id)
 
             # Apply user filter for non-admin
@@ -96,7 +97,7 @@ class JobsService:
                          user_id: Optional[str] = None, is_admin: bool = False) -> bool:
         """Update job status
         Only admin or job owner can update"""
-        with self.db.get_session() as session:
+        with get_db_session() as session:
             query = session.query(Job).filter(Job.id == job_id)
 
             # Apply user filter for non-admin
@@ -116,7 +117,7 @@ class JobsService:
     def delete_job(self, job_id: str, user_id: Optional[str] = None, is_admin: bool = False, **kwargs) -> Dict[str, Any]:
         """Delete a job
         Only admin or job owner can delete"""
-        with self.db.get_session() as session:
+        with get_db_session() as session:
             query = session.query(Job).filter(Job.id == job_id)
 
             # Apply user filter for non-admin
@@ -143,7 +144,7 @@ class JobsService:
     def get_jobs_by_status(self, status: str, user_id: Optional[str] = None, is_admin: bool = False) -> List[Dict[str, Any]]:
         """Get all jobs with specific status
         Admin sees all, users see only their own"""
-        with self.db.get_session() as session:
+        with get_db_session() as session:
             query = session.query(Job).filter(Job.status == status)
 
             # Apply user filter for non-admin
@@ -161,7 +162,7 @@ class JobsService:
         if not job:
             return []
 
-        with self.db.get_session() as session:
+        with get_db_session() as session:
             clips = session.query(Clip)\
                           .filter(Clip.job_id == job_id)\
                           .order_by(Clip.clip_number)\
@@ -171,7 +172,7 @@ class JobsService:
     def get_jobs_summary(self, user_id: Optional[str] = None, is_admin: bool = False) -> Dict[str, Any]:
         """Get summary statistics for jobs
         Admin sees all stats, users see only their own"""
-        with self.db.get_session() as session:
+        with get_db_session() as session:
             query = session.query(Job)
 
             # Apply user filter for non-admin
@@ -259,7 +260,7 @@ class JobsService:
     def get_recent_jobs(self, limit: int = 10, user_id: Optional[str] = None, is_admin: bool = False) -> List[Dict[str, Any]]:
         """Get most recent jobs
         Admin sees all, users see only their own"""
-        with self.db.get_session() as session:
+        with get_db_session() as session:
             query = session.query(Job)
 
             # Apply user filter for non-admin
@@ -273,7 +274,7 @@ class JobsService:
         """Get job statistics for dashboard and analytics
         Admin sees all jobs, users see only their own"""
         try:
-            with self.db.get_session() as session:
+            with get_db_session() as session:
                 query = session.query(Job)
 
                 # Apply user filter for non-admin
@@ -343,7 +344,7 @@ class JobsService:
         Returns created job data"""
         import uuid
 
-        with self.db.get_session() as session:
+        with get_db_session() as session:
             # Create new job instance
             job = Job(
                 id=str(uuid.uuid4()),
@@ -400,8 +401,7 @@ class JobsService:
                         # Update job status to failed in database
                         try:
                             from core.database_manager import Job
-                            db = PostgreSQLManager()
-                            with db.get_session() as error_session:
+                            with get_db_session() as error_session:
                                 error_job = error_session.query(Job).filter(Job.id == job_id_str).first()
                                 if error_job:
                                     error_job.status = "failed"
@@ -441,7 +441,7 @@ class JobsService:
             return None
 
         return {
-            "id": job.id,
+            "id": str(job.id),
             "user_id": job.user_id,
             "status": job.status,
             "progress": job.progress,
@@ -475,3 +475,100 @@ class JobsService:
             "file_size": clip.file_size,
             "created_at": clip.created_at.isoformat() if clip.created_at else None
         }
+    
+    # ==========================================
+    # NEW JOB BREAKDOWN METRICS FOR REDESIGN
+    # ==========================================
+    
+    def get_jobs_breakdown(self) -> Dict[str, int]:
+        """
+        Get complete job counts breakdown by status
+        Returns counts for total, completed, failed, processing, pending
+        """
+        try:
+            with get_db_session() as session:
+                # Get total job count
+                total = session.query(func.count(Job.id)).scalar() or 0
+                
+                # Get counts by status
+                completed = session.query(func.count(Job.id)).filter(Job.status == "completed").scalar() or 0
+                failed = session.query(func.count(Job.id)).filter(Job.status == "failed").scalar() or 0
+                processing = session.query(func.count(Job.id)).filter(Job.status == "processing").scalar() or 0
+                pending = session.query(func.count(Job.id)).filter(Job.status.in_(["pending", "queued"])).scalar() or 0
+                
+                breakdown = {
+                    "total": total,
+                    "completed": completed,
+                    "failed": failed,
+                    "processing": processing,
+                    "pending": pending
+                }
+                
+                logger.debug(f"Jobs breakdown: {breakdown}")
+                return breakdown
+                
+        except Exception as e:
+            logger.error(f"Failed to get jobs breakdown: {e}")
+            return {
+                "total": 0,
+                "completed": 0,
+                "failed": 0,
+                "processing": 0,
+                "pending": 0
+            }
+    
+    def get_today_jobs_breakdown(self) -> Dict[str, int]:
+        """
+        Get today's job counts breakdown by status
+        Returns counts for jobs created today only
+        """
+        try:
+            with get_db_session() as session:
+                today = date.today()
+                
+                # Get total jobs created today
+                total_today = session.query(func.count(Job.id)).filter(
+                    func.date(Job.created_at) == today
+                ).scalar() or 0
+                
+                # Get today's counts by status
+                completed_today = session.query(func.count(Job.id)).filter(
+                    func.date(Job.created_at) == today,
+                    Job.status == "completed"
+                ).scalar() or 0
+                
+                failed_today = session.query(func.count(Job.id)).filter(
+                    func.date(Job.created_at) == today,
+                    Job.status == "failed"
+                ).scalar() or 0
+                
+                processing_today = session.query(func.count(Job.id)).filter(
+                    func.date(Job.created_at) == today,
+                    Job.status == "processing"
+                ).scalar() or 0
+                
+                pending_today = session.query(func.count(Job.id)).filter(
+                    func.date(Job.created_at) == today,
+                    Job.status.in_(["pending", "queued"])
+                ).scalar() or 0
+                
+                breakdown = {
+                    "total": total_today,
+                    "completed": completed_today,
+                    "failed": failed_today,
+                    "processing": processing_today,
+                    "pending": pending_today
+                }
+                
+                logger.debug(f"Today's jobs breakdown: {breakdown}")
+                return breakdown
+                
+        except Exception as e:
+            logger.error(f"Failed to get today's jobs breakdown: {e}")
+            return {
+                "total": 0,
+                "completed": 0,
+                "failed": 0,
+                "processing": 0,
+                "pending": 0
+            }

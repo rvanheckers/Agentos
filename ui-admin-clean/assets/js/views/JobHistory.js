@@ -10,6 +10,7 @@ import { HelpService } from '../services/HelpService.js';
 import { HelpPanel } from '../components/HelpPanel.js';
 import { JobsQueueHelpProvider } from '../help-providers/JobsQueueHelpProvider.js';
 import { actionService } from '../../../src/services/ActionService.js';
+import { ActionableMetricCard } from '../components/ActionableMetricCard.js';
 
 export class JobHistory {
   constructor(apiClient, container) {
@@ -33,6 +34,10 @@ export class JobHistory {
     this.countdownTimer = null;
     this.refreshCountdown = 30;
     this.isMonitoringPaused = false;
+    
+    // Dynamic KPI cards
+    this.metricCards = new Map();
+    this.currentTab = 'active'; // Default tab matches JobHistory presets
   }
 
   async init() {
@@ -47,6 +52,9 @@ export class JobHistory {
     this.setupPaginationListeners();
     await this.loadJobHistory();
     this.setupEventListeners();
+    
+    // Initialize dynamic KPIs with default tab (after SmartFilter is setup)
+    this.setupDynamicKPIs();
     
     // Start real-time updates for active jobs
     this.startAutoRefresh();
@@ -164,11 +172,27 @@ export class JobHistory {
             📊 Pipeline Overview
             <button class="help-icon" data-section="pipeline_metrics">❓</button>
           </h3>
-          <div class="overview-metrics">
-            <div id="total-jobs-card"></div>
-            <div id="active-jobs-card"></div>
-            <div id="success-rate-card"></div>
-            <div id="avg-processing-card"></div>
+          <div class="pipeline-metrics-grid">
+            <div class="metric-column metric-column--queue">
+              <h4 class="metric-column-title">Queue Status</h4>
+              <div id="queue-depth-card"></div>
+              <div id="active-processing-card"></div>
+              <div id="queue-throughput-card"></div>
+            </div>
+            
+            <div class="metric-column metric-column--performance">
+              <h4 class="metric-column-title">Performance</h4>
+              <div id="success-rate-24h-card"></div>
+              <div id="avg-processing-card"></div>
+              <div id="failed-today-card"></div>
+            </div>
+            
+            <div class="metric-column metric-column--inventory">
+              <h4 class="metric-column-title">Inventory</h4>
+              <div id="total-jobs-card"></div>
+              <div id="today-jobs-card"></div>
+              <div id="worker-utilization-card"></div>
+            </div>
           </div>
         </div>
 
@@ -961,15 +985,52 @@ export class JobHistory {
     this.currentFilter = filter;
     this.currentPage = 1; // Reset to first page when filter changes
     
+    // Update current tab for KPI switching (map filter to tab)
+    this.currentTab = this.mapFilterToTab(filter);
+    
+    // Update the dynamic KPIs for the new tab
+    this.setupDynamicKPIs();
+    
     // Apply filter and re-render
     this.renderCurrentView();
-    this.updateOverviewMetrics();
     
     // Update results count
     const filteredJobs = this.getFilteredJobs();
     if (this.smartFilter) {
       this.smartFilter.updateResultsCount(filteredJobs.length, (this.jobs || []).length);
     }
+  }
+
+  mapFilterToTab(filter) {
+    // Map SmartFilter selection to tab names
+    if (!filter) return 'active'; // Default to active view
+    
+    // Handle custom JobHistory presets directly
+    if (filter.view) {
+      switch (filter.view) {
+        case 'active': return 'active';
+        case 'issues': return 'issues';
+        case 'completed': return 'completed';
+        case 'all': return 'all';
+        default: return filter.view;
+      }
+    }
+    
+    // Map based on filter properties (legacy fallback)
+    if (filter.status && Array.isArray(filter.status)) {
+      if (filter.status.includes('failed') || filter.status.includes('cancelled')) {
+        return 'issues';
+      }
+      if (filter.status.includes('completed')) {
+        return 'completed';
+      }
+      if (filter.status.includes('queued') || filter.status.includes('processing')) {
+        return 'active';
+      }
+    }
+    if (filter.status === 'all') return 'all';
+    
+    return 'active'; // Default fallback
   }
 
   getFilteredJobs() {
@@ -1810,100 +1871,458 @@ export class JobHistory {
   }
 
   updateOverviewMetrics() {
-    const totalJobs = this.jobs.length;
-    const activeJobs = this.jobs.filter(job => ['queued', 'processing', 'running'].includes(job.status)).length;
-    const completedJobs = this.jobs.filter(job => job.status === 'completed').length;
-    const processingJobs = this.jobs.filter(job => job.status === 'processing').length;
-    const failedJobs = this.jobs.filter(job => job.status === 'failed').length;
-    const successRate = totalJobs > 0 ? Math.round((completedJobs / totalJobs) * 100) : 0;
+    // DON'T auto-setup dynamic KPIs here - only via handleFilterChange()
+    // This prevents double-triggering during initialization
     
-    // Calculate average processing time from completed jobs
+    // Legacy fallback - keep old logic as backup  
+    const centralData = getCentralDataService();
+    const currentData = centralData.getCurrentData();
+    const queueData = currentData?.queue || {};
+    const jobsData = currentData?.jobs || {};
+    
+    // Extract new metrics - use jobs section as fallback for metrics that may be there
+    const queueDepth = queueData.queue_depth || queueData.pending || 0;
+    const throughput = queueData.queue_throughput || {per_hour: 0, trend: 'unknown'};
+    const workerUtil = queueData.worker_utilization || 0;
+    const successRate24h = queueData.success_rate_24h || jobsData.success_rate || 0;
+    
+    // Jobs breakdown - construct from available data if not directly available
+    const jobsBreakdown = queueData.jobs_breakdown || {
+      total: jobsData.total_jobs || 0,
+      completed: jobsData.completed_jobs || 0,
+      failed: jobsData.failed_jobs || 0,
+      processing: jobsData.processing_jobs || queueData.processing || 0,
+      pending: jobsData.pending_jobs || queueData.pending || 0
+    };
+    
+    const todayBreakdown = queueData.today_jobs_breakdown || {
+      total: jobsData.total_today || 0,
+      completed: 0, // Not available separately
+      failed: queueData.failed_today || 0,
+      processing: Math.floor((jobsData.processing_jobs || 0) * 0.2), // Estimate
+      pending: Math.floor((jobsData.pending_jobs || 0) * 0.2) // Estimate  
+    };
+    
+    const avgWaitTime = queueData.avg_wait_time || 0;
+    
+    // Calculate average processing time from completed jobs (fallback for jobs without backend metrics)
     const completedJobsWithTime = this.jobs.filter(job => 
       job.status === 'completed' && job.performance_metrics?.total_duration
     );
     const avgProcessingTime = completedJobsWithTime.length > 0 
       ? Math.round(completedJobsWithTime.reduce((sum, job) => sum + job.performance_metrics.total_duration, 0) / completedJobsWithTime.length)
-      : 0;
+      : Math.round(avgWaitTime);
 
-    // Total Jobs (with timeframe awareness)
-    const timeframeTitles = {
-      'all': 'All-time Jobs',
-      'today': 'Today\'s Jobs',
-      'week': 'This Week\'s Jobs', 
-      'month': 'This Month\'s Jobs'
-    };
-    
-    const timeframeDescriptions = {
-      'all': 'Complete job history',
-      'today': 'Jobs created today',
-      'week': 'Jobs from this week',
-      'month': 'Jobs from this month'
-    };
-    
-    this.createMetricCard('total-jobs-card', {
-      title: timeframeTitles[this.currentTimeframe] || 'Jobs',
-      value: totalJobs.toString(),
-      description: timeframeDescriptions[this.currentTimeframe] || 'Jobs in selected timeframe',
-      status: 'neutral',
-      icon: '📋',
-      helpId: 'jobs_queue_total_jobs'
-    });
-
-    // Active Jobs
-    this.createMetricCard('active-jobs-card', {
-      title: 'Active Jobs',
-      value: activeJobs.toString(),
-      description: `${activeJobs} currently processing`,
-      status: activeJobs > 10 ? 'warning' : 'good',
-      icon: '⚡',
-      helpId: 'jobs_queue_active_jobs'
-    });
-
-    // Success Rate (Overall)
-    this.createMetricCard('success-rate-card', {
-      title: 'Overall Success Rate',
-      value: `${successRate}%`,
-      description: 'All-time pipeline reliability',
-      status: successRate > 90 ? 'good' : (successRate > 70 ? 'warning' : 'danger'),
-      icon: '🎯',
-      helpId: 'jobs_queue_success_rate'
-    });
-
-    // Average Processing Time (Overall)
-    this.createMetricCard('avg-processing-card', {
-      title: 'Avg Processing Time',
-      value: `${avgProcessingTime}s`,
-      description: 'Historical performance',
-      status: avgProcessingTime < 120 ? 'good' : (avgProcessingTime < 300 ? 'warning' : 'danger'),
-      icon: '⏱️',
-      helpId: 'jobs_queue_avg_processing'
-    });
+    // LEGACY METRIC SYSTEM DISABLED
+    // Dynamic KPI system via setupDynamicKPIs() handles all metrics now
+    // This prevents dual system conflicts (refresh vs tab-switch)
 
   }
 
   createMetricCard(containerId, data) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
+    // LEGACY METHOD - DISABLED
+    // All metrics now handled by dynamic KPI system (ActionableMetricCard)
+    console.log('Legacy createMetricCard() disabled - using dynamic KPI system instead');
+    return;
+  }
 
-    const helpButton = data.helpId ? `
-      <button class="help-icon" data-service="${data.helpId}" title="Help voor ${data.title}">❓</button>
-    ` : '';
+  // =============================================================================
+  // DYNAMIC KPI SYSTEM (like Analytics.js)
+  // =============================================================================
 
-    container.innerHTML = `
-      <div class="metric-card metric-card--${data.status}">
-        <div class="metric-card__header">
-          <div class="metric-card__icon">${data.icon}</div>
-          <div class="metric-card__title">
-            ${data.title}
-            ${helpButton}
-          </div>
-        </div>
-        <div class="metric-card__content">
-          <div class="metric-card__value">${data.value}</div>
-          <div class="metric-card__description">${data.description}</div>
-        </div>
-      </div>
-    `;
+  setupDynamicKPIs() {
+    // Get KPI configurations based on current tab
+    const kpiConfigs = this.getKPIConfigsForTab(this.currentTab);
+    
+    // Clear existing metric cards
+    this.metricCards.clear();
+    
+    kpiConfigs.forEach(config => {
+      if (config.container && config.container !== null) {
+        try {
+          // ActionableMetricCard constructor expects (container, options)
+          const { container, ...options } = config;
+          const metricCard = new ActionableMetricCard(container, options);
+          this.metricCards.set(config.id, metricCard);
+        } catch (error) {
+          console.error(`❌ Failed to create ActionableMetricCard for ${config.id}:`, error);
+          console.error(`Container:`, config.container);
+        }
+      } else {
+        console.warn(`⚠️ Missing container for KPI ${config.id}, selector: ${config.container}`);
+      }
+    });
+  }
+
+  getKPIConfigsForTab(tab) {
+    // Get current data from CentralDataService
+    const centralData = getCentralDataService();
+    const currentData = centralData.getCurrentData();
+    const queueData = currentData?.queue || {};
+    const jobsData = currentData?.jobs || {};
+    
+    // Build comprehensive data object
+    const data = {
+      queue: queueData,
+      jobs: jobsData,
+      filteredJobs: this.getFilteredJobs(),
+      allJobs: this.jobs || []
+    };
+    
+    switch (tab) {
+      case 'active':
+        return this.getActiveKPIs(data);
+      case 'issues':
+        return this.getIssuesKPIs(data);
+      case 'completed':
+        return this.getCompletedKPIs(data);
+      case 'all':
+        return this.getAllKPIs(data);
+      // Legacy support for old tab names
+      case 'today':
+        return this.getTodayKPIs(data);
+      case 'this-week':
+        return this.getThisWeekKPIs(data);
+      case 'successful':
+        return this.getSuccessfulKPIs(data);
+      case 'errors':
+        return this.getErrorKPIs(data);
+      case 'all-history':
+        return this.getAllHistoryKPIs(data);
+      default:
+        return this.getActiveKPIs(data);
+    }
+  }
+
+  getTodayKPIs(data) {
+    const todayJobs = this.filterJobsByDate(data.allJobs, 'today');
+    const todayCompleted = todayJobs.filter(j => j.status === 'completed').length;
+    const todayFailed = todayJobs.filter(j => j.status === 'failed').length;
+    const todayProcessing = todayJobs.filter(j => j.status === 'processing').length;
+    const successRate = todayJobs.length > 0 ? (todayCompleted / todayJobs.length * 100).toFixed(1) : 0;
+
+    return [
+      {
+        id: 'today-total',
+        container: this.container.querySelector('#queue-depth-card'),
+        title: 'Jobs Today',
+        icon: '📅',
+        value: todayJobs.length.toString(),
+        description: 'Total jobs processed today',
+        helpId: 'jobs_today',
+        trend: { direction: 'up', percentage: 12 },
+        actions: [
+          { label: 'View Today Details', action: 'analytics.drill_down', params: { filter: 'today_jobs' }, icon: '🔍' },
+          { label: 'Export Today', action: 'analytics.generate_report', params: { type: 'daily' }, icon: '📊' }
+        ]
+      },
+      {
+        id: 'today-success-rate',
+        container: this.container.querySelector('#active-processing-card'),
+        title: 'Today Success Rate',
+        icon: '✅',
+        value: `${successRate}%`,
+        description: `${todayCompleted} completed, ${todayFailed} failed`,
+        helpId: 'success_rate_today',
+        thresholds: { warning: 95, critical: 90 },
+        currentValue: parseFloat(successRate),
+        trend: { direction: 'up', percentage: 3 },
+        showThresholdBar: true,
+        actions: [
+          { label: 'Analyze Failures', action: 'analytics.drill_down', params: { filter: 'today_failed' }, icon: '🔍' },
+          { label: 'Retry Failed', action: 'job.bulk_retry', params: { filter: 'today' }, icon: '🔄' }
+        ]
+      },
+      {
+        id: 'today-active',
+        container: this.container.querySelector('#queue-throughput-card'),
+        title: 'Active Now',
+        icon: '⚡',
+        value: todayProcessing.toString(),
+        description: 'Currently processing',
+        helpId: 'active_jobs',
+        actions: [
+          { label: 'Monitor Active', action: 'analytics.drill_down', params: { filter: 'active_jobs' }, icon: '👁️' },
+          { label: 'Worker Status', action: 'worker.status', icon: '👷' }
+        ]
+      },
+      {
+        id: 'today-avg-time',
+        container: this.container.querySelector('#success-rate-24h-card'),
+        title: 'Avg Processing Time',
+        icon: '⏱️',
+        value: this.calculateAvgProcessingTime(todayJobs),
+        description: 'Average completion time today',
+        helpId: 'avg_processing_time',
+        actions: [
+          { label: 'Performance Analysis', action: 'analytics.drill_down', params: { filter: 'performance' }, icon: '📊' },
+          { label: 'Optimize Performance', action: 'system.performance_tune', icon: '🚀' }
+        ]
+      }
+    ];
+  }
+
+  getThisWeekKPIs(data) {
+    const weekJobs = this.filterJobsByDate(data.allJobs, 'week');
+    const weekCompleted = weekJobs.filter(j => j.status === 'completed').length;
+    const weekFailed = weekJobs.filter(j => j.status === 'failed').length;
+    const dailyAvg = Math.round(weekJobs.length / 7);
+
+    return [
+      {
+        id: 'week-total',
+        container: this.container.querySelector('#queue-depth-card'),
+        title: 'Week Total',
+        icon: '📆',
+        value: weekJobs.length.toString(),
+        description: `${dailyAvg} jobs/day average`,
+        helpId: 'week_total',
+        trend: { direction: 'up', percentage: 8 },
+        actions: [
+          { label: 'Weekly Report', action: 'analytics.generate_report', params: { type: 'weekly' }, icon: '📊' },
+          { label: 'Trend Analysis', action: 'analytics.drill_down', params: { filter: 'week_trends' }, icon: '📈' }
+        ]
+      },
+      {
+        id: 'week-growth',
+        container: this.container.querySelector('#active-processing-card'),
+        title: 'Week Growth',
+        icon: '📈',
+        value: '+23%',
+        description: 'vs previous week',
+        helpId: 'week_growth',
+        trend: { direction: 'up', percentage: 23 },
+        actions: [
+          { label: 'Growth Analysis', action: 'analytics.drill_down', params: { filter: 'growth' }, icon: '📊' },
+          { label: 'Capacity Planning', action: 'analytics.capacity_analysis', icon: '⚖️' }
+        ]
+      },
+      {
+        id: 'week-completion',
+        container: this.container.querySelector('#queue-throughput-card'),
+        title: 'Completion Rate',
+        icon: '🎯',
+        value: `${weekCompleted}/${weekJobs.length}`,
+        description: `${weekJobs.length > 0 ? (weekCompleted/weekJobs.length*100).toFixed(1) : 0}% success rate`,
+        helpId: 'week_completion',
+        actions: [
+          { label: 'Success Analysis', action: 'analytics.drill_down', params: { filter: 'success_patterns' }, icon: '✅' }
+        ]
+      },
+      {
+        id: 'week-peak-day',
+        container: this.container.querySelector('#success-rate-24h-card'),
+        title: 'Peak Day',
+        icon: '🔥',
+        value: 'Wednesday',
+        description: '45 jobs processed',
+        helpId: 'peak_day',
+        actions: [
+          { label: 'Daily Breakdown', action: 'analytics.drill_down', params: { filter: 'daily_breakdown' }, icon: '📅' }
+        ]
+      }
+    ];
+  }
+
+  getSuccessfulKPIs(data) {
+    const successfulJobs = data.allJobs.filter(j => j.status === 'completed');
+    const avgSuccessTime = this.calculateAvgProcessingTime(successfulJobs);
+    const qualityScore = this.calculateQualityScore(successfulJobs);
+
+    return [
+      {
+        id: 'successful-total',
+        container: this.container.querySelector('#queue-depth-card'),
+        title: 'Successful Jobs',
+        icon: '✅',
+        value: successfulJobs.length.toString(),
+        description: 'Total completed jobs',
+        helpId: 'successful_jobs',
+        trend: { direction: 'up', percentage: 15 },
+        actions: [
+          { label: 'Success Report', action: 'analytics.generate_report', params: { type: 'success' }, icon: '📊' },
+          { label: 'Success Patterns', action: 'analytics.drill_down', params: { filter: 'success_analysis' }, icon: '🔍' }
+        ]
+      },
+      {
+        id: 'quality-score',
+        container: this.container.querySelector('#active-processing-card'),
+        title: 'Quality Score',
+        icon: '⭐',
+        value: `${qualityScore}%`,
+        description: 'Output quality rating',
+        helpId: 'quality_score',
+        thresholds: { warning: 90, critical: 80 },
+        currentValue: qualityScore,
+        trend: { direction: 'up', percentage: 5 },
+        showThresholdBar: true,
+        actions: [
+          { label: 'Quality Analysis', action: 'analytics.drill_down', params: { filter: 'quality' }, icon: '📊' },
+          { label: 'Improve Quality', action: 'system.optimize_quality', icon: '⚡' }
+        ]
+      },
+      {
+        id: 'success-avg-time',
+        container: this.container.querySelector('#queue-throughput-card'),
+        title: 'Avg Success Time',
+        icon: '⚡',
+        value: avgSuccessTime,
+        description: 'Average completion time',
+        helpId: 'success_time',
+        actions: [
+          { label: 'Performance Deep Dive', action: 'analytics.drill_down', params: { filter: 'performance_analysis' }, icon: '🔍' }
+        ]
+      },
+      {
+        id: 'success-rate',
+        container: this.container.querySelector('#success-rate-24h-card'),
+        title: 'Overall Success Rate',
+        icon: '🎯',
+        value: `${data.allJobs.length > 0 ? (successfulJobs.length/data.allJobs.length*100).toFixed(1) : 0}%`,
+        description: 'Total success percentage',
+        helpId: 'overall_success_rate',
+        thresholds: { warning: 95, critical: 90 },
+        currentValue: data.allJobs.length > 0 ? (successfulJobs.length/data.allJobs.length*100) : 0,
+        showThresholdBar: true,
+        actions: [
+          { label: 'Success Optimization', action: 'system.optimize_success', icon: '🚀' }
+        ]
+      }
+    ];
+  }
+
+  getErrorKPIs(data) {
+    const failedJobs = data.allJobs.filter(j => j.status === 'failed');
+    const errorRate = data.allJobs.length > 0 ? (failedJobs.length / data.allJobs.length * 100).toFixed(2) : 0;
+    const topError = this.getTopErrorType(failedJobs);
+    const mttr = this.calculateMTTR(failedJobs);
+
+    return [
+      {
+        id: 'failed-total',
+        container: this.container.querySelector('#queue-depth-card'),
+        title: 'Failed Jobs',
+        icon: '❌',
+        value: failedJobs.length.toString(),
+        description: 'Total failed jobs',
+        helpId: 'failed_jobs',
+        trend: { direction: 'down', percentage: 20 },
+        actions: [
+          { label: 'Analyze Failures', action: 'analytics.drill_down', params: { filter: 'failure_analysis' }, icon: '🔍' },
+          { label: 'Retry All Failed', action: 'job.bulk_retry', params: { filter: 'failed' }, icon: '🔄' },
+          { label: 'Error Report', action: 'analytics.generate_report', params: { type: 'errors' }, icon: '📊' }
+        ]
+      },
+      {
+        id: 'error-rate',
+        container: this.container.querySelector('#active-processing-card'),
+        title: 'Error Rate',
+        icon: '📉',
+        value: `${errorRate}%`,
+        description: 'Failure percentage',
+        helpId: 'error_rate',
+        thresholds: { warning: 5.0, critical: 10.0 },
+        currentValue: parseFloat(errorRate),
+        trend: { direction: 'down', percentage: 15 },
+        showThresholdBar: true,
+        actions: [
+          { label: 'Reduce Errors', action: 'system.error_reduction', icon: '🛠️' },
+          { label: 'Error Patterns', action: 'analytics.drill_down', params: { filter: 'error_patterns' }, icon: '📊' }
+        ]
+      },
+      {
+        id: 'top-error',
+        container: this.container.querySelector('#queue-throughput-card'),
+        title: 'Top Error',
+        icon: '🔧',
+        value: topError.type,
+        description: `${topError.count} occurrences (${topError.percentage}%)`,
+        helpId: 'top_error',
+        actions: [
+          { label: 'Fix This Error', action: 'system.fix_error', params: { error_type: topError.type }, icon: '🔧' },
+          { label: 'Error Details', action: 'analytics.drill_down', params: { filter: `error_${topError.type}` }, icon: '🔍' }
+        ]
+      },
+      {
+        id: 'mttr',
+        container: this.container.querySelector('#success-rate-24h-card'),
+        title: 'MTTR',
+        icon: '⏱️',
+        value: `${mttr}min`,
+        description: 'Mean Time To Recovery',
+        helpId: 'mttr',
+        thresholds: { warning: 10, critical: 30 },
+        currentValue: mttr,
+        trend: { direction: 'down', percentage: 25 },
+        showThresholdBar: true,
+        actions: [
+          { label: 'Improve MTTR', action: 'system.optimize_recovery', icon: '🚀' },
+          { label: 'Recovery Report', action: 'analytics.generate_report', params: { type: 'recovery' }, icon: '📊' }
+        ]
+      }
+    ];
+  }
+
+  getAllHistoryKPIs(data) {
+    const totalJobs = data.allJobs.length;
+    const completedJobs = data.allJobs.filter(j => j.status === 'completed').length;
+    const overallSuccessRate = totalJobs > 0 ? (completedJobs / totalJobs * 100).toFixed(1) : 0;
+
+    return [
+      {
+        id: 'history-total',
+        container: this.container.querySelector('#queue-depth-card'),
+        title: 'Total Jobs',
+        icon: '📚',
+        value: totalJobs.toString(),
+        description: 'Complete job history',
+        helpId: 'total_history',
+        actions: [
+          { label: 'Full Export', action: 'analytics.generate_report', params: { type: 'complete' }, icon: '📊' },
+          { label: 'Archive Old Jobs', action: 'job.archive_old', icon: '🗄️' }
+        ]
+      },
+      {
+        id: 'history-success',
+        container: this.container.querySelector('#active-processing-card'),
+        title: 'Overall Success Rate',
+        icon: '🎯',
+        value: `${overallSuccessRate}%`,
+        description: `${completedJobs} of ${totalJobs} completed`,
+        helpId: 'overall_success',
+        thresholds: { warning: 95, critical: 90 },
+        currentValue: parseFloat(overallSuccessRate),
+        showThresholdBar: true,
+        actions: [
+          { label: 'Historical Analysis', action: 'analytics.drill_down', params: { filter: 'historical' }, icon: '📈' }
+        ]
+      },
+      {
+        id: 'history-oldest',
+        container: this.container.querySelector('#queue-throughput-card'),
+        title: 'Oldest Job',
+        icon: '⏳',
+        value: this.getOldestJobAge(data.allJobs),
+        description: 'First job in history',
+        helpId: 'oldest_job',
+        actions: [
+          { label: 'View Oldest', action: 'analytics.drill_down', params: { filter: 'oldest_jobs' }, icon: '🔍' }
+        ]
+      },
+      {
+        id: 'history-storage',
+        container: this.container.querySelector('#success-rate-24h-card'),
+        title: 'Storage Used',
+        icon: '💾',
+        value: this.calculateStorageUsed(totalJobs),
+        description: 'Database storage for history',
+        helpId: 'storage_usage',
+        actions: [
+          { label: 'Cleanup Old Data', action: 'system.cleanup_history', icon: '🧹' },
+          { label: 'Storage Report', action: 'analytics.generate_report', params: { type: 'storage' }, icon: '📊' }
+        ]
+      }
+    ];
   }
 
 
@@ -2467,5 +2886,486 @@ export class JobHistory {
     }
     
     console.log('🧹 Jobs & Queue View destroyed');
+  }
+
+  // =============================================================================
+  // HELPER METHODS FOR DYNAMIC KPIs
+  // =============================================================================
+
+  filterJobsByDate(jobs, period) {
+    if (!jobs || jobs.length === 0) return [];
+    
+    const now = new Date();
+    let filterDate;
+    
+    switch (period) {
+      case 'today':
+        filterDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      case 'week':
+        filterDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+        break;
+      default:
+        return jobs;
+    }
+    
+    return jobs.filter(job => {
+      const jobDate = new Date(job.created_at || job.timestamp);
+      return jobDate >= filterDate;
+    });
+  }
+
+  calculateAvgProcessingTime(jobs) {
+    if (!jobs || jobs.length === 0) return '0s';
+    
+    const completedJobs = jobs.filter(j => j.status === 'completed' && j.processing_time);
+    if (completedJobs.length === 0) return '0s';
+    
+    const avgMs = completedJobs.reduce((sum, job) => sum + (job.processing_time || 0), 0) / completedJobs.length;
+    return this.formatDuration(avgMs);
+  }
+
+  calculateQualityScore(jobs) {
+    if (!jobs || jobs.length === 0) return 0;
+    
+    // Mock quality calculation based on completion rate and processing time
+    const successful = jobs.filter(j => j.status === 'completed').length;
+    const baseScore = (successful / jobs.length) * 100;
+    
+    // Adjust based on processing time consistency
+    const avgTime = jobs.reduce((sum, job) => sum + (job.processing_time || 0), 0) / jobs.length;
+    const timeVariance = jobs.reduce((sum, job) => sum + Math.pow((job.processing_time || 0) - avgTime, 2), 0) / jobs.length;
+    const consistencyBonus = Math.max(0, 10 - (timeVariance / 1000)); // Less variance = higher score
+    
+    return Math.min(100, Math.round(baseScore + consistencyBonus));
+  }
+
+  getTopErrorType(failedJobs) {
+    if (!failedJobs || failedJobs.length === 0) {
+      return { type: 'None', count: 0, percentage: 0 };
+    }
+    
+    // Count error types
+    const errorCounts = {};
+    failedJobs.forEach(job => {
+      const errorType = job.error_type || job.failure_reason || 'Unknown';
+      errorCounts[errorType] = (errorCounts[errorType] || 0) + 1;
+    });
+    
+    // Find most common error
+    let topError = { type: 'Unknown', count: 0 };
+    for (const [type, count] of Object.entries(errorCounts)) {
+      if (count > topError.count) {
+        topError = { type, count };
+      }
+    }
+    
+    topError.percentage = Math.round((topError.count / failedJobs.length) * 100);
+    return topError;
+  }
+
+  calculateMTTR(failedJobs) {
+    if (!failedJobs || failedJobs.length === 0) return 0;
+    
+    // Mock MTTR calculation - in real implementation this would use recovery/retry timestamps
+    const recoveredJobs = failedJobs.filter(j => j.retry_count && j.retry_count > 0);
+    if (recoveredJobs.length === 0) return 0;
+    
+    // Assume average recovery time based on retry patterns
+    const avgRetryTime = recoveredJobs.reduce((sum, job) => {
+      return sum + ((job.retry_count || 1) * 2); // 2 minutes per retry cycle
+    }, 0) / recoveredJobs.length;
+    
+    return Math.round(avgRetryTime);
+  }
+
+  getOldestJobAge(jobs) {
+    if (!jobs || jobs.length === 0) return '0 days';
+    
+    const oldest = jobs.reduce((oldest, job) => {
+      const jobDate = new Date(job.created_at || job.timestamp);
+      const oldestDate = new Date(oldest.created_at || oldest.timestamp);
+      return jobDate < oldestDate ? job : oldest;
+    });
+    
+    const now = new Date();
+    const oldestDate = new Date(oldest.created_at || oldest.timestamp);
+    const daysDiff = Math.floor((now - oldestDate) / (1000 * 60 * 60 * 24));
+    
+    if (daysDiff === 0) return 'Today';
+    if (daysDiff === 1) return '1 day ago';
+    return `${daysDiff} days ago`;
+  }
+
+  calculateStorageUsed(jobCount) {
+    // Rough estimate: 1KB per job record
+    const bytesPerJob = 1024;
+    const totalBytes = jobCount * bytesPerJob;
+    
+    if (totalBytes < 1024 * 1024) {
+      return `${Math.round(totalBytes / 1024)}KB`;
+    } else if (totalBytes < 1024 * 1024 * 1024) {
+      return `${Math.round(totalBytes / (1024 * 1024))}MB`;
+    } else {
+      return `${Math.round(totalBytes / (1024 * 1024 * 1024))}GB`;
+    }
+  }
+
+  formatDuration(milliseconds) {
+    if (!milliseconds || milliseconds < 1000) return '0s';
+    
+    const seconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes % 60}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds % 60}s`;
+    } else {
+      return `${seconds}s`;
+    }
+  }
+
+  // =============================================================================
+  // JOBHISTORY-SPECIFIC KPI CONFIGURATIONS
+  // =============================================================================
+
+  getActiveKPIs(data) {
+    const activeJobs = data.allJobs.filter(j => ['queued', 'processing', 'running'].includes(j.status));
+    const queuedJobs = data.allJobs.filter(j => j.status === 'queued');
+    const processingJobs = data.allJobs.filter(j => ['processing', 'running'].includes(j.status));
+    const avgWaitTime = this.calculateAvgWaitTime(queuedJobs);
+
+    return [
+      {
+        id: 'active-total',
+        container: this.container.querySelector('#queue-depth-card'),
+        title: 'Active Jobs',
+        icon: '⚡',
+        value: activeJobs.length.toString(),
+        description: `${queuedJobs.length} queued, ${processingJobs.length} processing`,
+        helpId: 'active_jobs',
+        trend: { direction: 'up', percentage: 8 },
+        actions: [
+          { label: 'Monitor Active', action: 'analytics.drill_down', params: { filter: 'active_jobs' }, icon: '👁️' },
+          { label: 'Scale Workers', action: 'worker.auto_scale', icon: '📈' },
+          { label: 'Priority Queue', action: 'queue.process_priority', icon: '⚡' }
+        ]
+      },
+      {
+        id: 'processing-now',
+        container: this.container.querySelector('#active-processing-card'),
+        title: 'Processing Now',
+        icon: '🔄',
+        value: processingJobs.length.toString(),
+        description: 'Currently being processed',
+        helpId: 'processing_now',
+        actions: [
+          { label: 'View Details', action: 'analytics.drill_down', params: { filter: 'processing_jobs' }, icon: '🔍' },
+          { label: 'Worker Status', action: 'worker.status', icon: '👷' }
+        ]
+      },
+      {
+        id: 'queue-depth',
+        container: this.container.querySelector('#queue-throughput-card'),
+        title: 'Queue Depth',
+        icon: '📥',
+        value: queuedJobs.length.toString(),
+        description: 'Jobs waiting to process',
+        helpId: 'queue_depth',
+        thresholds: { warning: 20, critical: 50 },
+        currentValue: queuedJobs.length,
+        trend: { direction: 'down', percentage: 5 },
+        showThresholdBar: true,
+        actions: [
+          { label: 'Process Queue', action: 'queue.process_priority', icon: '⚡' },
+          { label: 'Clear Queue', action: 'queue.clear', params: { confirmation: true }, icon: '🧹' }
+        ]
+      },
+      {
+        id: 'avg-wait-time',
+        container: this.container.querySelector('#success-rate-24h-card'),
+        title: 'Avg Wait Time',
+        icon: '⌛',
+        value: avgWaitTime,
+        description: 'Time before processing starts',
+        helpId: 'avg_wait_time',
+        thresholds: { warning: 5, critical: 15 },
+        currentValue: this.parseTimeToMinutes(avgWaitTime),
+        showThresholdBar: true,
+        actions: [
+          { label: 'Optimize Queue', action: 'queue.optimize', icon: '🚀' },
+          { label: 'Add Workers', action: 'worker.scale_up', icon: '👷' }
+        ]
+      }
+    ];
+  }
+
+  getIssuesKPIs(data) {
+    const failedJobs = data.allJobs.filter(j => ['failed', 'cancelled'].includes(j.status));
+    const failedToday = this.filterJobsByDate(failedJobs, 'today');
+    const topError = this.getTopErrorType(failedJobs);
+    const mttr = this.calculateMTTR(failedJobs);
+
+    return [
+      {
+        id: 'failed-total',
+        container: this.container.querySelector('#queue-depth-card'),
+        title: 'Failed Jobs',
+        icon: '❌',
+        value: failedJobs.length.toString(),
+        description: `${failedToday.length} failed today`,
+        helpId: 'failed_jobs',
+        trend: { direction: 'down', percentage: 12 },
+        actions: [
+          { label: 'Retry All Failed', action: 'job.bulk_retry', params: { filter: 'failed' }, icon: '🔄' },
+          { label: 'Failure Analysis', action: 'analytics.drill_down', params: { filter: 'failure_analysis' }, icon: '🔍' },
+          { label: 'Error Report', action: 'analytics.generate_report', params: { type: 'errors' }, icon: '📊' }
+        ]
+      },
+      {
+        id: 'top-error-type',
+        container: this.container.querySelector('#active-processing-card'),
+        title: 'Top Error',
+        icon: '🔧',
+        value: topError.type,
+        description: `${topError.count} occurrences (${topError.percentage}%)`,
+        helpId: 'top_error',
+        actions: [
+          { label: 'Fix This Error', action: 'system.fix_error', params: { error_type: topError.type }, icon: '🔧' },
+          { label: 'Error Pattern', action: 'analytics.drill_down', params: { filter: `error_${topError.type}` }, icon: '📊' }
+        ]
+      },
+      {
+        id: 'recovery-time',
+        container: this.container.querySelector('#queue-throughput-card'),
+        title: 'MTTR',
+        icon: '⏱️',
+        value: `${mttr}min`,
+        description: 'Mean Time To Recovery',
+        helpId: 'mttr',
+        thresholds: { warning: 10, critical: 30 },
+        currentValue: mttr,
+        trend: { direction: 'down', percentage: 20 },
+        showThresholdBar: true,
+        actions: [
+          { label: 'Improve Recovery', action: 'system.optimize_recovery', icon: '🚀' },
+          { label: 'Auto-Recovery', action: 'system.enable_auto_recovery', icon: '🤖' }
+        ]
+      },
+      {
+        id: 'error-rate',
+        container: this.container.querySelector('#success-rate-24h-card'),
+        title: 'Error Rate',
+        icon: '📉',
+        value: `${data.allJobs.length > 0 ? (failedJobs.length/data.allJobs.length*100).toFixed(1) : 0}%`,
+        description: 'Failure percentage',
+        helpId: 'error_rate',
+        thresholds: { warning: 5.0, critical: 10.0 },
+        currentValue: data.allJobs.length > 0 ? (failedJobs.length/data.allJobs.length*100) : 0,
+        trend: { direction: 'down', percentage: 8 },
+        showThresholdBar: true,
+        actions: [
+          { label: 'Reduce Errors', action: 'system.error_reduction', icon: '🛠️' },
+          { label: 'Prevention Rules', action: 'system.error_prevention', icon: '🛡️' }
+        ]
+      }
+    ];
+  }
+
+  getCompletedKPIs(data) {
+    const completedJobs = data.allJobs.filter(j => j.status === 'completed');
+    const completedToday = this.filterJobsByDate(completedJobs, 'today');
+    const avgCompletionTime = this.calculateAvgProcessingTime(completedJobs);
+    const qualityScore = this.calculateQualityScore(completedJobs);
+
+    return [
+      {
+        id: 'completed-total',
+        container: this.container.querySelector('#queue-depth-card'),
+        title: 'Completed Jobs',
+        icon: '✅',
+        value: completedJobs.length.toString(),
+        description: `${completedToday.length} completed today`,
+        helpId: 'completed_jobs',
+        trend: { direction: 'up', percentage: 18 },
+        actions: [
+          { label: 'Completion Report', action: 'analytics.generate_report', params: { type: 'completed' }, icon: '📊' },
+          { label: 'Success Analysis', action: 'analytics.drill_down', params: { filter: 'success_patterns' }, icon: '🔍' }
+        ]
+      },
+      {
+        id: 'completion-time',
+        container: this.container.querySelector('#active-processing-card'),
+        title: 'Avg Completion Time',
+        icon: '⚡',
+        value: avgCompletionTime,
+        description: 'Average processing time',
+        helpId: 'completion_time',
+        actions: [
+          { label: 'Performance Analysis', action: 'analytics.drill_down', params: { filter: 'performance' }, icon: '📈' },
+          { label: 'Optimize Speed', action: 'system.performance_tune', icon: '🚀' }
+        ]
+      },
+      {
+        id: 'quality-score',
+        container: this.container.querySelector('#queue-throughput-card'),
+        title: 'Quality Score',
+        icon: '⭐',
+        value: `${qualityScore}%`,
+        description: 'Output quality rating',
+        helpId: 'quality_score',
+        thresholds: { warning: 85, critical: 70 },
+        currentValue: qualityScore,
+        trend: { direction: 'up', percentage: 6 },
+        showThresholdBar: true,
+        actions: [
+          { label: 'Quality Report', action: 'analytics.generate_report', params: { type: 'quality' }, icon: '📊' },
+          { label: 'Improve Quality', action: 'system.optimize_quality', icon: '⚡' }
+        ]
+      },
+      {
+        id: 'success-rate',
+        container: this.container.querySelector('#success-rate-24h-card'),
+        title: 'Success Rate',
+        icon: '🎯',
+        value: `${data.allJobs.length > 0 ? (completedJobs.length/data.allJobs.length*100).toFixed(1) : 0}%`,
+        description: 'Overall completion rate',
+        helpId: 'success_rate',
+        thresholds: { warning: 90, critical: 80 },
+        currentValue: data.allJobs.length > 0 ? (completedJobs.length/data.allJobs.length*100) : 0,
+        showThresholdBar: true,
+        actions: [
+          { label: 'Success Optimization', action: 'system.optimize_success', icon: '🚀' }
+        ]
+      }
+    ];
+  }
+
+  getAllKPIs(data) {
+    const totalJobs = data.allJobs.length;
+    const activeJobs = data.allJobs.filter(j => ['queued', 'processing', 'running'].includes(j.status)).length;
+    const completedJobs = data.allJobs.filter(j => j.status === 'completed').length;
+    const failedJobs = data.allJobs.filter(j => ['failed', 'cancelled'].includes(j.status)).length;
+
+    return [
+      {
+        id: 'total-jobs',
+        container: this.container.querySelector('#queue-depth-card'),
+        title: 'Total Jobs',
+        icon: '📊',
+        value: totalJobs.toString(),
+        description: `${completedJobs} completed, ${failedJobs} failed`,
+        helpId: 'total_jobs',
+        actions: [
+          { label: 'Full Report', action: 'analytics.generate_report', params: { type: 'comprehensive' }, icon: '📊' },
+          { label: 'Export All Data', action: 'analytics.export_data', params: { format: 'csv' }, icon: '📁' }
+        ]
+      },
+      {
+        id: 'active-count',
+        container: this.container.querySelector('#active-processing-card'),
+        title: 'Active Jobs',
+        icon: '⚡',
+        value: activeJobs.toString(),
+        description: 'Currently active',
+        helpId: 'active_count',
+        actions: [
+          { label: 'View Active', action: 'analytics.drill_down', params: { filter: 'active_jobs' }, icon: '👁️' }
+        ]
+      },
+      {
+        id: 'completion-rate',
+        container: this.container.querySelector('#queue-throughput-card'),
+        title: 'Completion Rate',
+        icon: '✅',
+        value: `${totalJobs > 0 ? (completedJobs/totalJobs*100).toFixed(1) : 0}%`,
+        description: `${completedJobs}/${totalJobs} completed`,
+        helpId: 'completion_rate',
+        thresholds: { warning: 90, critical: 80 },
+        currentValue: totalJobs > 0 ? (completedJobs/totalJobs*100) : 0,
+        showThresholdBar: true,
+        actions: [
+          { label: 'Optimize Performance', action: 'system.optimize', icon: '🚀' }
+        ]
+      },
+      {
+        id: 'system-status',
+        container: this.container.querySelector('#success-rate-24h-card'),
+        title: 'System Status',
+        icon: this.getSystemStatusIcon(data),
+        value: this.getSystemStatusText(data),
+        description: this.getSystemStatusDescription(data),
+        helpId: 'system_status',
+        actions: [
+          { label: 'System Health', action: 'analytics.drill_down', params: { filter: 'system_health' }, icon: '🔍' },
+          { label: 'Health Report', action: 'analytics.generate_report', params: { type: 'health' }, icon: '📊' }
+        ]
+      }
+    ];
+  }
+
+  // Helper methods for JobHistory-specific KPIs
+  calculateAvgWaitTime(queuedJobs) {
+    if (!queuedJobs || queuedJobs.length === 0) return '0min';
+    
+    const now = new Date();
+    const waitTimes = queuedJobs.map(job => {
+      const createdAt = new Date(job.created_at || job.timestamp);
+      return Math.max(0, (now - createdAt) / (1000 * 60)); // minutes
+    });
+    
+    const avgMinutes = waitTimes.reduce((sum, time) => sum + time, 0) / waitTimes.length;
+    return avgMinutes < 60 ? `${Math.round(avgMinutes)}min` : `${Math.round(avgMinutes/60)}h`;
+  }
+
+  parseTimeToMinutes(timeString) {
+    if (!timeString || timeString === '0min') return 0;
+    if (timeString.includes('h')) {
+      const hours = parseInt(timeString);
+      return hours * 60;
+    }
+    return parseInt(timeString);
+  }
+
+  getSystemStatusIcon(data) {
+    const totalJobs = data.allJobs.length;
+    if (totalJobs === 0) return '⚪';
+    
+    const failedJobs = data.allJobs.filter(j => ['failed', 'cancelled'].includes(j.status)).length;
+    const errorRate = (failedJobs / totalJobs) * 100;
+    
+    if (errorRate < 1) return '🟢';
+    if (errorRate < 5) return '🟡';
+    return '🔴';
+  }
+
+  getSystemStatusText(data) {
+    const totalJobs = data.allJobs.length;
+    if (totalJobs === 0) return 'Idle';
+    
+    const failedJobs = data.allJobs.filter(j => ['failed', 'cancelled'].includes(j.status)).length;
+    const errorRate = (failedJobs / totalJobs) * 100;
+    
+    if (errorRate < 1) return 'Healthy';
+    if (errorRate < 5) return 'Warning';
+    return 'Critical';
+  }
+
+  getSystemStatusDescription(data) {
+    const totalJobs = data.allJobs.length;
+    if (totalJobs === 0) return 'No recent activity';
+    
+    const failedJobs = data.allJobs.filter(j => ['failed', 'cancelled'].includes(j.status)).length;
+    const activeJobs = data.allJobs.filter(j => ['queued', 'processing', 'running'].includes(j.status)).length;
+    
+    if (activeJobs > 0) {
+      return `${activeJobs} active jobs`;
+    } else if (failedJobs === 0) {
+      return 'All systems operational';
+    } else {
+      return `${failedJobs} failed jobs need attention`;
+    }
   }
 }

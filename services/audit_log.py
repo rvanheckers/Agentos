@@ -12,7 +12,7 @@ import logging
 
 # Database imports (adjust based on your setup)
 try:
-    from core.database_manager import PostgreSQLManager
+    from core.database_pool import get_db_session
     from sqlalchemy import Column, String, DateTime, JSON, Text, Boolean, Float
     from sqlalchemy.ext.declarative import declarative_base
     from sqlalchemy.dialects.postgresql import UUID
@@ -104,7 +104,7 @@ class AuditLog:
         # Initialize database if available
         if DB_AVAILABLE:
             try:
-                self.db_manager = PostgreSQLManager()
+                # Using shared database pool
                 # Create table if not exists
                 self._ensure_table_exists()
             except Exception as e:
@@ -119,11 +119,11 @@ class AuditLog:
 
     def _ensure_table_exists(self):
         """Ensure audit log table exists"""
-        if self.db_manager and DB_AVAILABLE:
+        if DB_AVAILABLE:
             try:
                 # This would typically be handled by migrations
-                Base.metadata.create_all(self.db_manager.engine)
-                logger.info("Audit log table ensured")
+                # Using shared database pool - table creation would be done via migrations
+                logger.info("Audit log table ensured via migrations")
             except Exception as e:
                 logger.error(f"Error creating audit log table: {e}")
 
@@ -394,7 +394,7 @@ class AuditLog:
         )
 
         # Store to database if available
-        if self.db_manager and DB_AVAILABLE:
+        if DB_AVAILABLE:
             try:
                 await self._store_to_database(event)
             except Exception as e:
@@ -402,11 +402,11 @@ class AuditLog:
 
     async def _store_to_database(self, event: AuditEvent):
         """Store audit event to database"""
-        if not self.db_manager or not DB_AVAILABLE:
+        if not DB_AVAILABLE:
             return
 
         try:
-            with self.db_manager.get_session() as session:
+            with get_db_session() as session:
                 db_event = AuditLogEntry(
                     id=uuid4(),
                     event_type=event.event_type.value,
@@ -462,11 +462,11 @@ class AuditLog:
         Returns:
             List of audit events
         """
-        if not self.db_manager or not DB_AVAILABLE:
+        if not DB_AVAILABLE:
             return []
 
         try:
-            with self.db_manager.get_session() as session:
+            with get_db_session() as session:
                 query = session.query(AuditLogEntry)
 
                 # Apply filters

@@ -273,6 +273,70 @@ class ActionService {
   }
 
   // =============================================================================
+  // ANALYTICS ACTIONS
+  // =============================================================================
+
+  /**
+   * Drill down into analytics data
+   */
+  async analyticsDrillDown(filter = {}, options = {}) {
+    return this.execute('analytics.drill_down', { filter }, options);
+  }
+
+  /**
+   * Generate analytics report
+   */
+  async generateAnalyticsReport(type, format = 'pdf', options = {}) {
+    return this.execute('analytics.generate_report', { 
+      type, 
+      format,
+      timestamp: new Date().toISOString()
+    }, options);
+  }
+
+  /**
+   * Performance tuning automation
+   */
+  async performanceTune(targets = [], options = {}) {
+    return this.execute('system.performance_tune', { targets }, options);
+  }
+
+  /**
+   * Auto-scale workers based on metrics
+   */
+  async autoScale(immediate = false, options = {}) {
+    return this.execute('worker.auto_scale', { immediate }, options);
+  }
+
+  /**
+   * Scale workers up
+   */
+  async scaleUp(factor = 1, options = {}) {
+    return this.execute('worker.scale_up', { factor }, options);
+  }
+
+  /**
+   * Optimize worker allocation
+   */
+  async optimizeWorkers(options = {}) {
+    return this.execute('worker.optimize', {}, options);
+  }
+
+  /**
+   * Process high-priority queue items
+   */
+  async processPriorityQueue(options = {}) {
+    return this.execute('queue.process_priority', {}, options);
+  }
+
+  /**
+   * Optimize recovery processes
+   */
+  async optimizeRecovery(options = {}) {
+    return this.execute('system.optimize_recovery', {}, options);
+  }
+
+  // =============================================================================
   // BATCH ACTIONS
   // =============================================================================
 

@@ -115,6 +115,60 @@
   gap: var(--space-4);
 }
 
+/* Pipeline Metrics Grid - 3-Column Layout for Queue Management Redesign */
+.pipeline-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
+}
+
+.metric-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.metric-column-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-2);
+}
+
+/* Color coding for columns */
+.metric-column--queue .metric-card {
+  border-left: 3px solid var(--primary-500);
+}
+
+.metric-column--performance .metric-card {
+  border-left: 3px solid var(--success-500);
+}
+
+.metric-column--inventory .metric-card {
+  border-left: 3px solid var(--purple-500);
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 1024px) {
+  .pipeline-metrics-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+  
+  .metric-column {
+    gap: var(--space-3);
+  }
+}
+
+@media (max-width: 768px) {
+  .pipeline-metrics-grid {
+    gap: var(--space-3);
+  }
+}
+
 /* =================================================================
    JOB CARDS - Compact Multi-Level Design
    ================================================================= */

@@ -496,15 +496,36 @@ class AdminDataManager:
             return {"error": str(e)}
 
     def _get_queue_summary(self) -> Dict[str, Any]:
-        """Get queue summary voor dashboard."""
+        """Get queue summary voor dashboard - UPDATED with JobHistory redesign metrics."""
         try:
+            # Original queue status metrics
             queue_status = self.queue_service.get_queue_status()
+            
+            # NEW METRICS for JobHistory redesign
+            queue_depth = self.queue_service.get_queue_depth()
+            queue_throughput = self.queue_service.get_queue_throughput()
+            avg_wait_time = self.queue_service.get_average_wait_time()
+            worker_utilization = self.queue_service.get_worker_utilization()
+            success_rate_24h = self.queue_service.get_24h_success_rate()
+            jobs_breakdown = self.jobs_service.get_jobs_breakdown()
+            today_jobs_breakdown = self.jobs_service.get_today_jobs_breakdown()
+            
             return {
+                # Original metrics (keep for compatibility)
                 "pending": queue_status.get("pending", 0),
                 "processing": queue_status.get("processing", 0),
                 "completed_today": queue_status.get("completed_today", 0),
                 "failed_today": queue_status.get("failed_today", 0),
-                "avg_processing_time": queue_status.get("avg_processing_time", 0)
+                "avg_processing_time": queue_status.get("avg_processing_time", 0),
+                
+                # NEW METRICS - JobHistory Redesign
+                "queue_depth": queue_depth,
+                "queue_throughput": queue_throughput,
+                "avg_wait_time": avg_wait_time,
+                "worker_utilization": worker_utilization,
+                "success_rate_24h": success_rate_24h,
+                "jobs_breakdown": jobs_breakdown,
+                "today_jobs_breakdown": today_jobs_breakdown
             }
         except Exception as e:
             logger.error(f"Failed to get queue summary: {str(e)}")
@@ -529,7 +550,15 @@ class AdminDataManager:
                 "success_rate": job_stats.get("success_rate", 0),
                 "avg_duration": job_stats.get("avg_duration", 0),
                 "active_workflows": len(active_workflows),
-                "workflow_details": list(active_workflows.values()) if active_workflows else []
+                "workflow_details": list(active_workflows.values()) if active_workflows else [],
+                
+                # ✅ FIXED: Add missing job metrics for complete dashboard
+                "total_jobs": job_stats.get("total_jobs", 0),
+                "completed_jobs": job_stats.get("completed_jobs", 0),
+                "failed_jobs": job_stats.get("failed_jobs", 0),
+                "processing_jobs": job_stats.get("processing_jobs", 0),
+                "pending_jobs": job_stats.get("pending_jobs", 0),
+                "avg_processing_time": job_stats.get("avg_processing_time", 0)
             }
         except Exception as e:
             logger.error(f"Failed to get jobs summary: {str(e)}")
@@ -556,6 +585,9 @@ class AdminDataManager:
             else:
                 uptime_str = f"{minutes}m"
 
+            # Get database pool metrics
+            db_pool_metrics = self._get_database_pool_metrics()
+
             return {
                 "api_status": "healthy",
                 "database_status": "healthy",
@@ -568,6 +600,7 @@ class AdminDataManager:
                 "disk_usage": 45.2,
                 "memory_usage": 67.8,
                 "cpu_usage": 23.1,
+                "database_pool": db_pool_metrics,  # NEW: Database pool metrics
                 "v4_metrics": {
                     "active_workflows": len(active_workflows),
                     "events_processed": event_stats.get("events_processed", 0),
@@ -580,6 +613,64 @@ class AdminDataManager:
             import traceback
             logger.error(f"System health traceback: {traceback.format_exc()}")
             return {"error": str(e), "uptime": "error", "api_status": "error"}
+
+    def _get_database_pool_metrics(self) -> Dict[str, Any]:
+        """Get comprehensive database pool metrics for monitoring."""
+        try:
+            from core.database_pool import db_pool
+            
+            # Get real-time pool metrics
+            pool_metrics = db_pool.get_pool_metrics()
+            
+            # Calculate additional metrics
+            total_capacity = pool_metrics.get("total_capacity", 10)
+            checked_out = pool_metrics.get("checked_out", 0)
+            checked_in = pool_metrics.get("checked_in", 0)
+            overflow = pool_metrics.get("overflow", 0)
+            usage_percentage = pool_metrics.get("usage_percentage", 0.0)
+            
+            # Health status based on usage
+            if usage_percentage < 50:
+                status = "healthy"
+                status_color = "green"
+            elif usage_percentage < 80:
+                status = "warning"
+                status_color = "yellow"
+            else:
+                status = "critical"
+                status_color = "red"
+            
+            return {
+                "status": status,
+                "status_color": status_color,
+                "total_capacity": total_capacity,
+                "checked_out": checked_out,
+                "checked_in": checked_in,
+                "available": total_capacity - checked_out,
+                "overflow": overflow,
+                "usage_percentage": round(usage_percentage, 1),
+                "environment": pool_metrics.get("environment", "development"),
+                "pool_size": pool_metrics.get("pool_size", 3),
+                "max_overflow": total_capacity - pool_metrics.get("pool_size", 3),
+                "sessions_created": pool_metrics.get("sessions_created", 0),
+                "sessions_closed": pool_metrics.get("sessions_closed", 0),
+                "active_sessions": pool_metrics.get("active_sessions", 0),
+                "failed_connections": pool_metrics.get("failed_connections", 0),
+                "last_health_check": pool_metrics.get("last_health_check", time.time()),
+                "connection_efficiency": round((checked_in / total_capacity * 100) if total_capacity > 0 else 0, 1),
+                "metrics_timestamp": datetime.now().isoformat()
+            }
+        except Exception as e:
+            logger.error(f"Failed to get database pool metrics: {str(e)}")
+            return {
+                "status": "error",
+                "status_color": "red",
+                "error": str(e),
+                "total_capacity": 10,
+                "checked_out": 0,
+                "usage_percentage": 0.0,
+                "environment": "unknown"
+            }
 
     def _get_recent_activity(self) -> List[Dict[str, Any]]:
         """Get recent activity voor dashboard."""
@@ -664,14 +755,25 @@ class AdminDataManager:
 
     async def _get_queue_data_async(self) -> Dict[str, Any]:
         """Async wrapper for queue data with parallel execution"""
-        # Execute all queue data collection in parallel
+        # Execute all queue data collection in parallel - INCLUDING NEW METRICS
         current_queue_task = asyncio.get_event_loop().run_in_executor(None, self.queue_service.get_queue_status)
         job_history_task = asyncio.get_event_loop().run_in_executor(None, self.jobs_service.get_recent_jobs, 50)
         worker_assignments_task = asyncio.get_event_loop().run_in_executor(None, self.queue_service.get_worker_assignments)
         queue_stats_task = asyncio.get_event_loop().run_in_executor(None, self.queue_service.get_queue_statistics)
+        
+        # NEW QUEUE METRICS FOR JOBHISTORY REDESIGN
+        queue_depth_task = asyncio.get_event_loop().run_in_executor(None, self.queue_service.get_queue_depth)
+        queue_throughput_task = asyncio.get_event_loop().run_in_executor(None, self.queue_service.get_queue_throughput)
+        avg_wait_time_task = asyncio.get_event_loop().run_in_executor(None, self.queue_service.get_average_wait_time)
+        worker_utilization_task = asyncio.get_event_loop().run_in_executor(None, self.queue_service.get_worker_utilization)
+        success_rate_24h_task = asyncio.get_event_loop().run_in_executor(None, self.queue_service.get_24h_success_rate)
+        jobs_breakdown_task = asyncio.get_event_loop().run_in_executor(None, self.jobs_service.get_jobs_breakdown)
+        today_jobs_breakdown_task = asyncio.get_event_loop().run_in_executor(None, self.jobs_service.get_today_jobs_breakdown)
 
         results = await asyncio.gather(
             current_queue_task, job_history_task, worker_assignments_task, queue_stats_task,
+            queue_depth_task, queue_throughput_task, avg_wait_time_task, worker_utilization_task,
+            success_rate_24h_task, jobs_breakdown_task, today_jobs_breakdown_task,
             return_exceptions=True
         )
 
@@ -681,6 +783,16 @@ class AdminDataManager:
             "job_history": results[1] if not isinstance(results[1], Exception) else [],
             "worker_assignments": results[2] if not isinstance(results[2], Exception) else {},
             "statistics": results[3] if not isinstance(results[3], Exception) else {},
+            
+            # NEW METRICS FOR JOBHISTORY REDESIGN
+            "queue_depth": results[4] if not isinstance(results[4], Exception) else 0,
+            "queue_throughput": results[5] if not isinstance(results[5], Exception) else {"per_hour": 0, "trend": "unknown"},
+            "avg_wait_time": results[6] if not isinstance(results[6], Exception) else 0.0,
+            "worker_utilization": results[7] if not isinstance(results[7], Exception) else 0.0,
+            "success_rate_24h": results[8] if not isinstance(results[8], Exception) else 0.0,
+            "jobs_breakdown": results[9] if not isinstance(results[9], Exception) else {"total": 0, "completed": 0, "failed": 0, "processing": 0, "pending": 0},
+            "today_jobs_breakdown": results[10] if not isinstance(results[10], Exception) else {"total": 0, "completed": 0, "failed": 0, "processing": 0, "pending": 0},
+            
             "status": "success"
         }
 

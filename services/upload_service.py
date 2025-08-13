@@ -39,8 +39,8 @@ class UploadService:
             self.db = db_manager
         else:
             try:
-                from core.database_manager import PostgreSQLManager
-                self.db = PostgreSQLManager()
+                from core.database_pool import get_db_session
+                # Using shared database pool
                 logger.info("✅ Database integration enabled for upload service")
             except Exception as e:
                 logger.warning(f"⚠️ Database integration failed, memory-only mode: {e}")

@@ -6,6 +6,8 @@
 import { SmartFilter } from '../components/SmartFilter.js';
 import { getFilterPresets, getFilterTypes } from '../config/filterPresets.js';
 import { getCentralDataService } from '../services/central-data-service.js';
+import { ActionableMetricCard } from '../components/ActionableMetricCard.js';
+import { AnalyticsHelpProvider } from '../help-providers/AnalyticsHelpProvider.js';
 
 export class Analytics {
   constructor(apiClient, container) {
@@ -17,6 +19,11 @@ export class Analytics {
     this.analyticsData = {};
     this.currentFilter = {};
     this.charts = new Map(); // Store Chart.js instances
+    this.metricCards = new Map(); // Store ActionableMetricCard instances
+    this.actionService = null; // Will be initialized
+    this.helpProvider = AnalyticsHelpProvider;
+    this.currentTab = 'performance';
+    this.currentTimeframe = '24h';
     this.chartColors = {
       primary: '#4C6EF5',
       secondary: '#51CF66', 
@@ -28,9 +35,13 @@ export class Analytics {
   }
 
   async init() {
+    // Initialize ActionService for actionable metrics
+    await this.initializeActionService();
+    
     this.render();
     this.setupSmartFilter();
     this.setupEventListeners();
+    this.initializeActionableMetrics();
     
     // Subscribe to central data service
     this.subscriptionId = this.centralDataService.subscribe('Analytics', async (data) => {
@@ -41,6 +52,14 @@ export class Analytics {
     if (!this.centralDataService.getStatus().isRunning) {
       this.centralDataService.start();
     }
+    
+    // Make analytics instance globally available for help system
+    if (typeof window !== 'undefined') {
+      window.analytics = this;
+    }
+
+    // Register analytics help provider
+    this.registerHelpProvider();
   }
 
   render() {
@@ -56,44 +75,12 @@ export class Analytics {
           </p>
         </div>
 
-        <!-- Enterprise Key Performance Indicators -->
+        <!-- Actionable Analytics KPIs -->
         <div class="analytics-kpis" id="analyticsKPIs">
-          <div class="kpi-card kpi-card--primary">
-            <div class="kpi-card__icon">🎯</div>
-            <div class="kpi-card__content">
-              <div class="kpi-card__value" id="successRate">-</div>
-              <div class="kpi-card__label">SLA Compliance</div>
-              <div class="kpi-card__sublabel">Target: 99.5%</div>
-              <div class="kpi-card__trend" id="successRateTrend">-</div>
-            </div>
-          </div>
-          <div class="kpi-card kpi-card--secondary">
-            <div class="kpi-card__icon">⚡</div>
-            <div class="kpi-card__content">
-              <div class="kpi-card__value" id="avgProcessingTime">-</div>
-              <div class="kpi-card__label">MTTR</div>
-              <div class="kpi-card__sublabel">Mean Time To Recovery</div>
-              <div class="kpi-card__trend" id="processingTimeTrend">-</div>
-            </div>
-          </div>
-          <div class="kpi-card kpi-card--tertiary">
-            <div class="kpi-card__icon">📈</div>
-            <div class="kpi-card__content">
-              <div class="kpi-card__value" id="totalJobs">-</div>
-              <div class="kpi-card__label">Daily Volume</div>
-              <div class="kpi-card__sublabel">Jobs Processed Today</div>
-              <div class="kpi-card__trend" id="totalJobsTrend">-</div>
-            </div>
-          </div>
-          <div class="kpi-card kpi-card--quaternary">
-            <div class="kpi-card__icon">🏥</div>
-            <div class="kpi-card__content">
-              <div class="kpi-card__value" id="throughput">-</div>
-              <div class="kpi-card__label">Health Score</div>
-              <div class="kpi-card__sublabel">System Load Rating</div>
-              <div class="kpi-card__trend" id="throughputTrend">-</div>
-            </div>
-          </div>
+          <div class="kpi-card kpi-card--actionable" id="slaComplianceCard"></div>
+          <div class="kpi-card kpi-card--actionable" id="responseTimeCard"></div>
+          <div class="kpi-card kpi-card--actionable" id="dailyVolumeCard"></div>
+          <div class="kpi-card kpi-card--actionable" id="systemHealthCard"></div>
         </div>
 
         <!-- Smart Filter Component -->
@@ -338,6 +325,12 @@ export class Analytics {
   async handleFilterChange(filter) {
     console.log('📊 Analytics filter changed:', filter);
     this.currentFilter = filter;
+    
+    // Update current tab for KPI switching
+    this.currentTab = filter.metric || 'performance';
+    
+    // Update the ActionableMetricCards for the new tab
+    this.setupActionableKPIs();
     
     // Enterprise approach: Complete context switch per tab
     switch(filter.metric) {
@@ -2194,6 +2187,471 @@ export class Analytics {
     setTimeout(() => this.refreshAllCharts(), 500);
   }
 
+  // ActionService Integration Methods
+  async initializeActionService() {
+    try {
+      // Import ActionService dynamically
+      const { default: ActionService } = await import('../../src/services/ActionService.js');
+      this.actionService = new ActionService();
+      
+      // Make available globally for ActionableMetricCard
+      if (typeof window !== 'undefined') {
+        window.actionService = this.actionService;
+      }
+      
+      console.log('✅ ActionService initialized for Analytics');
+    } catch (error) {
+      console.error('❌ Failed to initialize ActionService:', error);
+      // Continue without ActionService - metrics will show but actions won't work
+    }
+  }
+  
+  initializeActionableMetrics() {
+    // Convert existing KPI cards to ActionableMetricCards
+    this.setupActionableKPIs();
+    
+    // Setup tab-specific actionable metrics
+    if (this.currentTab === 'performance') {
+      this.setupPerformanceActionableMetrics();
+    }
+  }
+  
+  setupActionableKPIs() {
+    // Get KPI configurations based on current tab
+    const kpiConfigs = this.getKPIConfigsForTab(this.currentTab);
+    
+    // Clear existing metric cards
+    this.metricCards.clear();
+    
+    kpiConfigs.forEach(config => {
+      if (config.container) {
+        // Replace KPI card content with ActionableMetricCard
+        const metricCard = new ActionableMetricCard(config.container, {
+          ...config,
+          onActionClick: this.handleMetricAction.bind(this),
+          onThresholdCross: this.handleThresholdCross.bind(this)
+        });
+        
+        this.metricCards.set(config.id, metricCard);
+      }
+    });
+  }
+
+  getKPIConfigsForTab(tab) {
+    const currentData = this.analyticsData || {};
+    
+    switch (tab) {
+      case 'performance':
+        return this.getPerformanceKPIs(currentData);
+      case 'usage':
+      case 'usage-stats':
+        return this.getUsageKPIs(currentData);
+      case 'errors':
+      case 'error-trends':
+        return this.getErrorKPIs(currentData);
+      case 'capacity':
+        return this.getCapacityKPIs(currentData);
+      default:
+        return this.getPerformanceKPIs(currentData);
+    }
+  }
+
+  getPerformanceKPIs(data) {
+    const performanceData = data.performance_metrics || {};
+    const responseTime = performanceData.response_time || 1.2;
+    const throughput = performanceData.throughput || 450;
+    const slaCompliance = performanceData.sla_compliance || 99.7;
+    const performanceScore = performanceData.performance_score || 94;
+    
+    return [
+      {
+        id: 'response-time',
+        container: this.container.querySelector('#slaComplianceCard'),
+        title: 'Response Time',
+        icon: '⚡',
+        value: `${responseTime}s`,
+        description: 'Average API Response Time',
+        helpId: 'response_time_analysis',
+        thresholds: { warning: 2.0, critical: 5.0 },
+        currentValue: responseTime,
+        trend: { direction: 'down', percentage: 15 },
+        showThresholdBar: true,
+        actions: [
+          { label: 'Optimize Performance', action: 'system.performance_tune', icon: '⚡' },
+          { label: 'Scale Resources', action: 'worker.auto_scale', icon: '📈' },
+          { label: 'Performance Report', action: 'analytics.generate_report', params: { type: 'performance' }, icon: '📊' }
+        ]
+      },
+      {
+        id: 'throughput',
+        container: this.container.querySelector('#responseTimeCard'),
+        title: 'Throughput',
+        icon: '🚀',
+        value: `${throughput}/min`,
+        description: 'Requests Per Minute',
+        helpId: 'throughput_analysis',
+        thresholds: { warning: 300, critical: 200 },
+        currentValue: throughput,
+        trend: { direction: 'up', percentage: 12 },
+        actions: [
+          { label: 'View Peak Hours', action: 'analytics.drill_down', params: { filter: 'peak_analysis' }, icon: '📈' },
+          { label: 'Load Test', action: 'system.load_test', icon: '🧪' }
+        ]
+      },
+      {
+        id: 'sla-compliance',
+        container: this.container.querySelector('#dailyVolumeCard'),
+        title: 'SLA Compliance',
+        icon: '🎯',
+        value: `${slaCompliance}%`,
+        description: 'Service Level Agreement',
+        helpId: 'sla_compliance',
+        thresholds: { warning: 99.0, critical: 95.0 },
+        currentValue: slaCompliance,
+        trend: { direction: 'up', percentage: 0.2 },
+        showThresholdBar: true,
+        actions: [
+          { label: 'SLA Report', action: 'analytics.generate_report', params: { type: 'sla' }, icon: '📄' },
+          { label: 'View Breaches', action: 'analytics.drill_down', params: { filter: 'sla_breaches' }, icon: '🔍' }
+        ]
+      },
+      {
+        id: 'performance-score',
+        container: this.container.querySelector('#systemHealthCard'),
+        title: 'Performance Score',
+        icon: '📊',
+        value: `${performanceScore}%`,
+        description: 'Overall Performance Rating',
+        helpId: 'performance_score',
+        thresholds: { warning: 80, critical: 60 },
+        currentValue: performanceScore,
+        trend: { direction: 'stable', percentage: 0 },
+        showThresholdBar: true,
+        actions: [
+          { label: 'Full Analysis', action: 'analytics.generate_report', params: { type: 'comprehensive' }, icon: '📊' },
+          { label: 'Optimize System', action: 'system.auto_optimize', icon: '⚙️' }
+        ]
+      }
+    ];
+  }
+
+  getUsageKPIs(data) {
+    return [
+      {
+        id: 'daily-users',
+        container: this.container.querySelector('#slaComplianceCard'),
+        title: 'Daily Users',
+        icon: '👥',
+        value: '127',
+        description: 'Active Users Today',
+        helpId: 'daily_users',
+        thresholds: { warning: 50, critical: 25 },
+        currentValue: 127,
+        trend: { direction: 'up', percentage: 18 },
+        actions: [
+          { label: 'User Activity', action: 'analytics.drill_down', params: { filter: 'user_activity' }, icon: '👤' },
+          { label: 'Usage Report', action: 'analytics.generate_report', params: { type: 'usage' }, icon: '📊' }
+        ]
+      },
+      {
+        id: 'jobs-today',
+        container: this.container.querySelector('#responseTimeCard'),
+        title: 'Jobs Today',
+        icon: '📊',
+        value: '247',
+        description: 'Jobs Processed Today',
+        helpId: 'jobs_today',
+        thresholds: { warning: 500, critical: 1000 },
+        currentValue: 247,
+        trend: { direction: 'up', percentage: 23 },
+        actions: [
+          { label: 'Job Details', action: 'analytics.drill_down', params: { filter: 'today_jobs' }, icon: '🔍' },
+          { label: 'Job Types', action: 'analytics.drill_down', params: { filter: 'job_types' }, icon: '📋' }
+        ]
+      },
+      {
+        id: 'peak-hours',
+        container: this.container.querySelector('#dailyVolumeCard'),
+        title: 'Peak Hours',
+        icon: '🕐',
+        value: '2-4 PM',
+        description: 'Busiest Time Period',
+        helpId: 'peak_hours',
+        actions: [
+          { label: 'Hourly Breakdown', action: 'analytics.drill_down', params: { filter: 'hourly_stats' }, icon: '📈' },
+          { label: 'Capacity Planning', action: 'analytics.capacity_analysis', params: { timeframe: 'hourly' }, icon: '⚖️' }
+        ]
+      },
+      {
+        id: 'usage-trend',
+        container: this.container.querySelector('#systemHealthCard'),
+        title: 'Usage Trend',
+        icon: '📈',
+        value: '+23%',
+        description: 'vs Yesterday',
+        helpId: 'usage_trend',
+        trend: { direction: 'up', percentage: 23 },
+        actions: [
+          { label: 'Trend Analysis', action: 'analytics.generate_report', params: { type: 'trends' }, icon: '📊' },
+          { label: 'Growth Forecast', action: 'analytics.capacity_analysis', params: { timeframe: 'growth' }, icon: '🔮' }
+        ]
+      }
+    ];
+  }
+
+  getErrorKPIs(data) {
+    return [
+      {
+        id: 'error-rate',
+        container: this.container.querySelector('#slaComplianceCard'),
+        title: 'Error Rate',
+        icon: '❌',
+        value: '0.3%',
+        description: 'Failed Requests',
+        helpId: 'error_rate',
+        thresholds: { warning: 1.0, critical: 5.0 },
+        currentValue: 0.3,
+        trend: { direction: 'down', percentage: 40 },
+        showThresholdBar: true,
+        actions: [
+          { label: 'Error Analysis', action: 'analytics.drill_down', params: { filter: 'error_analysis' }, icon: '🔍' },
+          { label: 'Fix Issues', action: 'system.auto_fix', icon: '🔧' }
+        ]
+      },
+      {
+        id: 'failed-jobs',
+        container: this.container.querySelector('#responseTimeCard'),
+        title: 'Failed Jobs',
+        icon: '🚨',
+        value: '8',
+        description: 'Failed Today',
+        helpId: 'failed_jobs',
+        thresholds: { warning: 20, critical: 50 },
+        currentValue: 8,
+        trend: { direction: 'down', percentage: 33 },
+        actions: [
+          { label: 'View Failed Jobs', action: 'analytics.drill_down', params: { filter: 'failed_jobs' }, icon: '📋' },
+          { label: 'Retry Failed', action: 'job.bulk_retry', params: { filter: 'retryable' }, icon: '🔄' }
+        ]
+      },
+      {
+        id: 'top-error',
+        container: this.container.querySelector('#dailyVolumeCard'),
+        title: 'Top Error',
+        icon: '🔧',
+        value: 'API Timeout',
+        description: '60% of all errors',
+        helpId: 'top_error',
+        actions: [
+          { label: 'Investigate', action: 'analytics.drill_down', params: { filter: 'timeout_errors' }, icon: '🔍' },
+          { label: 'Fix Timeout', action: 'system.fix_timeout', icon: '⏱️' }
+        ]
+      },
+      {
+        id: 'mttr',
+        container: this.container.querySelector('#systemHealthCard'),
+        title: 'MTTR',
+        icon: '⏱️',
+        value: '4.2min',
+        description: 'Mean Time To Recovery',
+        helpId: 'mttr',
+        thresholds: { warning: 10, critical: 30 },
+        currentValue: 4.2,
+        trend: { direction: 'down', percentage: 15 },
+        showThresholdBar: true,
+        actions: [
+          { label: 'Recovery Report', action: 'analytics.generate_report', params: { type: 'mttr' }, icon: '📊' },
+          { label: 'Improve Recovery', action: 'system.optimize_recovery', icon: '🚀' }
+        ]
+      }
+    ];
+  }
+
+  getCapacityKPIs(data) {
+    return [
+      {
+        id: 'worker-utilization',
+        container: this.container.querySelector('#slaComplianceCard'),
+        title: 'Worker Utilization',
+        icon: '👷',
+        value: '75%',
+        description: 'Worker Pool Usage',
+        helpId: 'worker_utilization',
+        thresholds: { warning: 80, critical: 95 },
+        currentValue: 75,
+        trend: { direction: 'up', percentage: 8 },
+        showThresholdBar: true,
+        actions: [
+          { label: 'Scale Workers', action: 'worker.scale_up', icon: '📈' },
+          { label: 'Worker Report', action: 'analytics.generate_report', params: { type: 'workers' }, icon: '📊' }
+        ]
+      },
+      {
+        id: 'memory-usage',
+        container: this.container.querySelector('#responseTimeCard'),
+        title: 'Memory Usage',
+        icon: '💾',
+        value: '68%',
+        description: 'System Memory',
+        helpId: 'memory_usage',
+        thresholds: { warning: 80, critical: 95 },
+        currentValue: 68,
+        trend: { direction: 'stable', percentage: 0 },
+        showThresholdBar: true,
+        actions: [
+          { label: 'Memory Analysis', action: 'analytics.drill_down', params: { filter: 'memory_usage' }, icon: '📊' },
+          { label: 'Clear Cache', action: 'system.clear_cache', icon: '🧹' }
+        ]
+      },
+      {
+        id: 'queue-depth',
+        container: this.container.querySelector('#dailyVolumeCard'),
+        title: 'Queue Depth',
+        icon: '📊',
+        value: '23',
+        description: 'Jobs in Queue',
+        helpId: 'queue_depth',
+        thresholds: { warning: 50, critical: 100 },
+        currentValue: 23,
+        trend: { direction: 'down', percentage: 12 },
+        showThresholdBar: true,
+        actions: [
+          { label: 'Process Queue', action: 'queue.process_priority', icon: '⚡' },
+          { label: 'Queue Analysis', action: 'analytics.drill_down', params: { filter: 'queue_analysis' }, icon: '📈' }
+        ]
+      },
+      {
+        id: 'auto-scaling',
+        container: this.container.querySelector('#systemHealthCard'),
+        title: 'Auto-scaling',
+        icon: '🔄',
+        value: 'Ready',
+        description: 'Scaling Status',
+        helpId: 'auto_scaling',
+        actions: [
+          { label: 'Scaling Rules', action: 'analytics.drill_down', params: { filter: 'scaling_rules' }, icon: '⚙️' },
+          { label: 'Scale Now', action: 'worker.auto_scale', params: { immediate: true }, icon: '🚀' }
+        ]
+      }
+    ];
+  }
+  
+  setupPerformanceActionableMetrics() {
+    // Add actionable metrics to performance tab charts
+    const performanceMetrics = [
+      {
+        id: 'throughput-analysis',
+        selector: '#throughputChart',
+        title: 'Throughput Analysis',
+        actions: [
+          {
+            label: 'Optimize Workers',
+            action: 'worker.optimize',
+            params: { based_on: 'throughput_analysis' },
+            icon: '⚖️'
+          }
+        ]
+      }
+    ];
+    
+    // This would be expanded for each chart/metric in the performance tab
+  }
+  
+  async handleMetricAction({ action, params, button }) {
+    console.log(`🎯 Analytics metric action: ${action}`, params);
+    
+    try {
+      if (this.actionService) {
+        const result = await this.actionService.execute(action, params);
+        this.showActionResult(result, action);
+        
+        // Refresh analytics data after action
+        setTimeout(() => {
+          if (this.centralDataService) {
+            this.centralDataService.requestRefresh();
+          }
+        }, 1000);
+        
+        return result;
+      } else {
+        throw new Error('ActionService not available');
+      }
+    } catch (error) {
+      console.error('Analytics action failed:', error);
+      throw error;
+    }
+  }
+  
+  handleThresholdCross({ metric, oldStatus, newStatus, value, thresholds }) {
+    console.log(`🚨 Threshold crossed: ${metric} (${oldStatus} → ${newStatus})`, {
+      value,
+      thresholds
+    });
+    
+    // Could trigger notifications, alerts, or automated responses
+    if (newStatus === 'critical') {
+      this.showCriticalAlert(metric, value);
+    }
+  }
+  
+  showActionResult(result, action) {
+    const message = result.success 
+      ? `✅ ${action} completed successfully`
+      : `❌ ${action} failed: ${result.error}`;
+    
+    this.showToast(message, result.success ? 'success' : 'error');
+  }
+  
+  showCriticalAlert(metric, value) {
+    // Show critical threshold alert
+    this.showToast(
+      `🚨 CRITICAL: ${metric} threshold exceeded (${value})`,
+      'error'
+    );
+  }
+  
+  showToast(message, type = 'info') {
+    // Simple toast implementation - could be enhanced
+    const toast = document.createElement('div');
+    toast.className = `analytics-toast toast--${type}`;
+    toast.textContent = message;
+    toast.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 16px;
+      background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+      color: white;
+      border-radius: 8px;
+      z-index: 9999;
+      animation: slideInRight 0.3s ease-out;
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.style.animation = 'slideOutRight 0.3s ease-in';
+      setTimeout(() => toast.remove(), 300);
+    }, 4000);
+  }
+
+  // ============ HELP INTEGRATION ============
+
+  async registerHelpProvider() {
+    try {
+      // Import HelpService dynamically  
+      const { HelpService } = await import('../services/HelpService.js');
+      
+      // Register our AnalyticsHelpProvider
+      HelpService.registerProvider('analytics', this.helpProvider);
+      HelpService.setCurrentView('analytics');
+      
+      console.log('✅ Analytics help provider registered');
+    } catch (error) {
+      console.error('❌ Failed to register analytics help provider:', error);
+    }
+  }
+
   destroy() {
     // Destroy all Chart.js instances to prevent memory leaks
     this.destroyAllCharts();
@@ -2206,6 +2664,15 @@ export class Analytics {
       this.smartFilter.destroy();
     }
     
-    console.log('🧹 Analytics view cleaned up (including Chart.js instances)');
+    // Clean up metric cards
+    this.metricCards.clear();
+    
+    // Clean up global references
+    if (typeof window !== 'undefined') {
+      delete window.analytics;
+      delete window.actionService;
+    }
+    
+    console.log('🧹 Analytics view cleaned up (including Chart.js instances and ActionService)');
   }
 }
