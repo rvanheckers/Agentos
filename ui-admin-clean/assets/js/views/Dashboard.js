@@ -179,7 +179,7 @@ export class Dashboard {
       const queueStatus = hasCompleteStructure ? centralData.dashboard?.queue : centralData.queue;
       const todayJobs = hasCompleteStructure ? centralData.dashboard?.jobs : centralData.jobs;
       const analytics = centralData.analytics;
-      const agents = centralData.agents_workers;
+      const agents = centralData.agents_workers || centralData.agents;
       
       console.log('💾 Dashboard data sources:', {
         systemHealth: systemHealth ? 'REAL' : 'NULL',
@@ -501,15 +501,23 @@ export class Dashboard {
         };
       }
       
-      // Ensure all required fields exist with proper defaults
-      // FIX: Use completed_today and failed_today from queue data
+      // Calculate status counts from recent_jobs array
+      const recentJobs = todayJobs.recent_jobs || todayJobs.jobs || [];
+      const statusCounts = recentJobs.reduce((counts, job) => {
+        const status = job.status;
+        counts[status] = (counts[status] || 0) + 1;
+        return counts;
+      }, {});
+      
+      // Combine both approaches: use queue data when available, fallback to calculated counts
       return {
-        completed: queueData?.completed_today || todayJobs.completed || 0,  // FIX: Use queue's completed_today
-        processing: todayJobs.processing || 0,
-        pending: todayJobs.pending || 0,
-        failed: queueData?.failed_today || todayJobs.failed || 0,  // FIX: Use queue's failed_today
+        completed: queueData?.completed_today || statusCounts.completed || todayJobs.completed || 0,
+        processing: statusCounts.processing || todayJobs.processing || 0,
+        pending: statusCounts.queued || statusCounts.pending || todayJobs.pending || 0,
+        failed: queueData?.failed_today || statusCounts.failed || todayJobs.failed || 0,
+        cancelled: statusCounts.cancelled || 0,
         total: todayJobs.total_today || todayJobs.total || 0,  // CRITICAL FIX: Use total_today from API
-        jobs: todayJobs.recent_jobs || todayJobs.jobs || [],   // CRITICAL FIX: Use recent_jobs from API
+        jobs: recentJobs,   // CRITICAL FIX: Use recent_jobs from API
         success_rate: todayJobs.success_rate,  // CRITICAL FIX: Pass through API success_rate
         is_mock_data: todayJobs.is_mock_data || false
       };

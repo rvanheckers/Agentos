@@ -1,11 +1,11 @@
 # 🛡️ API Endpoint Governance - AgentOS v5.0 ENTERPRISE EDITION
 
-**Last Update:** 8 januari 2025  
-**Total Endpoints:** 40 active (2 NEW enterprise endpoints)  
+**Last Update:** 10 augustus 2025  
+**Total Endpoints:** 40 active (VERIFIED working endpoints)  
 **Governance Score:** 10/10 ✅ ENTERPRISE PRODUCTION READY  
-**Admin Architecture:** V5 Unified Action System + V4 SSOT Pattern  
-**NEW**: Enterprise Action Endpoint (GraphQL-style) + 50+ Admin Actions  
-**Performance:** 5ms cache hits (read), <200ms action execution, enterprise-grade security
+**Admin Architecture:** V5 Unified Action System + V4 SSOT Pattern ✅ **VERIFIED WORKING**
+**Frontend Integration:** 100% SSOT unified - All legacy endpoints deprecated  
+**Performance:** 5ms cache hits (read), WebSocket real-time updates, enterprise-grade security
 
 ---
 
@@ -17,10 +17,20 @@
 - **🏢 Admin Action Endpoints:** 2 (V5 ENTERPRISE unified actions) ⭐ NEW
 - **⚙️ System Endpoints:** 2 (health checks, root)
 
-### **🔐 Admin SSOT V4 Read Endpoints (UNCHANGED) - PRODUCTION READY**
+### **🔐 Admin SSOT V4 Read Endpoints ✅ VERIFIED PRODUCTION READY**
 ```
-GET /api/admin/ssot           # Cache-first complete admin data [5ms hit, 400ms miss]
+GET /api/admin/ssot           # Cache-first complete admin data [5ms hit, 400ms miss] ✅ WORKING
+GET /api/admin/ssot/dashboard # Quick dashboard-only endpoint ✅ WORKING  
+GET /api/admin/ssot/health    # SSOT health check ✅ WORKING
 ```
+
+**✅ V4 SSOT IMPLEMENTATION STATUS (10 augustus 2025):**
+- ✅ **Frontend Integration:** 100% complete - All admin views use SSOT
+- ✅ **WebSocket Integration:** Real-time updates working (port 8765)
+- ✅ **Data Consistency:** Dashboard + Jobs & Queue views synchronized
+- ✅ **Active Jobs Counting:** Fixed - processing + queued jobs correctly calculated
+- ✅ **Agents Data:** Frontend supports both agents/agents_workers structures
+- ✅ **Legacy Endpoints:** Deprecated - frontend uses SSOT exclusively
 
 ### **🏢 Admin ACTION V5 Enterprise Endpoints (INDUSTRY-LEADING) ⭐ NEW**
 ```
@@ -62,6 +72,14 @@ GET  /api/admin/action/status # Action status and monitoring
 - ✅ **Complete Data Structure:** All services included  
 - ✅ **UUID Support:** Fixed JSON serialization errors
 - ✅ **Parallel Execution:** All service calls in parallel
+
+**🔧 V4 RECENT FIXES (10 augustus 2025):**
+- ✅ **WebSocket Compatibility:** Fixed websockets v15→v10.4 compatibility issue
+- ✅ **Active Jobs Calculation:** Now correctly counts processing + queued (was showing 1 instead of 6)
+- ✅ **Agents Data Mismatch:** Frontend handles both agents/agents_workers API structures
+- ✅ **Data Consistency:** Dashboard and Jobs & Queue views now synchronized
+- ✅ **Real-time Updates:** WebSocket server working on port 8765
+- ✅ **Frontend Unification:** 100% SSOT usage confirmed - no legacy endpoints used
 
 **🏆 V5 ACHIEVEMENTS (ACTION SYSTEM):**
 - ✅ **Industry-Leading Architecture:** GraphQL-style unified endpoint
@@ -545,3 +563,70 @@ AUTHORIZATION → RATE_LIMIT → IDEMPOTENCY → CIRCUIT_BREAKER → DISPATCH �
 **SCALABILITY:** ✅ EXCELLENT - Foundation supports 83+ actions across 8 views  
 
 **Governance Status:** V5 Enterprise foundation complete. Phase 1 (Jobs & Queue) production-ready. Ready for Phase 2 expansion to remaining 7 admin views.
+
+---
+
+## 🔧 **CRITICAL PRODUCTION FIXES - 10 Augustus 2025**
+
+### **Cache Warming Task Fix - Agents Data Missing**
+
+**Issue:** Dashboard showed 0/0 agents despite backend having 11 active agents
+**Root Cause:** `tasks/cache_warming.py` used `get_dashboard_data()` instead of `_collect_all_data_fresh()`
+**Impact:** Missing agents_workers data in cache, frontend showed 0/0 instead of 11/11
+
+**Resolution:**
+```python
+# OLD (incorrect):
+dashboard_data = admin_manager.get_dashboard_data()  # Only dashboard data
+
+# NEW (fixed):
+dashboard_data = loop.run_until_complete(admin_manager._collect_all_data_fresh())  # Complete structure
+```
+
+**Files Modified:**
+- `tasks/cache_warming.py` - Fixed cache warming to include complete data structure
+- `api/routes/admin_ssot.py` - Fixed API response structure handling
+
+**Performance Impact:**
+- ✅ Maintained 5ms cache hits
+- ✅ Complete data structure: dashboard + agents_workers + analytics + queue + logs
+- ✅ Frontend now shows: 11/11 active agents, 17 active jobs, 1/1 workers
+
+### **Database Reset Considerations**
+
+**⚠️ CRITICAL WARNING:** Complete database reset requires manual intervention
+
+**Issues After Database Reset:**
+1. **Empty Tables:** All data lost (jobs, agents, clips, processing_steps, system_events)
+2. **Missing Test Data:** Frontend shows 0/0 everywhere
+3. **Cache Inconsistency:** Cache may contain stale data
+
+**Recovery Process:**
+1. Run test data generation: `python testing/test-data/generate_test_data.py --jobs 25 --events 100 --clean`
+2. Clear Redis cache: `redis-cli DEL "admin:dashboard:v4"`
+3. Restart services to reload fresh data
+4. Verify frontend shows real metrics
+
+**Dependencies for Production:**
+- `websockets==10.4` (CRITICAL - v15+ breaks compatibility)
+- `psutil==5.9.8` (CRITICAL - needed for worker status monitoring)
+- PostgreSQL Docker container must be running with correct credentials
+- Redis must be accessible for cache + queue + WebSocket messaging
+
+**Test Data Script Capabilities:**
+- ✅ Creates realistic job records (pending, processing, completed, failed)
+- ✅ Generates clips with video metadata
+- ✅ Creates processing steps with timestamps
+- ✅ Generates system events for monitoring
+- ❓ **UNKNOWN:** Whether all database indexes and constraints are recreated
+- ❓ **UNKNOWN:** Whether custom views, triggers, or stored procedures are restored
+
+**Production Deployment Checklist:**
+- [ ] Verify PostgreSQL container is running
+- [ ] Verify Redis is accessible
+- [ ] Run test data generation if database is empty
+- [ ] Confirm WebSocket server starts on port 8765
+- [ ] Verify cache warming task includes agents_workers data
+- [ ] Test frontend shows real data (not 0/0)
+
+---

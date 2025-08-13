@@ -79,11 +79,33 @@ async def get_admin_ssot_data(
 
         # V4 CACHE-FIRST ARCHITECTURE: Use optimized cache path for default time_range
         if time_range == "24h":
-            # FAST PATH: Use complete AdminDataManager response - no flattening needed!
-            response_data = await admin_data.get_all_data()
-
-            # Just add time_range for consistency with custom path
-            response_data['time_range'] = time_range
+            # FAST PATH: Use complete AdminDataManager response with proper flattening
+            raw_data = await admin_data.get_all_data()
+            
+            # V4 CACHE HIT: raw_data contains complete structure (dashboard + agents_workers + etc.)
+            dashboard = raw_data.get('dashboard', {})  # extract dashboard part
+            agents_workers = raw_data.get('agents_workers', {})  # extract agents part
+            
+            response_data = {
+                'timestamp': raw_data.get('timestamp'),
+                'dashboard': {
+                    'workers': dashboard.get('workers', {}),
+                    'queue': dashboard.get('queue', {}),
+                    'jobs': dashboard.get('jobs', {}),
+                    'system': dashboard.get('system', {}),
+                    'recent_activity': dashboard.get('recent_activity', [])
+                },
+                'analytics': raw_data.get('analytics', {}),
+                'agents_workers': agents_workers,
+                'agents': agents_workers,  # Provide both keys for compatibility
+                'logs': raw_data.get('logs', {}),
+                'system_control': raw_data.get('system_control', {}),
+                'configuration': raw_data.get('configuration', {}),
+                'status': 'success',
+                'architecture': raw_data.get('architecture', 'v4_cache_first'),
+                'response_time_ms': raw_data.get('response_time_ms', 0),
+                'time_range': time_range
+            }
         else:
             # For custom time_range, build response with parallel execution but correct analytics
             logger.info(f"V4: Starting custom parallel execution for time_range={time_range}")
@@ -115,17 +137,19 @@ async def get_admin_ssot_data(
             dashboard_data = results[0] if not isinstance(results[0], Exception) else {'error': str(results[0])}
 
             response_data = {
-                'workers': dashboard_data.get('workers', {}),
-                'queue': dashboard_data.get('queue', {}),
-                'jobs': dashboard_data.get('jobs', {}),
-                'system': dashboard_data.get('system', {}),
-                'recent_activity': dashboard_data.get('recent_activity', []),
+                'timestamp': datetime.now().isoformat(),
+                'dashboard': {
+                    'workers': dashboard_data.get('workers', {}),
+                    'queue': dashboard_data.get('queue', {}),
+                    'jobs': dashboard_data.get('jobs', {}),
+                    'system': dashboard_data.get('system', {}),
+                    'recent_activity': dashboard_data.get('recent_activity', [])
+                },
                 'analytics': results[2] if not isinstance(results[2], Exception) else {'error': str(results[2])},
                 'agents_workers': results[3] if not isinstance(results[3], Exception) else {'error': str(results[3])},
                 'logs': results[4] if not isinstance(results[4], Exception) else {'error': str(results[4])},
                 'system_control': results[5] if not isinstance(results[5], Exception) else {'error': str(results[5])},
                 'configuration': results[6] if not isinstance(results[6], Exception) else {'error': str(results[6])},
-                'timestamp': datetime.now().isoformat(),
                 'response_time_ms': round(response_time, 2),
                 'status': 'success',
                 'architecture': 'v4_parallel_execution'
