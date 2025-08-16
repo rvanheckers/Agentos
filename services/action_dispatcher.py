@@ -804,270 +804,596 @@ class ActionDispatcher:
         
         return emergency_data
 
+    # ============ ANALYTICS & SYSTEM HANDLERS WITH ERROR HANDLING ============
+
     async def _handle_analytics_drill_down(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle analytics drill-down requests"""
+        """Handle analytics drill-down requests with comprehensive error handling"""
         try:
+            # Input validation
+            if not isinstance(payload, dict):
+                raise ValueError("Payload must be a dictionary")
+            
             filter_type = payload.get('filter', 'all')
             timeframe = payload.get('timeframe', '24h')
             
             # Validate filter_type
-            if filter_type not in ['all', 'failed_last_24h', 'recent_failures', 'today_jobs']:
-                raise ValueError(f"Invalid filter type: {filter_type}")
+            valid_filters = ['all', 'failed_last_24h', 'recent_failures', 'today_jobs']
+            if filter_type not in valid_filters:
+                raise ValueError(f"Invalid filter type: {filter_type}. Must be one of: {valid_filters}")
             
-            # Mock implementation - in real system this would query actual data
-            drill_down_data = {
-                'failed_last_24h': {
-                    'total_failed': 12,
-                    'failure_reasons': [
-                        {'reason': 'API timeout', 'count': 7},
-                        {'reason': 'Invalid input', 'count': 3},
-                        {'reason': 'Worker crash', 'count': 2}
-                    ],
-                    'timeframe': timeframe
-                },
-                'recent_failures': {
-                    'total_failed': 8,
-                    'recent_jobs': [
-                        {'job_id': 'job_123', 'error': 'API timeout', 'timestamp': '2025-08-11T10:30:00Z'},
-                        {'job_id': 'job_124', 'error': 'Invalid input', 'timestamp': '2025-08-11T10:25:00Z'}
-                    ]
-                },
-                'today_jobs': {
-                    'total': 247,
-                    'completed': 235,
-                    'failed': 12,
-                    'breakdown_by_hour': []  # Would contain hourly data
+            # Validate timeframe
+            valid_timeframes = ['1h', '6h', '24h', '7d', '30d']
+            if timeframe not in valid_timeframes:
+                raise ValueError(f"Invalid timeframe: {timeframe}. Must be one of: {valid_timeframes}")
+            
+            # Mock implementation - in real system this would query actual data with database error handling
+            try:
+                drill_down_data = {
+                    'failed_last_24h': {
+                        'total_failed': 12,
+                        'failure_reasons': [
+                            {'reason': 'API timeout', 'count': 7},
+                            {'reason': 'Invalid input', 'count': 3},
+                            {'reason': 'Worker crash', 'count': 2}
+                        ],
+                        'timeframe': timeframe
+                    },
+                    'recent_failures': {
+                        'total_failed': 8,
+                        'recent_jobs': [
+                            {'job_id': 'job_123', 'error': 'API timeout', 'timestamp': '2025-08-11T10:30:00Z'},
+                            {'job_id': 'job_124', 'error': 'Invalid input', 'timestamp': '2025-08-11T10:25:00Z'}
+                        ]
+                    },
+                    'today_jobs': {
+                        'total': 247,
+                        'completed': 235,
+                        'failed': 12,
+                        'breakdown_by_hour': []  # Would contain hourly data
+                    }
                 }
-            }
+                
+                result_data = drill_down_data.get(filter_type, drill_down_data['today_jobs']) if filter_type == 'all' else drill_down_data.get(filter_type, {})
+                
+            except Exception as data_error:
+                logger.error(f"Database query error in analytics drill-down: {data_error}")
+                raise ValueError("Failed to retrieve analytics data from database")
             
             return {
+                'success': True,
                 'filter': filter_type,
-                'data': drill_down_data.get(filter_type, {}),
+                'timeframe': timeframe,
+                'data': result_data,
+                'generated_at': datetime.now(timezone.utc).isoformat()
+            }
+            
+        except ValueError as e:
+            logger.error(f"Analytics drill-down validation error: {e}")
+            return {
+                'success': False,
+                'error': 'validation_error',
+                'message': str(e),
                 'generated_at': datetime.now(timezone.utc).isoformat()
             }
         except Exception as e:
             logger.error(f"Analytics drill-down failed: {e}")
-            raise ValueError(f"Failed to generate drill-down data: {str(e)}")
+            return {
+                'success': False,
+                'error': 'processing_error',
+                'message': 'Failed to generate drill-down data',
+                'generated_at': datetime.now(timezone.utc).isoformat()
+            }
 
     async def _handle_analytics_generate_report(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle analytics report generation"""
-        report_type = payload.get('type', 'standard')
-        include_recommendations = payload.get('include_recommendations', True)
-        
-        # Mock report generation
-        reports = {
-            'sla_analysis': {
-                'sla_compliance': 99.7,
-                'target_sla': 99.5,
-                'breaches_last_30_days': 2,
-                'longest_outage': '45 minutes',
-                'recommendations': [
-                    'Implement redundant API endpoints',
-                    'Add automated failover mechanisms'
-                ] if include_recommendations else []
-            },
-            'performance_deep_dive': {
-                'avg_response_time': 1.2,
-                'p95_response_time': 2.8,
-                'p99_response_time': 4.1,
-                'bottlenecks': ['Database queries', 'External API calls'],
-                'recommendations': [
-                    'Optimize database indexes',
-                    'Implement connection pooling',
-                    'Add response caching'
-                ] if include_recommendations else []
-            },
-            'system_health': {
-                'overall_score': 94,
-                'components': {
-                    'api_server': 98,
-                    'database': 95,
-                    'workers': 90,
-                    'cache': 97
-                },
-                'recommendations': [
-                    'Scale worker pool during peak hours',
-                    'Update database to latest version'
-                ] if include_recommendations else []
+        """Handle analytics report generation with proper error handling"""
+        try:
+            # Input validation
+            if not isinstance(payload, dict):
+                raise ValueError("Payload must be a dictionary")
+            
+            report_type = payload.get('type', 'sla_analysis')
+            include_recommendations = payload.get('include_recommendations', True)
+            
+            # Validate report type
+            valid_types = ['sla_analysis', 'performance_deep_dive', 'system_health']
+            if report_type not in valid_types:
+                raise ValueError(f"Invalid report type: {report_type}. Must be one of: {valid_types}")
+            
+            # Validate boolean parameter
+            if not isinstance(include_recommendations, bool):
+                raise ValueError("include_recommendations must be a boolean")
+            
+            # Mock report generation with potential failures
+            try:
+                reports = {
+                    'sla_analysis': {
+                        'sla_compliance': 99.7,
+                        'target_sla': 99.5,
+                        'breaches_last_30_days': 2,
+                        'longest_outage': '45 minutes',
+                        'recommendations': [
+                            'Implement redundant API endpoints',
+                            'Add automated failover mechanisms'
+                        ] if include_recommendations else []
+                    },
+                    'performance_deep_dive': {
+                        'avg_response_time': 1.2,
+                        'p95_response_time': 2.8,
+                        'p99_response_time': 4.1,
+                        'bottlenecks': ['Database queries', 'External API calls'],
+                        'recommendations': [
+                            'Optimize database indexes',
+                            'Implement connection pooling',
+                            'Add response caching'
+                        ] if include_recommendations else []
+                    },
+                    'system_health': {
+                        'overall_score': 94,
+                        'components': {
+                            'api_server': 98,
+                            'database': 95,
+                            'workers': 90,
+                            'cache': 97
+                        },
+                        'recommendations': [
+                            'Scale worker pool during peak hours',
+                            'Update database to latest version'
+                        ] if include_recommendations else []
+                    }
+                }
+                
+                report_data = reports.get(report_type)
+                if not report_data:
+                    raise ValueError(f"Report data not found for type: {report_type}")
+                
+                # Simulate report file generation with potential file system errors
+                report_url = f"/downloads/analytics_report_{report_type}_{int(time.time())}.pdf"
+                
+            except Exception as gen_error:
+                logger.error(f"Report generation error: {gen_error}")
+                raise ValueError("Failed to generate report data")
+            
+            return {
+                'success': True,
+                'report_type': report_type,
+                'report_url': report_url,
+                'summary': report_data,
+                'expires_at': (datetime.now(timezone.utc)).isoformat(),
+                'generated_at': datetime.now(timezone.utc).isoformat()
             }
-        }
-        
-        report_data = reports.get(report_type, reports['sla_analysis'])
-        
-        # Simulate report file generation
-        report_url = f"/downloads/analytics_report_{report_type}_{int(time.time())}.pdf"
-        
-        return {
-            'report_type': report_type,
-            'report_url': report_url,
-            'summary': report_data,
-            'expires_at': (datetime.now(timezone.utc)).isoformat(),
-            'generated_at': datetime.now(timezone.utc).isoformat()
-        }
+            
+        except ValueError as e:
+            logger.error(f"Analytics report generation validation error: {e}")
+            return {
+                'success': False,
+                'error': 'validation_error',
+                'message': str(e),
+                'generated_at': datetime.now(timezone.utc).isoformat()
+            }
+        except Exception as e:
+            logger.error(f"Analytics report generation failed: {e}")
+            return {
+                'success': False,
+                'error': 'processing_error',
+                'message': 'Failed to generate analytics report',
+                'generated_at': datetime.now(timezone.utc).isoformat()
+            }
 
     async def _handle_analytics_capacity_analysis(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle capacity analysis requests"""
-        timeframe = payload.get('timeframe', 'daily')
-        
-        capacity_data = {
-            'current_utilization': {
-                'workers': 75,
-                'cpu': 68,
-                'memory': 72,
-                'queue_depth': 23
-            },
-            'recommendations': [
-                f'Based on {timeframe} patterns: Consider scaling up during peak hours',
-                'Current capacity sufficient for next 30 days',
-                'Monitor queue depth - trending upward'
-            ],
-            'scaling_suggestions': {
-                'immediate': 'No action needed',
-                'next_week': 'Add 2 workers',
-                'next_month': 'Evaluate database scaling'
+        """Handle capacity analysis requests with error handling"""
+        try:
+            # Input validation
+            if not isinstance(payload, dict):
+                raise ValueError("Payload must be a dictionary")
+            
+            timeframe = payload.get('timeframe', 'daily')
+            
+            # Validate timeframe
+            valid_timeframes = ['hourly', 'daily', 'weekly', 'monthly']
+            if timeframe not in valid_timeframes:
+                raise ValueError(f"Invalid timeframe: {timeframe}. Must be one of: {valid_timeframes}")
+            
+            try:
+                # Mock capacity analysis with potential system query failures
+                capacity_data = {
+                    'current_utilization': {
+                        'workers': 75,
+                        'cpu': 68,
+                        'memory': 72,
+                        'queue_depth': 23
+                    },
+                    'recommendations': [
+                        f'Based on {timeframe} patterns: Consider scaling up during peak hours',
+                        'Current capacity sufficient for next 30 days',
+                        'Monitor queue depth - trending upward'
+                    ],
+                    'scaling_suggestions': {
+                        'immediate': 'No action needed',
+                        'next_week': 'Add 2 workers',
+                        'next_month': 'Evaluate database scaling'
+                    },
+                    'success': True,
+                    'timeframe': timeframe,
+                    'generated_at': datetime.now(timezone.utc).isoformat()
+                }
+                
+            except Exception as analysis_error:
+                logger.error(f"Capacity analysis computation error: {analysis_error}")
+                raise ValueError("Failed to compute capacity analysis")
+            
+            return capacity_data
+            
+        except ValueError as e:
+            logger.error(f"Capacity analysis validation error: {e}")
+            return {
+                'success': False,
+                'error': 'validation_error',
+                'message': str(e),
+                'generated_at': datetime.now(timezone.utc).isoformat()
             }
-        }
-        
-        return capacity_data
+        except Exception as e:
+            logger.error(f"Capacity analysis failed: {e}")
+            return {
+                'success': False,
+                'error': 'processing_error',
+                'message': 'Failed to perform capacity analysis',
+                'generated_at': datetime.now(timezone.utc).isoformat()
+            }
 
     async def _handle_system_performance_tune(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle system performance tuning"""
-        
-        # Mock performance tuning actions
-        optimizations_applied = [
-            'Database query optimization',
-            'Connection pool tuning',
-            'Cache warming',
-            'Worker load balancing'
-        ]
-        
-        return {
-            'optimizations_applied': optimizations_applied,
-            'estimated_improvement': '15-20% response time reduction',
-            'next_review': 'In 24 hours',
-            'status': 'Performance tuning completed successfully'
-        }
+        """Handle system performance tuning with error handling"""
+        try:
+            # Input validation
+            if not isinstance(payload, dict):
+                raise ValueError("Payload must be a dictionary")
+            
+            tune_type = payload.get('type', 'auto')
+            aggressive = payload.get('aggressive', False)
+            
+            # Validate tuning type
+            valid_types = ['auto', 'conservative', 'aggressive', 'database', 'workers']
+            if tune_type not in valid_types:
+                raise ValueError(f"Invalid tune type: {tune_type}. Must be one of: {valid_types}")
+            
+            if not isinstance(aggressive, bool):
+                raise ValueError("aggressive parameter must be a boolean")
+            
+            try:
+                # Mock performance tuning actions with potential system errors
+                optimizations_applied = [
+                    'Database query optimization',
+                    'Connection pool tuning',
+                    'Cache warming',
+                    'Worker load balancing'
+                ]
+                
+                if aggressive:
+                    optimizations_applied.extend([
+                        'Memory allocation optimization',
+                        'CPU affinity adjustment',
+                        'Disk I/O optimization'
+                    ])
+                
+                # Simulate potential tuning failures
+                if tune_type == 'database' and aggressive:
+                    # Simulate database tuning that might fail
+                    pass
+                
+            except Exception as tune_error:
+                logger.error(f"Performance tuning execution error: {tune_error}")
+                raise ValueError("Failed to apply performance optimizations")
+            
+            return {
+                'success': True,
+                'tune_type': tune_type,
+                'optimizations_applied': optimizations_applied,
+                'estimated_improvement': '15-20% response time reduction',
+                'next_review': 'In 24 hours',
+                'status': 'Performance tuning completed successfully',
+                'applied_at': datetime.now(timezone.utc).isoformat()
+            }
+            
+        except ValueError as e:
+            logger.error(f"Performance tuning validation error: {e}")
+            return {
+                'success': False,
+                'error': 'validation_error',
+                'message': str(e),
+                'applied_at': datetime.now(timezone.utc).isoformat()
+            }
+        except Exception as e:
+            logger.error(f"Performance tuning failed: {e}")
+            return {
+                'success': False,
+                'error': 'processing_error',
+                'message': 'Failed to apply performance tuning',
+                'applied_at': datetime.now(timezone.utc).isoformat()
+            }
 
     async def _handle_system_health_check(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle comprehensive system health check"""
-        comprehensive = payload.get('comprehensive', False)
-        
-        health_data = {
-            'overall_health': 94,
-            'components': {
-                'api_server': {'status': 'healthy', 'score': 98},
-                'database': {'status': 'healthy', 'score': 95},
-                'workers': {'status': 'degraded', 'score': 90},
-                'cache': {'status': 'healthy', 'score': 97},
-                'queue': {'status': 'healthy', 'score': 92}
-            },
-            'issues_found': [
-                'Worker pool at 85% capacity',
-                'Database connection pool nearing limits'
-            ],
-            'recommendations': [
-                'Scale worker pool',
-                'Monitor database connections',
-                'Consider adding read replicas'
-            ]
-        }
-        
-        if comprehensive:
-            health_data['detailed_metrics'] = {
-                'response_times': {'avg': 1.2, 'p95': 2.8},
-                'error_rates': {'last_1h': 0.3, 'last_24h': 0.8},
-                'resource_usage': {'cpu': 68, 'memory': 72}
+        """Handle comprehensive system health check with error handling"""
+        try:
+            # Input validation
+            if not isinstance(payload, dict):
+                raise ValueError("Payload must be a dictionary")
+            
+            comprehensive = payload.get('comprehensive', False)
+            include_metrics = payload.get('include_metrics', True)
+            
+            # Validate parameters
+            if not isinstance(comprehensive, bool):
+                raise ValueError("comprehensive parameter must be a boolean")
+            if not isinstance(include_metrics, bool):
+                raise ValueError("include_metrics parameter must be a boolean")
+            
+            try:
+                # Mock health check with potential system access failures
+                health_data = {
+                    'overall_health': 94,
+                    'components': {
+                        'api_server': {'status': 'healthy', 'score': 98},
+                        'database': {'status': 'healthy', 'score': 95},
+                        'workers': {'status': 'degraded', 'score': 90},
+                        'cache': {'status': 'healthy', 'score': 97},
+                        'queue': {'status': 'healthy', 'score': 92}
+                    },
+                    'issues_found': [
+                        'Worker pool at 85% capacity',
+                        'Database connection pool nearing limits'
+                    ],
+                    'recommendations': [
+                        'Scale worker pool',
+                        'Monitor database connections',
+                        'Consider adding read replicas'
+                    ],
+                    'success': True,
+                    'check_type': 'comprehensive' if comprehensive else 'basic',
+                    'generated_at': datetime.now(timezone.utc).isoformat()
+                }
+                
+                if comprehensive and include_metrics:
+                    health_data['detailed_metrics'] = {
+                        'response_times': {'avg': 1.2, 'p95': 2.8},
+                        'error_rates': {'last_1h': 0.3, 'last_24h': 0.8},
+                        'resource_usage': {'cpu': 68, 'memory': 72}
+                    }
+                
+            except Exception as health_error:
+                logger.error(f"Health check execution error: {health_error}")
+                raise ValueError("Failed to perform system health check")
+            
+            return health_data
+            
+        except ValueError as e:
+            logger.error(f"System health check validation error: {e}")
+            return {
+                'success': False,
+                'error': 'validation_error',
+                'message': str(e),
+                'generated_at': datetime.now(timezone.utc).isoformat()
             }
-        
-        return health_data
+        except Exception as e:
+            logger.error(f"System health check failed: {e}")
+            return {
+                'success': False,
+                'error': 'processing_error',
+                'message': 'Failed to perform system health check',
+                'generated_at': datetime.now(timezone.utc).isoformat()
+            }
 
     async def _handle_system_emergency_report(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle emergency system reports"""
-        trigger = payload.get('trigger', 'manual')
-        
-        emergency_data = {
-            'trigger': trigger,
-            'severity': 'high',
-            'timestamp': datetime.now(timezone.utc).isoformat(),
-            'immediate_actions': [
-                'Scaling worker pool by 50%',
-                'Enabling high-availability mode',
-                'Alerting on-call engineers'
-            ],
-            'system_status': {
-                'sla_compliance': 94.2,  # Below critical threshold
-                'active_incidents': 1,
-                'estimated_recovery': '15 minutes'
-            },
-            'next_steps': [
-                'Monitor system recovery',
-                'Investigate root cause',
-                'Update incident documentation'
-            ]
-        }
-        
-        return emergency_data
-
-    async def _handle_worker_optimize(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle worker optimization"""
-        based_on = payload.get('based_on', 'current_load')
-        
-        optimization_result = {
-            'optimization_type': based_on,
-            'actions_taken': [
-                'Redistributed work across workers',
-                'Optimized worker memory allocation',
-                'Updated worker priorities'
-            ],
-            'performance_improvement': {
-                'throughput': '+12%',
-                'resource_utilization': '+8%',
-                'response_time': '-200ms'
-            },
-            'status': 'Worker optimization completed'
-        }
-        
-        return optimization_result
+        """Handle emergency system reports with error handling"""
+        try:
+            # Input validation
+            if not isinstance(payload, dict):
+                raise ValueError("Payload must be a dictionary")
+            
+            trigger = payload.get('trigger', 'manual')
+            severity = payload.get('severity', 'high')
+            
+            # Validate trigger
+            valid_triggers = ['manual', 'automated', 'threshold', 'external']
+            if trigger not in valid_triggers:
+                raise ValueError(f"Invalid trigger: {trigger}. Must be one of: {valid_triggers}")
+            
+            # Validate severity
+            valid_severities = ['low', 'medium', 'high', 'critical']
+            if severity not in valid_severities:
+                raise ValueError(f"Invalid severity: {severity}. Must be one of: {valid_severities}")
+            
+            try:
+                # Mock emergency report generation with potential failures
+                emergency_data = {
+                    'trigger': trigger,
+                    'severity': severity,
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'immediate_actions': [
+                        'Scaling worker pool by 50%',
+                        'Enabling high-availability mode',
+                        'Alerting on-call engineers'
+                    ],
+                    'system_status': {
+                        'sla_compliance': 94.2,  # Below critical threshold
+                        'active_incidents': 1,
+                        'estimated_recovery': '15 minutes'
+                    },
+                    'next_steps': [
+                        'Monitor system recovery',
+                        'Investigate root cause',
+                        'Update incident documentation'
+                    ],
+                    'success': True,
+                    'generated_at': datetime.now(timezone.utc).isoformat()
+                }
+                
+                # Additional actions based on severity
+                if severity == 'critical':
+                    emergency_data['immediate_actions'].extend([
+                        'Activate disaster recovery protocol',
+                        'Notify executive team',
+                        'Prepare public status update'
+                    ])
+                
+            except Exception as emergency_error:
+                logger.error(f"Emergency report generation error: {emergency_error}")
+                raise ValueError("Failed to generate emergency report")
+            
+            return emergency_data
+            
+        except ValueError as e:
+            logger.error(f"Emergency report validation error: {e}")
+            return {
+                'success': False,
+                'error': 'validation_error',
+                'message': str(e),
+                'generated_at': datetime.now(timezone.utc).isoformat()
+            }
+        except Exception as e:
+            logger.error(f"Emergency report failed: {e}")
+            return {
+                'success': False,
+                'error': 'processing_error',
+                'message': 'Failed to generate emergency report',
+                'generated_at': datetime.now(timezone.utc).isoformat()
+            }
 
     async def _handle_worker_auto_scale(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle automatic worker scaling"""
-        trigger = payload.get('trigger', 'manual')
-        direction = payload.get('direction', 'up')
-        count = payload.get('count', 2)
-        
-        # Mock worker scaling
-        current_workers = 6
-        new_count = current_workers + count if direction == 'up' else max(1, current_workers - count)
-        
-        return {
-            'action': f'scale_{direction}',
-            'trigger': trigger,
-            'previous_count': current_workers,
-            'new_count': new_count,
-            'estimated_completion': '3-5 minutes',
-            'status': 'Scaling operation initiated'
-        }
+        """Handle automatic worker scaling with error handling"""
+        try:
+            # Input validation
+            if not isinstance(payload, dict):
+                raise ValueError("Payload must be a dictionary")
+            
+            trigger = payload.get('trigger', 'manual')
+            direction = payload.get('direction', 'up')
+            count = payload.get('count', 2)
+            
+            # Validate direction
+            valid_directions = ['up', 'down']
+            if direction not in valid_directions:
+                raise ValueError(f"Invalid direction: {direction}. Must be one of: {valid_directions}")
+            
+            # Validate count
+            if not isinstance(count, int) or count < 1 or count > 10:
+                raise ValueError("count must be an integer between 1 and 10")
+            
+            # Validate trigger
+            valid_triggers = ['manual', 'load_threshold', 'queue_depth', 'scheduled']
+            if trigger not in valid_triggers:
+                raise ValueError(f"Invalid trigger: {trigger}. Must be one of: {valid_triggers}")
+            
+            try:
+                # Mock worker scaling with potential infrastructure failures
+                current_workers = 6
+                new_count = current_workers + count if direction == 'up' else max(1, current_workers - count)
+                
+                # Simulate scaling limits
+                if new_count > 20:
+                    raise ValueError("Maximum worker limit (20) would be exceeded")
+                if new_count < 1:
+                    raise ValueError("Minimum worker count (1) required")
+                
+            except Exception as scale_error:
+                logger.error(f"Worker scaling execution error: {scale_error}")
+                raise ValueError("Failed to execute worker scaling")
+            
+            return {
+                'success': True,
+                'action': f'scale_{direction}',
+                'trigger': trigger,
+                'previous_count': current_workers,
+                'new_count': new_count,
+                'workers_changed': abs(new_count - current_workers),
+                'estimated_completion': '3-5 minutes',
+                'status': 'Scaling operation initiated',
+                'initiated_at': datetime.now(timezone.utc).isoformat()
+            }
+            
+        except ValueError as e:
+            logger.error(f"Worker auto-scale validation error: {e}")
+            return {
+                'success': False,
+                'error': 'validation_error',
+                'message': str(e),
+                'initiated_at': datetime.now(timezone.utc).isoformat()
+            }
+        except Exception as e:
+            logger.error(f"Worker auto-scale failed: {e}")
+            return {
+                'success': False,
+                'error': 'processing_error',
+                'message': 'Failed to scale workers',
+                'initiated_at': datetime.now(timezone.utc).isoformat()
+            }
 
     async def _handle_worker_optimize(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle worker optimization"""
-        based_on = payload.get('based_on', 'current_load')
-        
-        optimization_result = {
-            'optimization_type': based_on,
-            'actions_taken': [
-                'Redistributed work across workers',
-                'Optimized worker memory allocation',
-                'Updated worker priorities'
-            ],
-            'performance_improvement': {
-                'throughput': '+12%',
-                'resource_utilization': '+8%',
-                'response_time': '-200ms'
-            },
-            'status': 'Worker optimization completed'
-        }
-        
-        return optimization_result
+        """Handle worker optimization with error handling"""
+        try:
+            # Input validation
+            if not isinstance(payload, dict):
+                raise ValueError("Payload must be a dictionary")
+            
+            based_on = payload.get('based_on', 'current_load')
+            optimize_type = payload.get('type', 'performance')
+            
+            # Validate optimization basis
+            valid_bases = ['current_load', 'historical_patterns', 'queue_analysis', 'resource_usage']
+            if based_on not in valid_bases:
+                raise ValueError(f"Invalid based_on: {based_on}. Must be one of: {valid_bases}")
+            
+            # Validate optimization type
+            valid_types = ['performance', 'memory', 'throughput', 'balanced']
+            if optimize_type not in valid_types:
+                raise ValueError(f"Invalid optimization type: {optimize_type}. Must be one of: {valid_types}")
+            
+            try:
+                # Mock worker optimization with potential configuration failures
+                optimization_result = {
+                    'optimization_type': based_on,
+                    'focus': optimize_type,
+                    'actions_taken': [
+                        'Redistributed work across workers',
+                        'Optimized worker memory allocation',
+                        'Updated worker priorities'
+                    ],
+                    'performance_improvement': {
+                        'throughput': '+12%',
+                        'resource_utilization': '+8%',
+                        'response_time': '-200ms'
+                    },
+                    'status': 'Worker optimization completed',
+                    'success': True,
+                    'optimized_at': datetime.now(timezone.utc).isoformat()
+                }
+                
+                # Add type-specific optimizations
+                if optimize_type == 'memory':
+                    optimization_result['actions_taken'].append('Garbage collection tuning')
+                elif optimize_type == 'throughput':
+                    optimization_result['actions_taken'].append('Connection pool optimization')
+                
+            except Exception as optimize_error:
+                logger.error(f"Worker optimization execution error: {optimize_error}")
+                raise ValueError("Failed to optimize workers")
+            
+            return optimization_result
+            
+        except ValueError as e:
+            logger.error(f"Worker optimization validation error: {e}")
+            return {
+                'success': False,
+                'error': 'validation_error',
+                'message': str(e),
+                'optimized_at': datetime.now(timezone.utc).isoformat()
+            }
+        except Exception as e:
+            logger.error(f"Worker optimization failed: {e}")
+            return {
+                'success': False,
+                'error': 'processing_error',
+                'message': 'Failed to optimize workers',
+                'optimized_at': datetime.now(timezone.utc).isoformat()
+            }
 
 # ============ SINGLETON INSTANCE ============
 

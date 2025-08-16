@@ -33,19 +33,23 @@ function getAPIBaseURL() {
     return { url: 'http://localhost:8001', source: 'Development Fallback' };
 }
 
-const apiConfig = getAPIBaseURL();
-const API_BASE_URL = apiConfig.url;
+const { url: API_BASE_URL, source: API_SOURCE } = getAPIBaseURL();
 console.log('🔧 API Configuration:', {
-    'API_BASE_URL': API_BASE_URL,
-    'Detection_Method': apiConfig.source,
-    'Environment': typeof process !== 'undefined' ? 'Node.js' : 'Browser'
+    API_BASE_URL,
+    Detection_Method: API_SOURCE,
+    Environment: (typeof process !== 'undefined' && process.release && process.release.name === 'node') ? 'Node.js' : 'Browser'
 });
 
 // Functie om exact te zien wat er in de UI staat
 function captureCurrentUIState() {
     const metrics = Array.from(document.querySelectorAll('.metric-card')).map(card => {
+        // Updated selectors to match new HTML structure
+        const titleElement = card.querySelector('.metric-card__title');
+        // Remove help icon from title text if present
+        const titleText = titleElement ? titleElement.textContent?.replace('❓', '').trim() : null;
+        
         return {
-            title: card.querySelector('.metric-card__title')?.textContent?.trim(),
+            title: titleText,
             value: card.querySelector('.metric-card__value')?.textContent?.trim(), 
             description: card.querySelector('.metric-card__description')?.textContent?.trim(),
             status: card.querySelector('.metric-card__status')?.textContent?.trim()
@@ -82,12 +86,40 @@ function captureCurrentUIState() {
     return metrics;
 }
 
+// Simple retry wrapper for fetch
+async function fetchWithRetry(url, options = {}, maxRetries = 2) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const response = await fetch(url, options);
+            return response;
+        } catch (error) {
+            if (attempt === maxRetries) throw error;
+            
+            const delay = Math.min(1000 * attempt, 3000); // 1s, 2s, then 3s max
+            console.warn(`🔄 Retry attempt ${attempt}/${maxRetries} in ${delay}ms:`, error.message);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+}
+
 // Functie om API data op te halen
 async function fetchCurrentAPIData() {
     try {
         const apiUrl = `${API_BASE_URL}/api/admin/ssot`;
         console.log('📡 Fetching API data from:', apiUrl);
-        const response = await fetch(apiUrl);
+        
+        const response = await fetchWithRetry(apiUrl);
+        
+        if (!response.ok) {
+            console.error('❌ API HTTP error:', {
+                status: response.status,
+                statusText: response.statusText,
+                url: response.url,
+                headers: Object.fromEntries(response.headers.entries())
+            });
+            return null;
+        }
+        
         const data = await response.json();
         
         const queue = data.dashboard?.queue || {};
@@ -101,7 +133,38 @@ async function fetchCurrentAPIData() {
         
         return { queue, jobs };
     } catch (error) {
-        console.error('❌ API fetch failed:', error);
+        // Detect CORS and network-specific issues
+        const errorName = error?.name || '';
+        const errorMessage = error?.message || '';
+        
+        if (errorName === 'TypeError' && 
+            /Failed to fetch|NetworkError|CORS|Cross-Origin/i.test(errorMessage)) {
+            
+            console.error('❌ API fetch failed — mogelijke CORS/netwerk issue:', {
+                name: errorName,
+                message: errorMessage,
+                apiUrl: `${API_BASE_URL}/api/admin/ssot`,
+                suggestion: 'Check if API server is running en CORS is configured'
+            });
+            
+        } else if (errorName === 'SyntaxError' && /JSON/i.test(errorMessage)) {
+            
+            console.error('❌ API returned invalid JSON:', {
+                name: errorName,
+                message: errorMessage,
+                suggestion: 'Check server response format'
+            });
+            
+        } else {
+            
+            console.error('❌ API fetch failed:', {
+                name: errorName,
+                message: errorMessage,
+                stack: error?.stack,
+                suggestion: 'Check console voor details'
+            });
+        }
+        
         return null;
     }
 }
@@ -151,9 +214,10 @@ async function compareUIvsAPI() {
 
 // Functie om de Jobs card handmatig te updaten (voor testing)
 function manualUpdateJobsCard(completedToday, totalToday, successRate) {
-    const jobsCard = Array.from(document.querySelectorAll('.metric-card')).find(card => 
-        card.querySelector('.metric-card__title')?.textContent?.includes('Jobs')
-    );
+    const jobsCard = Array.from(document.querySelectorAll('.metric-card')).find(card => {
+        const titleText = card.querySelector('.metric-card__title')?.textContent?.replace('❓', '').trim();
+        return titleText?.includes('Jobs');
+    });
     
     if (jobsCard) {
         const descElement = jobsCard.querySelector('.metric-card__description');
