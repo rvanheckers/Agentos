@@ -93,10 +93,51 @@
             // Start counting errors
             const startTime = Date.now();
             
-            iframe.onload = function() {
+            // Consolidated iframe load handler - combines both behaviors
+            function handleIframeLoad() {
                 logToDiv('log', '✅ Analytics page loaded in iframe');
                 
-                // Wait for JavaScript to execute and catch any delayed errors
+                try {
+                    const iframeWindow = iframe.contentWindow;
+                    
+                    // Override iframe console to capture messages
+                    const iframeConsole = iframeWindow.console;
+                    
+                    iframeWindow.console.error = function(...args) {
+                        const message = args.join(' ');
+                        logToDiv('error', `[IFRAME] ${message}`);
+                        consoleMessages.push({ type: 'error', message: message, timestamp: Date.now() });
+                        errorCount.errors++;
+                        iframeConsole.error.apply(iframeConsole, args);
+                    };
+                    
+                    iframeWindow.console.warn = function(...args) {
+                        const message = args.join(' ');
+                        logToDiv('warn', `[IFRAME] ${message}`);
+                        consoleMessages.push({ type: 'warn', message: message, timestamp: Date.now() });
+                        errorCount.warnings++;
+                        iframeConsole.warn.apply(iframeConsole, args);
+                    };
+                    
+                    iframeWindow.console.log = function(...args) {
+                        const message = args.join(' ');
+                        logToDiv('log', `[IFRAME] ${message}`);
+                        consoleMessages.push({ type: 'log', message: message, timestamp: Date.now() });
+                        iframeConsole.log.apply(iframeConsole, args);
+                    };
+                    
+                    logToDiv('log', '🔍 Iframe console hooks installed, monitoring for errors...');
+                    
+                } catch (e) {
+                    logToDiv('warn', `Could not hook iframe console: ${e.message}`);
+                }
+                
+                // Clear any existing timeout to prevent double execution
+                if (loadTimeout) {
+                    clearTimeout(loadTimeout);
+                }
+                
+                // Set analysis timeout - wait for JavaScript to execute and catch delayed errors
                 loadTimeout = setTimeout(() => {
                     const errors = consoleMessages.filter(m => m.type === 'error');
                     const warnings = consoleMessages.filter(m => m.type === 'warn');
@@ -107,15 +148,19 @@
                     logToDiv('warn', `⚠️ ${warnings.length} warning messages`);
                     logToDiv('error', `❌ ${errors.length} error messages`);
                     
+                    // Final status determination
                     if (errors.length === 0) {
                         updateStatus('✅ SUCCESS: No console errors detected!', 'success');
                         logToDiv('log', '🎉 Analytics view loads cleanly without errors');
                     } else {
                         updateStatus(`❌ FAIL: ${errors.length} console errors found`, 'fail');
                         logToDiv('error', `🚨 Issues detected that need fixing:`);
-                        errors.forEach(error => {
+                        errors.slice(0, 5).forEach(error => {
                             logToDiv('error', `   → ${error.message}`);
                         });
+                        if (errors.length > 5) {
+                            logToDiv('error', `   ... and ${errors.length - 5} more errors`);
+                        }
                     }
                     
                     if (warnings.length > 0) {
@@ -123,61 +168,26 @@
                         warnings.slice(0, 3).forEach(warn => {
                             logToDiv('warn', `   → ${warn.message}`);
                         });
+                        if (warnings.length > 3) {
+                            logToDiv('warn', `   ... and ${warnings.length - 3} more warnings`);
+                        }
                     }
                     
+                    logToDiv('log', `📋 Final Results: ${errors.length} errors, ${warnings.length} warnings`);
+                    
                 }, 5000); // Wait 5 seconds for all JavaScript to execute
-            };
+            }
+            
+            // Use addEventListener to avoid overwriting
+            iframe.addEventListener('load', handleIframeLoad);
             
             iframe.onerror = function(error) {
                 logToDiv('error', `❌ Iframe load error: ${error}`);
                 updateStatus('❌ Failed to load Analytics view', 'fail');
-                clearTimeout(loadTimeout);
-            };
-            
-            // Catch any iframe console errors
-            iframe.onload = function() {
-                logToDiv('log', '✅ Analytics iframe loaded, monitoring for errors...');
-                
-                try {
-                    const iframeWindow = iframe.contentWindow;
-                    
-                    // Override iframe console
-                    const iframeConsole = iframeWindow.console;
-                    
-                    iframeWindow.console.error = function(...args) {
-                        logToDiv('error', `[IFRAME] ${args.join(' ')}`);
-                        errorCount.errors++;
-                        iframeConsole.error.apply(iframeConsole, args);
-                    };
-                    
-                    iframeWindow.console.warn = function(...args) {
-                        logToDiv('warn', `[IFRAME] ${args.join(' ')}`);
-                        errorCount.warnings++;
-                        iframeConsole.warn.apply(iframeConsole, args);
-                    };
-                    
-                    iframeWindow.console.log = function(...args) {
-                        logToDiv('log', `[IFRAME] ${args.join(' ')}`);
-                        iframeConsole.log.apply(iframeConsole, args);
-                    };
-                    
-                } catch (e) {
-                    logToDiv('warn', `Could not hook iframe console: ${e.message}`);
+                if (loadTimeout) {
+                    clearTimeout(loadTimeout);
+                    loadTimeout = null;
                 }
-                
-                // Set completion timeout
-                loadTimeout = setTimeout(() => {
-                    const totalErrors = consoleMessages.filter(m => m.type === 'error').length;
-                    const totalWarnings = consoleMessages.filter(m => m.type === 'warn').length;
-                    
-                    if (totalErrors === 0) {
-                        updateStatus('✅ SUCCESS: Analytics loads without errors!', 'success');
-                    } else {
-                        updateStatus(`❌ ${totalErrors} errors found`, 'fail');
-                    }
-                    
-                    logToDiv('log', `📋 Final Results: ${totalErrors} errors, ${totalWarnings} warnings`);
-                }, 5000);
             };
             
             // Load the analytics page
