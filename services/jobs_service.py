@@ -4,7 +4,7 @@ Handles all job-related business logic for both admin and user endpoints
 Eliminates 12 duplicate method implementations
 """
 from typing import List, Dict, Optional, Any
-from datetime import datetime, date, timedelta, timezone
+from datetime import datetime, date
 from core.database_manager import Job, Clip
 from core.database_pool import get_db_session
 from sqlalchemy import desc, func
