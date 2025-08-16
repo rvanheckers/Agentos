@@ -17,12 +17,11 @@ Key Principles:
 import logging
 import threading
 import time
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 from contextlib import contextmanager
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.pool import QueuePool
-from sqlalchemy.exc import DisconnectionError
 import os
 
 logger = logging.getLogger(__name__)
