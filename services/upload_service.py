@@ -95,15 +95,15 @@ class UploadService:
                             "temp_path": upload_session["temp_path"]
                         }
 
-                        # Assuming log_system_event is a method that takes a session
-                        # If it's on db_manager, we need to adapt this
-                        if hasattr(session, 'log_system_event'):
-                            session.log_system_event(
-                                event_type="upload_session_initialized",
-                                message=f"Upload session initialized for file: {filename} ({file_size} bytes)",
-                                component="upload_service",
-                                metadata=event_metadata
-                            )
+                        # Log system event using centralized logger
+                        from core.system_event_logger import log_upload_event
+                        log_upload_event(
+                            upload_id=upload_id,
+                            status="initialized",
+                            message=f"Upload session initialized for file: {filename} ({file_size} bytes)",
+                            filename=filename,
+                            file_size=file_size
+                        )
                         logger.info(f"✅ Upload session {upload_id} stored in database")
 
                 except Exception as db_error:
@@ -225,13 +225,16 @@ class UploadService:
                             "chunk_size": len(chunk)
                         }
 
-                        if hasattr(db_session, 'log_system_event'):
-                            db_session.log_system_event(
-                                event_type="upload_chunk_received",
-                                message=f"Chunk {chunk_index}/{session['total_chunks']} uploaded for {session['filename']} ({progress:.1f}%)",
-                                component="upload_service",
-                                metadata=event_metadata
-                            )
+                        # Log chunk upload event
+                        from core.system_event_logger import log_upload_event
+                        log_upload_event(
+                            upload_id=upload_id,
+                            status="chunk_received",
+                            message=f"Chunk {chunk_index}/{session['total_chunks']} uploaded for {session['filename']} ({progress:.1f}%)",
+                            chunk_index=chunk_index,
+                            total_chunks=session['total_chunks'],
+                            progress=progress
+                        )
 
                 except Exception as db_error:
                     logger.warning(f"⚠️ Database chunk logging failed: {db_error}")
@@ -298,13 +301,17 @@ class UploadService:
                             "upload_duration_seconds": (datetime.now(timezone.utc) - datetime.fromisoformat(session["created_at"].replace("Z", "+00:00"))).total_seconds()
                         }
 
-                        if hasattr(db_session, 'log_system_event'):
-                            db_session.log_system_event(
-                                event_type="upload_completed",
-                                message=f"Upload completed successfully: {session['filename']} ({session['file_size']} bytes, {session['total_chunks']} chunks)",
-                                component="upload_service",
-                                metadata=completion_metadata
-                            )
+                        # Log upload completion
+                        from core.system_event_logger import log_upload_event
+                        log_upload_event(
+                            upload_id=upload_id,
+                            status="completed",
+                            message=f"Upload completed successfully: {session['filename']} ({session['file_size']} bytes, {session['total_chunks']} chunks)",
+                            filename=session['filename'],
+                            file_size=session['file_size'],
+                            total_chunks=session['total_chunks'],
+                            final_path=final_path
+                        )
                         logger.info(f"✅ Upload completion logged to database: {upload_id}")
 
                 except Exception as db_error:
@@ -423,13 +430,16 @@ class UploadService:
                             "import_method": "local_file_import"
                         }
 
-                        if hasattr(db_session, 'log_system_event'):
-                            db_session.log_system_event(
-                                event_type="file_imported",
-                                message=f"Local file imported: {filename} ({file_size} bytes) -> {safe_filename}",
-                                component="upload_service",
-                                metadata=import_metadata
-                            )
+                        # Log file import event
+                        from core.system_event_logger import log_upload_event
+                        log_upload_event(
+                            upload_id="import_" + datetime.now().strftime('%Y%m%d_%H%M%S'),
+                            status="imported",
+                            message=f"Local file imported: {filename} ({file_size} bytes) -> {safe_filename}",
+                            original_path=file_path,
+                            filename=safe_filename,
+                            file_size=file_size
+                        )
                         logger.info(f"✅ File import logged to database: {safe_filename}")
 
                 except Exception as db_error:

@@ -146,6 +146,13 @@ class AdminDataManager:
     def agents_service(self):
         if not self._agents_service:
             self._agents_service = AgentsService()
+            # Register for explicit shutdown during application stop
+            try:
+                from api.main import register_agents_service
+                register_agents_service(self._agents_service)
+            except ImportError:
+                # Not running via API, no explicit shutdown available
+                pass
         return self._agents_service
 
     @property

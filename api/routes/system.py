@@ -738,9 +738,10 @@ async def trigger_system_check():
         else:
             overall_status = "healthy"
 
-        # Log system event using available method
+        # Log system event using centralized logger
+        from core.system_event_logger import log_system_event
         try:
-            event_id = db.log_system_event(
+            log_system_event(
                 event_type="system_health_check",
                 message=f"Manual system health check completed - Status: {overall_status}",
                 severity="info",
@@ -841,10 +842,12 @@ async def ping_all_workers():
             "ping_results": ping_results
         }
 
-        event_id = db.log_system_event(
+        from core.system_event_logger import log_system_event
+        log_system_event(
             event_type="worker_ping_all",
-            description=f"Manual worker ping executed - {worker_summary['status_text']}",
-            user_id="admin",
+            message=f"Manual worker ping executed - {worker_summary['status_text']}",
+            severity="info",
+            component="admin_ui",
             metadata=event_metadata
         )
 
@@ -863,11 +866,12 @@ async def ping_all_workers():
     except Exception as e:
         # Log failed ping attempt
         try:
-            db = PostgreSQLManager()
-            db.log_system_event(
+            from core.system_event_logger import log_system_event
+            log_system_event(
                 event_type="worker_ping_failed",
-                description=f"Worker ping failed: {str(e)}",
-                user_id="admin",
+                message=f"Worker ping failed: {str(e)}",
+                severity="error",
+                component="admin_ui",
                 metadata={"error": str(e)}
             )
         except Exception:
@@ -914,8 +918,9 @@ async def toggle_maintenance_mode():
                 raise Exception(f"Failed to enable maintenance mode: {e}")
 
         # Log system event
+        from core.system_event_logger import log_system_event
         try:
-            event_id = db.log_system_event(
+            log_system_event(
                 event_type="maintenance_mode_toggle",
                 message=description,
                 severity="info",
@@ -1015,8 +1020,9 @@ async def restart_failed_jobs():
             logger.error(f"Failed to query failed jobs: {db_error}")
 
         # Log system event
+        from core.system_event_logger import log_system_event
         try:
-            event_id = db.log_system_event(
+            log_system_event(
                 event_type="bulk_restart_failed_jobs",
                 message=f"Bulk restart executed - {successful_restarts}/{len(failed_jobs)} failed jobs restarted",
                 severity="info",

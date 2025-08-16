@@ -13,6 +13,14 @@ logger = logging.getLogger("agentos.api.routes.agents")
 # Create service instance
 agents_service = AgentsService()
 
+# Register for explicit shutdown during application stop
+try:
+    from api.main import register_agents_service
+    register_agents_service(agents_service)
+except ImportError:
+    # Not running via API, no explicit shutdown available
+    pass
+
 # Single router - user endpoints only (admin can use these too)
 user_router = APIRouter(prefix="/api/agents", tags=["agents"])
 
