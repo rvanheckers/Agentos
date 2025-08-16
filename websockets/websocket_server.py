@@ -326,7 +326,7 @@ class AdminWebSocketServer:
             from core.database_pool import get_db_session
             from core.database_manager import Job, ProcessingStep
             from uuid import UUID
-            
+
             # Valideer/cast job_id
             try:
                 job_uuid = UUID(job_id)
@@ -369,11 +369,11 @@ class AdminWebSocketServer:
 
                     await websocket.send(json.dumps(message))
                 else:
-                await websocket.send(json.dumps({
-                    'type': 'job_not_found',
-                    'job_id': job_id,
-                    'timestamp': datetime.utcnow().isoformat()
-                }))
+                    await websocket.send(json.dumps({
+                        'type': 'job_not_found',
+                        'job_id': job_id,
+                        'timestamp': datetime.utcnow().isoformat()
+                    }))
 
         except Exception as e:
             logger.error(f"Error sending job status: {e}")
