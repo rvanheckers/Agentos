@@ -72,7 +72,9 @@ class JobsService:
         """Get single job by ID
         Admin can see any job, users can only see their own"""
         with get_db_session() as session:
-            query = session.query(Job).filter(Job.id == job_id)
+            # Ensure job_id is UUID for proper database comparison
+            job_uuid = UUID(job_id) if isinstance(job_id, str) else job_id
+            query = session.query(Job).filter(Job.id == job_uuid)
 
             # Apply user filter for non-admin
             if not is_admin and user_id:
@@ -99,7 +101,9 @@ class JobsService:
         """Update job status
         Only admin or job owner can update"""
         with get_db_session() as session:
-            query = session.query(Job).filter(Job.id == job_id)
+            # Ensure job_id is UUID for proper database comparison
+            job_uuid = UUID(job_id) if isinstance(job_id, str) else job_id
+            query = session.query(Job).filter(Job.id == job_uuid)
 
             # Apply user filter for non-admin
             if not is_admin and user_id:
@@ -119,7 +123,9 @@ class JobsService:
         """Delete a job
         Only admin or job owner can delete"""
         with get_db_session() as session:
-            query = session.query(Job).filter(Job.id == job_id)
+            # Ensure job_id is UUID for proper database comparison
+            job_uuid = UUID(job_id) if isinstance(job_id, str) else job_id
+            query = session.query(Job).filter(Job.id == job_uuid)
 
             # Apply user filter for non-admin
             if not is_admin and user_id:
@@ -343,8 +349,7 @@ class JobsService:
     def create_job(self, job_data: Dict[str, Any], is_admin: bool = False) -> Dict[str, Any]:
         """Create a new job
         Returns created job data"""
-        import uuid
-
+        
         with get_db_session() as session:
             # Create new job instance
             job = Job(
@@ -403,7 +408,9 @@ class JobsService:
                         try:
                             from core.database_manager import Job
                             with get_db_session() as error_session:
-                                error_job = error_session.query(Job).filter(Job.id == job_id_str).first()
+                                # Ensure job_id_str is converted to UUID for proper database comparison
+                                job_uuid = UUID(job_id_str)
+                                error_job = error_session.query(Job).filter(Job.id == job_uuid).first()
                                 if error_job:
                                     error_job.status = "failed"
                                     error_job.error_message = f"Workflow failed: {str(workflow_error)}"

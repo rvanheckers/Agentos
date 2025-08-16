@@ -518,10 +518,14 @@
                 ` : ''}
                 <div class="metric-item">
                     <div class="metric-label">All Captured Metrics</div>
-                    <div class="json-display">${JSON.stringify(data.metrics, null, 2)}</div>
+                    <pre class="json-display" id="ui-metrics-json"></pre>
                 </div>
                 <div class="timestamp">Captured: ${data.timestamp}</div>
             `;
+            
+            // Security: Use textContent to prevent XSS
+            const uiMetricsEl = section.querySelector('#ui-metrics-json');
+            if (uiMetricsEl) uiMetricsEl.textContent = JSON.stringify(data.metrics, null, 2);
         }
 
         function displayAPIData(data) {
@@ -548,14 +552,20 @@
                 </div>
                 <div class="metric-item">
                     <div class="metric-label">Raw Queue Data</div>
-                    <div class="json-display">${JSON.stringify(queue, null, 2)}</div>
+                    <pre class="json-display" id="api-queue-json"></pre>
                 </div>
                 <div class="metric-item">
                     <div class="metric-label">Raw Jobs Data</div>
-                    <div class="json-display">${JSON.stringify(jobs, null, 2)}</div>
+                    <pre class="json-display" id="api-jobs-json"></pre>
                 </div>
                 <div class="timestamp">Fetched: ${data.timestamp}</div>
             `;
+            
+            // Security: Use textContent to prevent XSS
+            const queueEl = section.querySelector('#api-queue-json');
+            if (queueEl) queueEl.textContent = JSON.stringify(queue, null, 2);
+            const jobsEl = section.querySelector('#api-jobs-json');
+            if (jobsEl) jobsEl.textContent = JSON.stringify(jobs, null, 2);
         }
 
         function displayBackendData(data) {
@@ -571,10 +581,14 @@
                 </div>
                 <div class="metric-item">
                     <div class="metric-label">Raw Service Data</div>
-                    <div class="json-display">${JSON.stringify(data, null, 2)}</div>
+                    <pre class="json-display" id="backend-json"></pre>
                 </div>
                 <div class="timestamp">Calculated: ${data.timestamp}</div>
             `;
+            
+            // Security: Use textContent to prevent XSS
+            const backendEl = section.querySelector('#backend-json');
+            if (backendEl) backendEl.textContent = JSON.stringify(data, null, 2);
         }
 
         function compareData() {
