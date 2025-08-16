@@ -5,6 +5,7 @@ Provides centralized system event logging using the shared database pool.
 Replaces the old session.log_system_event pattern with a proper service.
 """
 
+import json
 import logging
 from typing import Optional, Dict, Any
 from datetime import datetime, timezone
@@ -82,7 +83,7 @@ class SystemEventLogger:
                             'message': message,
                             'severity': severity,
                             'component': component,
-                            'metadata': str(metadata) if metadata else None,
+                            'metadata': json.dumps(metadata, ensure_ascii=False) if metadata else None,
                             'created_at': datetime.now(timezone.utc)
                         }
                     )

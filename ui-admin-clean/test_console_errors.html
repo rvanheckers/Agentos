@@ -100,30 +100,32 @@
                 try {
                     const iframeWindow = iframe.contentWindow;
                     
-                    // Override iframe console to capture messages
-                    const iframeConsole = iframeWindow.console;
+                    // Capture originals BEFORE overriding to prevent recursion
+                    const originalIframeConsole = {
+                        error: iframeWindow.console.error.bind(iframeWindow.console),
+                        warn: iframeWindow.console.warn.bind(iframeWindow.console),
+                        log: iframeWindow.console.log.bind(iframeWindow.console)
+                    };
                     
+                    // Override iframe console to capture messages
                     iframeWindow.console.error = function(...args) {
                         const message = args.join(' ');
                         logToDiv('error', `[IFRAME] ${message}`);
-                        consoleMessages.push({ type: 'error', message: message, timestamp: Date.now() });
                         errorCount.errors++;
-                        iframeConsole.error.apply(iframeConsole, args);
+                        originalIframeConsole.error(...args);
                     };
                     
                     iframeWindow.console.warn = function(...args) {
                         const message = args.join(' ');
                         logToDiv('warn', `[IFRAME] ${message}`);
-                        consoleMessages.push({ type: 'warn', message: message, timestamp: Date.now() });
                         errorCount.warnings++;
-                        iframeConsole.warn.apply(iframeConsole, args);
+                        originalIframeConsole.warn(...args);
                     };
                     
                     iframeWindow.console.log = function(...args) {
                         const message = args.join(' ');
                         logToDiv('log', `[IFRAME] ${message}`);
-                        consoleMessages.push({ type: 'log', message: message, timestamp: Date.now() });
-                        iframeConsole.log.apply(iframeConsole, args);
+                        originalIframeConsole.log(...args);
                     };
                     
                     logToDiv('log', '🔍 Iframe console hooks installed, monitoring for errors...');

@@ -519,6 +519,11 @@ export class Dashboard {
         total: todayJobs.total_today || todayJobs.total || 0,  // CRITICAL FIX: Use total_today from API
         jobs: recentJobs,   // CRITICAL FIX: Use recent_jobs from API
         success_rate: todayJobs.success_rate,  // CRITICAL FIX: Pass through API success_rate
+        // ✅ FIX: Add missing metrics that exist in API but weren't passed through
+        total_jobs: todayJobs.total_jobs || 0,
+        completed_jobs: todayJobs.completed_jobs || 0,
+        failed_jobs: todayJobs.failed_jobs || 0,
+        avg_processing_time: todayJobs.avg_processing_time || 0,
         is_mock_data: todayJobs.is_mock_data || false
       };
       
