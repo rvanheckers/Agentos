@@ -81,6 +81,12 @@ class SmartCacheInvalidator:
             cache_keys={"admin:dashboard:v4", "admin:system_control:v4"},
             debounce_ms=1000,
             priority="high"
+        ),
+        # Database pool events
+        "database_pool:status_changed": CacheInvalidationRule(
+            cache_keys={"admin:dashboard:v4", "admin:system_control:v4"},
+            debounce_ms=1000,  # Fast invalidation for critical connection management
+            priority="high"    # Connection management is high priority
         )
     }
 

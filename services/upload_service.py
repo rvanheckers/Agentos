@@ -39,12 +39,17 @@ class UploadService:
             self.db = db_manager
         else:
             try:
-                from core.database_manager import PostgreSQLManager
-                self.db = PostgreSQLManager()
+                from core.database_pool import get_db_session
+                # Store the factory function, not a session instance
+                self.db = get_db_session  # Store factory for per-operation sessions
                 logger.info("✅ Database integration enabled for upload service")
             except Exception as e:
-                logger.warning(f"⚠️ Database integration failed, memory-only mode: {e}")
+                # Security: Log error type but not details to prevent credential leakage
+                logger.error(f"❌ Database factory import mislukt ({type(e).__name__}). Details verborgen om secrets te beschermen.")
+                # Log full details only to debug level for diagnostics
+                logger.debug("Database factory import error details:", exc_info=True)
                 self.db = None
+                raise RuntimeError("UploadService requires database connection")
 
         # Ensure directories exist
         os.makedirs(self.upload_dir, exist_ok=True)
@@ -80,20 +85,14 @@ class UploadService:
             # 🆕 DATABASE-FIRST: Store upload session in database first
             if self.db:
                 try:
-                    event_metadata = {
-                        "upload_id": upload_id,
-                        "filename": filename,
-                        "file_size": file_size,
-                        "chunk_size": chunk_size,
-                        "total_chunks": total_chunks,
-                        "temp_path": upload_session["temp_path"]
-                    }
-
-                    self.db.log_system_event(
-                        event_type="upload_session_initialized",
+                    # Log system event using centralized logger
+                    from core.system_event_logger import log_upload_event
+                    log_upload_event(
+                        upload_id=upload_id,
+                        status="initialized",
                         message=f"Upload session initialized for file: {filename} ({file_size} bytes)",
-                        component="upload_service",
-                        metadata=event_metadata
+                        filename=filename,
+                        file_size=file_size
                     )
                     logger.info(f"✅ Upload session {upload_id} stored in database")
 
@@ -206,20 +205,15 @@ class UploadService:
             # 🆕 DATABASE-FIRST: Log chunk progress to database
             if self.db:
                 try:
-                    event_metadata = {
-                        "upload_id": upload_id,
-                        "chunk_index": chunk_index,
-                        "received_chunks": len(session["received_chunks"]),
-                        "total_chunks": session["total_chunks"],
-                        "progress": round(progress, 2),
-                        "chunk_size": len(chunk)
-                    }
-
-                    self.db.log_system_event(
-                        event_type="upload_chunk_received",
+                    # Log chunk upload event
+                    from core.system_event_logger import log_upload_event
+                    log_upload_event(
+                        upload_id=upload_id,
+                        status="chunk_received",
                         message=f"Chunk {chunk_index}/{session['total_chunks']} uploaded for {session['filename']} ({progress:.1f}%)",
-                        component="upload_service",
-                        metadata=event_metadata
+                        chunk_index=chunk_index,
+                        total_chunks=session['total_chunks'],
+                        progress=progress
                     )
 
                 except Exception as db_error:
@@ -276,21 +270,16 @@ class UploadService:
             # 🆕 DATABASE-FIRST: Log upload completion to database first
             if self.db:
                 try:
-                    completion_metadata = {
-                        "upload_id": upload_id,
-                        "filename": session["filename"],
-                        "final_path": final_path,
-                        "file_size": session["file_size"],
-                        "file_hash": file_hash,
-                        "total_chunks": session["total_chunks"],
-                        "upload_duration_seconds": (datetime.now(timezone.utc) - datetime.fromisoformat(session["created_at"].replace("Z", "+00:00"))).total_seconds()
-                    }
-
-                    self.db.log_system_event(
-                        event_type="upload_completed",
+                    # Log upload completion
+                    from core.system_event_logger import log_upload_event
+                    log_upload_event(
+                        upload_id=upload_id,
+                        status="completed",
                         message=f"Upload completed successfully: {session['filename']} ({session['file_size']} bytes, {session['total_chunks']} chunks)",
-                        component="upload_service",
-                        metadata=completion_metadata
+                        filename=session['filename'],
+                        file_size=session['file_size'],
+                        total_chunks=session['total_chunks'],
+                        final_path=final_path
                     )
                     logger.info(f"✅ Upload completion logged to database: {upload_id}")
 
@@ -400,20 +389,15 @@ class UploadService:
             # 🆕 DATABASE-FIRST: Log file import to database
             if self.db:
                 try:
-                    import_metadata = {
-                        "original_path": file_path,
-                        "imported_filename": safe_filename,
-                        "dest_path": dest_path,
-                        "file_size": file_size,
-                        "file_hash": file_hash,
-                        "import_method": "local_file_import"
-                    }
-
-                    self.db.log_system_event(
-                        event_type="file_imported",
+                    # Log file import event
+                    from core.system_event_logger import log_upload_event
+                    log_upload_event(
+                        upload_id="import_" + datetime.now().strftime('%Y%m%d_%H%M%S'),
+                        status="imported",
                         message=f"Local file imported: {filename} ({file_size} bytes) -> {safe_filename}",
-                        component="upload_service",
-                        metadata=import_metadata
+                        original_path=file_path,
+                        filename=safe_filename,
+                        file_size=file_size
                     )
                     logger.info(f"✅ File import logged to database: {safe_filename}")
 

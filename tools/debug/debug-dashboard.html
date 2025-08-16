@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Debug Tool</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #00ff00;
+            border-bottom: 2px solid #00ff00;
+            padding-bottom: 10px;
+        }
+        .debug-section {
+            background: #0a0a0a;
+            border: 1px solid #00ff00;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .debug-section h2 {
+            color: #ffff00;
+            margin-top: 0;
+        }
+        .data-flow {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .layer {
+            background: #111;
+            border: 1px solid #444;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        .layer h3 {
+            color: #00ffff;
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+        .json-display {
+            background: #000;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .status-good { color: #00ff00; }
+        .status-bad { color: #ff0000; }
+        .status-warning { color: #ffaa00; }
+        .refresh-btn {
+            background: #00ff00;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 3px;
+        }
+        .refresh-btn:hover {
+            background: #00cc00;
+        }
+        .metric-compare {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .metric-box {
+            padding: 5px;
+            border: 1px solid #333;
+            background: #0a0a0a;
+        }
+        .discrepancy {
+            background: #330000;
+            border-color: #ff0000;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            50% { border-color: #ff6666; }
+        }
+        .timestamp {
+            color: #888;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Dashboard Data Flow Debugger</h1>
+        
+        <div class="debug-section">
+            <h2>Quick Status</h2>
+            <button class="refresh-btn" onclick="debugDashboard()">🔄 Debug Dashboard Now</button>
+            <div id="quick-status"></div>
+        </div>
+
+        <div class="debug-section">
+            <h2>Complete Data Flow Analysis</h2>
+            <div class="data-flow" id="data-flow"></div>
+        </div>
+
+        <div class="debug-section">
+            <h2>Discrepancy Analysis</h2>
+            <div id="discrepancy-analysis"></div>
+        </div>
+
+        <div class="debug-section">
+            <h2>Cache Status</h2>
+            <div id="cache-status"></div>
+        </div>
+
+        <div class="debug-section">
+            <h2>Raw Data Dumps</h2>
+            <div id="raw-data"></div>
+        </div>
+    </div>
+
+    <script>
+        async function debugDashboard() {
+            console.log('Starting dashboard debug...');
+            const results = {};
+            const timestamp = new Date().toISOString();
+
+            // Layer 1: Direct API Call
+            try {
+                const apiResponse = await fetch('http://localhost:8001/api/admin/ssot');
+                const apiData = await apiResponse.json();
+                results.api = {
+                    status: 'success',
+                    data: apiData,
+                    timestamp: timestamp
+                };
+            } catch (e) {
+                results.api = {
+                    status: 'error',
+                    error: e.message,
+                    timestamp: timestamp
+                };
+            }
+
+            // Layer 2: Check Browser Cache/LocalStorage
+            results.localStorage = {
+                adminData: localStorage.getItem('adminData'),
+                cacheTimestamp: localStorage.getItem('cacheTimestamp'),
+                timestamp: timestamp
+            };
+
+            // Layer 3: Check Window Objects
+            results.windowObjects = {
+                adminApp: window.adminApp ? 'exists' : 'missing',
+                centralDataService: window.centralDataService ? 'exists' : 'missing',
+                timestamp: timestamp
+            };
+
+            // Layer 4: DOM Analysis
+            const jobsCard = document.querySelector('.metric-card__description');
+            results.dom = {
+                jobsCardText: jobsCard ? jobsCard.textContent : 'not found',
+                allMetricCards: Array.from(document.querySelectorAll('.metric-card')).map(card => ({
+                    title: card.querySelector('.metric-card__title')?.textContent,
+                    value: card.querySelector('.metric-card__value')?.textContent,
+                    description: card.querySelector('.metric-card__description')?.textContent
+                })),
+                timestamp: timestamp
+            };
+
+            // Analyze the data
+            await analyzeResults(results);
+        }
+
+        async function analyzeResults(results) {
+            // Quick Status
+            const quickStatus = document.getElementById('quick-status');
+            const apiQueue = results.api?.data?.dashboard?.queue || {};
+            const apiJobs = results.api?.data?.dashboard?.jobs || {};
+            
+            quickStatus.innerHTML = `
+                <div class="metric-compare">
+                    <div class="metric-box">
+                        <strong>API Says:</strong><br>
+                        completed_today: ${apiQueue.completed_today || 'MISSING'}<br>
+                        failed_today: ${apiQueue.failed_today || 'MISSING'}<br>
+                        total_today: ${apiJobs.total_today || 'MISSING'}
+                    </div>
+                    <div class="metric-box">
+                        <strong>DOM Shows:</strong><br>
+                        ${results.dom?.jobsCardText || 'N/A'}
+                    </div>
+                    <div class="metric-box ${apiQueue.completed_today !== extractCompletedFromDOM(results.dom?.jobsCardText) ? 'discrepancy' : ''}">
+                        <strong>Match?</strong><br>
+                        ${apiQueue.completed_today === extractCompletedFromDOM(results.dom?.jobsCardText) ? '✅ YES' : '❌ NO'}
+                    </div>
+                </div>
+                <div class="timestamp">Last checked: ${results.api?.timestamp}</div>
+            `;
+
+            // Data Flow Analysis
+            const dataFlow = document.getElementById('data-flow');
+            dataFlow.innerHTML = `
+                <div class="layer">
+                    <h3>1️⃣ API Response</h3>
+                    <div class="json-display">
+                        <strong>Queue Data:</strong><br>
+                        ${JSON.stringify(apiQueue, null, 2)}<br><br>
+                        <strong>Jobs Data:</strong><br>
+                        ${JSON.stringify(apiJobs, null, 2)}
+                    </div>
+                </div>
+                <div class="layer">
+                    <h3>2️⃣ Browser Cache</h3>
+                    <div class="json-display">
+                        ${results.localStorage.adminData ? 
+                            JSON.stringify(JSON.parse(results.localStorage.adminData), null, 2) : 
+                            'No cache data found'}
+                    </div>
+                </div>
+                <div class="layer">
+                    <h3>3️⃣ DOM Display</h3>
+                    <div class="json-display">
+                        ${JSON.stringify(results.dom, null, 2)}
+                    </div>
+                </div>
+            `;
+
+            // Discrepancy Analysis
+            const discrepancyAnalysis = document.getElementById('discrepancy-analysis');
+            const discrepancies = findDiscrepancies(results);
+            discrepancyAnalysis.innerHTML = `
+                <h3>Found ${discrepancies.length} Discrepancies:</h3>
+                ${discrepancies.map(d => `
+                    <div class="metric-box discrepancy">
+                        <strong>${d.field}:</strong><br>
+                        API: ${d.apiValue}<br>
+                        DOM: ${d.domValue}<br>
+                        Reason: ${d.possibleReason}
+                    </div>
+                `).join('')}
+            `;
+
+            // Cache Status
+            const cacheStatus = document.getElementById('cache-status');
+            cacheStatus.innerHTML = `
+                <div>Cache Age: ${getCacheAge(results.localStorage.cacheTimestamp)}</div>
+                <div>Should Refresh: ${shouldRefreshCache(results.localStorage.cacheTimestamp) ? 'YES' : 'NO'}</div>
+            `;
+
+            // Raw Data
+            const rawData = document.getElementById('raw-data');
+            rawData.innerHTML = `
+                <h3>Complete API Response:</h3>
+                <div class="json-display">
+                    ${JSON.stringify(results.api?.data, null, 2)}
+                </div>
+            `;
+
+            // Send to console for copying
+            console.log('DEBUG RESULTS:', results);
+            
+            // Create a summary for file
+            const summary = {
+                timestamp: new Date().toISOString(),
+                apiCompletedToday: apiQueue.completed_today,
+                domShowsCompleted: extractCompletedFromDOM(results.dom?.jobsCardText),
+                discrepancyFound: apiQueue.completed_today !== extractCompletedFromDOM(results.dom?.jobsCardText),
+                fullResults: results
+            };
+            
+            // Save to clipboard with error handling
+            try {
+                await navigator.clipboard.writeText(JSON.stringify(summary, null, 2));
+                console.log('✅ Debug summary copied to clipboard!');
+                showClipboardFeedback('✅ Copied to clipboard!', 'success');
+            } catch (error) {
+                console.error('❌ Failed to copy to clipboard:', error);
+                showClipboardFeedback('❌ Could not copy to clipboard — check browser permissions', 'error');
+            }
+        }
+
+        function showClipboardFeedback(message, type) {
+            // Create or update feedback element
+            let feedback = document.getElementById('clipboard-feedback');
+            if (!feedback) {
+                feedback = document.createElement('div');
+                feedback.id = 'clipboard-feedback';
+                feedback.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 12px 16px;
+                    border-radius: 4px;
+                    font-weight: bold;
+                    z-index: 1000;
+                    transition: opacity 0.3s ease;
+                `;
+                document.body.appendChild(feedback);
+            }
+            
+            // Set message and style based on type
+            feedback.textContent = message;
+            if (type === 'success') {
+                feedback.style.backgroundColor = '#d4edda';
+                feedback.style.color = '#155724';
+                feedback.style.border = '1px solid #c3e6cb';
+            } else {
+                feedback.style.backgroundColor = '#f8d7da';
+                feedback.style.color = '#721c24';
+                feedback.style.border = '1px solid #f5c6cb';
+            }
+            
+            // Show and auto-hide
+            feedback.style.opacity = '1';
+            setTimeout(() => {
+                feedback.style.opacity = '0';
+                setTimeout(() => {
+                    if (feedback.parentNode) {
+                        feedback.parentNode.removeChild(feedback);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        function extractCompletedFromDOM(text) {
+            if (!text) return null;
+            const match = text.match(/\((\d+)\/\d+ completed today\)/);
+            return match ? parseInt(match[1]) : null;
+        }
+
+        function findDiscrepancies(results) {
+            const discrepancies = [];
+            const apiQueue = results.api?.data?.dashboard?.queue || {};
+            const domCompleted = extractCompletedFromDOM(results.dom?.jobsCardText);
+            
+            if (apiQueue.completed_today !== domCompleted) {
+                discrepancies.push({
+                    field: 'completed_today',
+                    apiValue: apiQueue.completed_today,
+                    domValue: domCompleted,
+                    possibleReason: 'Frontend cache not updated or transformation error'
+                });
+            }
+            
+            return discrepancies;
+        }
+
+        function getCacheAge(timestamp) {
+            if (!timestamp) return 'No cache';
+            const age = Date.now() - new Date(timestamp).getTime();
+            return `${Math.floor(age / 1000)}s old`;
+        }
+
+        function shouldRefreshCache(timestamp) {
+            if (!timestamp) return true;
+            const age = Date.now() - new Date(timestamp).getTime();
+            return age > 30000; // 30 seconds
+        }
+
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            setTimeout(debugDashboard, 1000);
+        });
+    </script>
+</body>
+</html>

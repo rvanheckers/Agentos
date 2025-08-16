@@ -5,7 +5,7 @@ Handles all queue-related business logic
 """
 
 from typing import List, Dict, Any, Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import logging
 import os
 import asyncio
@@ -24,6 +24,13 @@ class QueueService:
     - get_queue_details(): Get detailed queue information
     - get_queue_stats(): Get queue statistics
     - purge_queue(): Purge the job queue
+
+    NEW Queue Metrics Methods:
+    - get_queue_depth(): Get number of pending jobs
+    - get_queue_throughput(): Calculate jobs per hour
+    - get_average_wait_time(): Average queue wait time
+    - get_worker_utilization(): Percentage of busy workers
+    - get_24h_success_rate(): Success rate last 24 hours
     """
 
     def __init__(self):
@@ -67,13 +74,60 @@ class QueueService:
         """
         try:
             if self.db_service:
-                stats = self.db_service.get_stats()
+                # Get real job statistics from database with today filtering
+                all_jobs = self.db_service.get_jobs(limit=1000)
+
+                # Get today's date for filtering today's jobs
+                today = datetime.now(timezone.utc).date()
+
+                # Count job statuses (all time)
+                pending = len([job for job in all_jobs if job["status"] in ["pending", "queued"]])
+                processing = len([job for job in all_jobs if job["status"] == "processing"])
+
+                # Count today's completed and failed jobs only
+                completed_today = 0
+                failed_today = 0
+
+                for job in all_jobs:
+                    # Parse job creation/completion date
+                    job_date = None
+                    if job.get("updated_at"):
+                        try:
+                            # Handle different date formats
+                            date_str = job["updated_at"]
+                            if date_str.endswith('Z'):
+                                job_datetime = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                            else:
+                                job_datetime = datetime.fromisoformat(date_str)
+                            job_date = job_datetime.date()
+                        except (ValueError, KeyError, TypeError):
+                            # Fallback to created_at if updated_at parsing fails
+                            try:
+                                date_str = job.get("created_at", "")
+                                if date_str.endswith('Z'):
+                                    job_datetime = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                                else:
+                                    job_datetime = datetime.fromisoformat(date_str)
+                                job_date = job_datetime.date()
+                            except (ValueError, KeyError, TypeError):
+                                continue
+
+                    # Count only today's completed and failed jobs
+                    if job_date == today:
+                        if job["status"] == "completed":
+                            completed_today += 1
+                        elif job["status"] == "failed":
+                            failed_today += 1
+
                 return {
-                    "pending": stats.get("queued_jobs", 0) + stats.get("pending_jobs", 0),
-                    "processing": stats.get("processing_jobs", 0),
-                    "completed": stats.get("completed_jobs", 0),
-                    "failed": stats.get("failed_jobs", 0),
-                    "total": stats.get("total_jobs", 0)
+                    "pending": pending,
+                    "processing": processing,
+                    "completed_today": completed_today,  # FIXED: Now only today's completed jobs
+                    "failed_today": failed_today,        # FIXED: Now only today's failed jobs
+                    "total": len(all_jobs),
+                    # Legacy fields for compatibility
+                    "completed": len([job for job in all_jobs if job["status"] == "completed"]),
+                    "failed": len([job for job in all_jobs if job["status"] == "failed"])
                 }
             else:
                 # 🎭 MOCK DATA - No database connection, using demo data
@@ -90,11 +144,14 @@ class QueueService:
             logger.error(f"Failed to get queue status: {e}")
             # 🎭 MOCK DATA - Database service unavailable, using fallback data for demo
             return {
-                "pending": 3,
-                "processing": 2,
+                "pending": 10,
+                "processing": 10,
+                "completed_today": 0,      # FIXED: Use today fields
+                "failed_today": 0,         # FIXED: Use today fields
+                "total": 25,
+                # Legacy fields for compatibility
                 "completed": 147,
                 "failed": 5,
-                "total": 157,
                 "is_mock_data": True,
                 "mock_reason": "Database service unavailable",
                 "error": f"🎭 MOCK: {str(e)}" if is_admin else "🎭 MOCK: Service using demo data"
@@ -151,27 +208,70 @@ class QueueService:
                 # Get real job statistics from database
                 all_jobs = self.db_service.get_jobs(limit=1000)
 
-                # Count job statuses
+                # Get today's date for filtering today's jobs
+                today = datetime.now(timezone.utc).date()
+
+                # Count job statuses (all time)
                 pending = len([job for job in all_jobs if job["status"] in ["pending", "queued"]])
                 processing = len([job for job in all_jobs if job["status"] == "processing"])
-                completed = len([job for job in all_jobs if job["status"] == "completed"])
-                failed = len([job for job in all_jobs if job["status"] == "failed"])
+
+                # Count today's completed and failed jobs only
+                completed_today = 0
+                failed_today = 0
+
+                for job in all_jobs:
+                    # Parse job creation/completion date
+                    job_date = None
+                    if job.get("updated_at"):
+                        try:
+                            # Handle different date formats
+                            date_str = job["updated_at"]
+                            if date_str.endswith('Z'):
+                                job_datetime = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                            else:
+                                job_datetime = datetime.fromisoformat(date_str)
+                            job_date = job_datetime.date()
+                        except (ValueError, KeyError, TypeError):
+                            # Fallback to created_at if updated_at parsing fails
+                            try:
+                                date_str = job.get("created_at", "")
+                                if date_str.endswith('Z'):
+                                    job_datetime = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                                else:
+                                    job_datetime = datetime.fromisoformat(date_str)
+                                job_date = job_datetime.date()
+                            except (ValueError, KeyError, TypeError):
+                                continue
+
+                    # Count only today's completed and failed jobs
+                    if job_date == today:
+                        if job["status"] == "completed":
+                            completed_today += 1
+                        elif job["status"] == "failed":
+                            failed_today += 1
 
                 stats = {
                     "queue_length": pending,
                     "processing_jobs": processing,
-                    "completed_today": completed,
-                    "failed_today": failed,
+                    "completed_today": completed_today,  # FIXED: Now only today's completed jobs
+                    "failed_today": failed_today,        # FIXED: Now only today's failed jobs
                     "average_processing_time": 120.5,  # TODO: calculate real average
                     "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
                 }
 
                 # Add admin-only fields
                 if is_admin:
+                    # Calculate all-time totals for admin fields
+                    completed_all = len([job for job in all_jobs if job["status"] == "completed"])
+                    failed_all = len([job for job in all_jobs if job["status"] == "failed"])
+
                     stats.update({
                         "total_jobs_lifetime": len(all_jobs),
-                        "success_rate": round((completed / (completed + failed) * 100) if (completed + failed) > 0 else 0, 2),
-                        "queue_health": "healthy" if pending < 100 else "busy"
+                        "success_rate": round((completed_today / (completed_today + failed_today) * 100) if (completed_today + failed_today) > 0 else 0, 2),
+                        "queue_health": "healthy" if pending < 100 else "busy",
+                        # Add all-time stats for reference
+                        "completed_all_time": completed_all,
+                        "failed_all_time": failed_all
                     })
 
                 return stats
@@ -649,3 +749,190 @@ class QueueService:
                 "error": str(e),
                 "queue_name": queue_name
             }
+
+    # ==========================================
+    # NEW QUEUE METRICS FOR JOBHISTORY REDESIGN
+    # ==========================================
+
+    def get_queue_depth(self) -> int:
+        """
+        Get number of pending jobs in queue
+        Returns count of jobs with status 'pending' or 'queued'
+        """
+        try:
+            if self.db_service:
+                all_jobs = self.db_service.get_jobs(limit=1000)
+                pending_count = len([job for job in all_jobs if job["status"] in ["pending", "queued"]])
+                logger.debug(f"Queue depth: {pending_count} pending jobs")
+                return pending_count
+            return 0
+        except Exception as e:
+            logger.error(f"Failed to get queue depth: {e}")
+            return 0
+
+    def get_queue_throughput(self) -> Dict[str, Any]:
+        """
+        Calculate jobs processed per hour
+        Returns throughput metrics and trend
+        """
+        try:
+            if self.db_service:
+                all_jobs = self.db_service.get_jobs(limit=1000)
+                now = datetime.now(timezone.utc)
+
+                # Calculate for last hour
+                one_hour_ago = now - timedelta(hours=1)
+                completed_last_hour = 0
+
+                # Calculate for previous hour (for trend)
+                two_hours_ago = now - timedelta(hours=2)
+                completed_previous_hour = 0
+
+                for job in all_jobs:
+                    if job["status"] == "completed" and job.get("completed_at"):
+                        try:
+                            completed_str = job["completed_at"]
+                            if completed_str.endswith('Z'):
+                                completed_time = datetime.fromisoformat(completed_str.replace('Z', '+00:00'))
+                            else:
+                                completed_time = datetime.fromisoformat(completed_str)
+
+                            if completed_time >= one_hour_ago:
+                                completed_last_hour += 1
+                            elif completed_time >= two_hours_ago:
+                                completed_previous_hour += 1
+                        except (ValueError, KeyError, TypeError):
+                            continue
+
+                # Calculate trend
+                if completed_previous_hour > 0:
+                    trend_percentage = ((completed_last_hour - completed_previous_hour) / completed_previous_hour) * 100
+                    trend = f"{'↑' if trend_percentage > 0 else '↓'} {abs(int(trend_percentage))}%"
+                else:
+                    trend = "→ stable"
+
+                return {
+                    "per_hour": completed_last_hour,
+                    "trend": trend,
+                    "last_hour": completed_last_hour,
+                    "previous_hour": completed_previous_hour
+                }
+
+            return {"per_hour": 0, "trend": "→ stable", "last_hour": 0, "previous_hour": 0}
+
+        except Exception as e:
+            logger.error(f"Failed to get queue throughput: {e}")
+            return {"per_hour": 0, "trend": "unknown", "last_hour": 0, "previous_hour": 0}
+
+    def get_average_wait_time(self) -> float:
+        """
+        Calculate average time jobs wait in queue before processing
+        Returns average wait time in seconds
+        """
+        try:
+            if self.db_service:
+                all_jobs = self.db_service.get_jobs(limit=100)
+                wait_times = []
+
+                for job in all_jobs:
+                    if job["status"] in ["processing", "completed"] and job.get("created_at") and job.get("started_at"):
+                        try:
+                            created_str = job["created_at"]
+                            started_str = job["started_at"]
+
+                            # Parse timestamps
+                            if created_str.endswith('Z'):
+                                created_time = datetime.fromisoformat(created_str.replace('Z', '+00:00'))
+                            else:
+                                created_time = datetime.fromisoformat(created_str)
+
+                            if started_str.endswith('Z'):
+                                started_time = datetime.fromisoformat(started_str.replace('Z', '+00:00'))
+                            else:
+                                started_time = datetime.fromisoformat(started_str)
+
+                            wait_time = (started_time - created_time).total_seconds()
+                            if wait_time >= 0:  # Sanity check
+                                wait_times.append(wait_time)
+                        except (ValueError, KeyError, TypeError):
+                            continue
+
+                if wait_times:
+                    avg_wait = sum(wait_times) / len(wait_times)
+                    logger.debug(f"Average wait time: {avg_wait:.2f} seconds")
+                    return round(avg_wait, 2)
+
+            return 0.0
+
+        except Exception as e:
+            logger.error(f"Failed to get average wait time: {e}")
+            return 0.0
+
+    def get_worker_utilization(self) -> float:
+        """
+        Calculate percentage of busy workers
+        Returns utilization as percentage (0-100)
+        """
+        try:
+            workers = self.get_workers_status(is_admin=True)
+
+            if not workers:
+                return 0.0
+
+            total_workers = len(workers)
+            busy_workers = len([w for w in workers if w.get("current_tasks", 0) > 0])
+
+            if total_workers > 0:
+                utilization = (busy_workers / total_workers) * 100
+                logger.debug(f"Worker utilization: {utilization:.1f}% ({busy_workers}/{total_workers} busy)")
+                return round(utilization, 1)
+
+            return 0.0
+
+        except Exception as e:
+            logger.error(f"Failed to get worker utilization: {e}")
+            return 0.0
+
+    def get_24h_success_rate(self) -> float:
+        """
+        Calculate success rate for last 24 hours only
+        Returns percentage (0-100)
+        """
+        try:
+            if self.db_service:
+                all_jobs = self.db_service.get_jobs(limit=1000)
+                now = datetime.now(timezone.utc)
+                yesterday = now - timedelta(hours=24)
+
+                completed_24h = 0
+                failed_24h = 0
+
+                for job in all_jobs:
+                    try:
+                        # Check if job is from last 24 hours
+                        created_str = job.get("created_at", "")
+                        if created_str:
+                            if created_str.endswith('Z'):
+                                created_time = datetime.fromisoformat(created_str.replace('Z', '+00:00'))
+                            else:
+                                created_time = datetime.fromisoformat(created_str)
+
+                            if created_time >= yesterday:
+                                if job["status"] == "completed":
+                                    completed_24h += 1
+                                elif job["status"] == "failed":
+                                    failed_24h += 1
+                    except (ValueError, KeyError, TypeError):
+                        continue
+
+                total_24h = completed_24h + failed_24h
+                if total_24h > 0:
+                    success_rate = (completed_24h / total_24h) * 100
+                    logger.debug(f"24h success rate: {success_rate:.1f}% ({completed_24h}/{total_24h})")
+                    return round(success_rate, 1)
+
+            return 0.0
+
+        except Exception as e:
+            logger.error(f"Failed to get 24h success rate: {e}")
+            return 0.0

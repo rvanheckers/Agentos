@@ -23,7 +23,7 @@ from sqlalchemy import text
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.celery_app import celery_app
-from core.database_manager import PostgreSQLManager
+from core.database_pool import get_db_session
 
 logger = logging.getLogger(__name__)
 
@@ -31,12 +31,12 @@ logger = logging.getLogger(__name__)
 def cleanup_old_results():
     """Cleanup oude Celery results en completed jobs ouder dan 24 uur"""
     try:
-        db = PostgreSQLManager()
+        # Using shared database pool
 
         # Cleanup jobs ouder dan 7 dagen
         cutoff_date = datetime.now(timezone.utc) - timedelta(days=7)
 
-        with db.get_session() as session:
+        with get_db_session() as session:
             # Count jobs to be cleaned
             old_jobs_count = session.execute(
                 text("SELECT COUNT(*) FROM jobs WHERE completed_at < :cutoff_date AND status IN ('completed', 'failed')"),
@@ -70,10 +70,10 @@ def system_health_check():
 
         # Check database
         try:
-            db = PostgreSQLManager()
-            health = db.get_database_health()
-            health_status['database'] = 'healthy'
-            health_status['db_connections'] = health['connections']
+            # Using shared database pool
+            with get_db_session() as session:
+                session.execute(text("SELECT 1")).fetchone()
+                health_status['database'] = 'healthy'
         except Exception as e:
             health_status['database'] = f'error: {e}'
 
@@ -108,7 +108,7 @@ def cleanup_old_clips():
     try:
         import shutil
 
-        db = PostgreSQLManager()
+        # Using shared database pool
         cleanup_stats = {
             'clips_removed': 0,
             'files_removed': 0,
@@ -126,7 +126,7 @@ def cleanup_old_clips():
         cutoff_jobs = datetime.now(timezone.utc) - timedelta(days=JOB_RETENTION_DAYS)
         cutoff_temp = datetime.now(timezone.utc) - timedelta(hours=TEMP_RETENTION_HOURS)
 
-        with db.get_session() as session:
+        with get_db_session() as session:
             # 1. Clean old clips from database and filesystem
             old_clips = session.execute(
                 text("SELECT id, file_path FROM clips WHERE created_at < :cutoff_clips"),
@@ -224,6 +224,7 @@ def disk_usage_monitor():
     """🔍 Monitor disk usage and trigger emergency cleanup if needed"""
     try:
 
+        # Using shared database pool
         # Check disk usage for key directories
         directories_to_check = {
             'output': './io/output',
@@ -289,10 +290,10 @@ def disk_usage_monitor():
 def performance_metrics():
     """Collect performance metrics voor monitoring"""
     try:
-        db = PostgreSQLManager()
+        # Using shared database pool
         metrics = {}
 
-        with db.get_session() as session:
+        with get_db_session() as session:
             # Job completion rates (last 24h)
             yesterday = datetime.now(timezone.utc) - timedelta(days=1)
 

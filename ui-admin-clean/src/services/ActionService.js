@@ -14,12 +14,39 @@ function generateUUID() {
 
 class ActionService {
   constructor() {
-    // Use absolute URL to API server (port 8001) since admin UI runs on different port (8004)
-    this.baseUrl = 'http://localhost:8001/api/admin/action';
+    // Configurable API base URL with environment-aware fallbacks
+    this.baseUrl = this._getApiBaseUrl() + '/api/admin/action';
     this.defaultHeaders = {
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     };
+  }
+
+  /**
+   * Get API base URL with environment detection
+   * Priority: window.AGENTOS_CONFIG > location origin port mapping > localhost fallback
+   */
+  _getApiBaseUrl() {
+    // 1. Check for runtime configuration
+    if (typeof window !== 'undefined' && window.AGENTOS_CONFIG && window.AGENTOS_CONFIG.API_BASE_URL) {
+      return window.AGENTOS_CONFIG.API_BASE_URL;
+    }
+    
+    // 2. Derive from current location for development/production
+    if (typeof window !== 'undefined' && window.location) {
+      const currentOrigin = window.location.origin;
+      
+      // Development: map UI ports to API port
+      if (currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')) {
+        return currentOrigin.replace(':8080', ':8001').replace(':8004', ':8001').replace(':3000', ':8001');
+      }
+      
+      // Production/staging: assume API on same origin
+      return currentOrigin;
+    }
+    
+    // 3. Fallback for development
+    return 'http://localhost:8001';
   }
 
   /**
@@ -270,6 +297,70 @@ class ActionService {
    */
   async warmCache(cacheType = 'all', options = {}) {
     return this.execute('cache.warm', { cache_type: cacheType }, options);
+  }
+
+  // =============================================================================
+  // ANALYTICS ACTIONS
+  // =============================================================================
+
+  /**
+   * Drill down into analytics data
+   */
+  async analyticsDrillDown(filter = {}, options = {}) {
+    return this.execute('analytics.drill_down', { filter }, options);
+  }
+
+  /**
+   * Generate analytics report
+   */
+  async generateAnalyticsReport(type, format = 'pdf', options = {}) {
+    return this.execute('analytics.generate_report', { 
+      type, 
+      format,
+      timestamp: new Date().toISOString()
+    }, options);
+  }
+
+  /**
+   * Performance tuning automation
+   */
+  async performanceTune(targets = [], options = {}) {
+    return this.execute('system.performance_tune', { targets }, options);
+  }
+
+  /**
+   * Auto-scale workers based on metrics
+   */
+  async autoScale(immediate = false, options = {}) {
+    return this.execute('worker.auto_scale', { immediate }, options);
+  }
+
+  /**
+   * Scale workers up
+   */
+  async scaleUp(factor = 1, options = {}) {
+    return this.execute('worker.scale_up', { factor }, options);
+  }
+
+  /**
+   * Optimize worker allocation
+   */
+  async optimizeWorkers(options = {}) {
+    return this.execute('worker.optimize', {}, options);
+  }
+
+  /**
+   * Process high-priority queue items
+   */
+  async processPriorityQueue(options = {}) {
+    return this.execute('queue.process_priority', {}, options);
+  }
+
+  /**
+   * Optimize recovery processes
+   */
+  async optimizeRecovery(options = {}) {
+    return this.execute('system.optimize_recovery', {}, options);
   }
 
   // =============================================================================
