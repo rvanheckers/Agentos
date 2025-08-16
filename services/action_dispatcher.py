@@ -6,7 +6,7 @@ Central orchestrator for all admin actions with enterprise features
 import asyncio
 import time
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional, Callable, List
+from typing import Dict, Any, Optional, Callable, List, Union
 from uuid import uuid4
 import logging
 
@@ -105,7 +105,7 @@ class ActionDispatcher:
             raise ValueError("Missing required parameter: job_id")
         return str(job_id)
 
-    ACTION_HANDLERS: Dict[ActionType, Callable] = {
+    ACTION_HANDLERS: Dict[Union[ActionType, str], Callable] = {
         # Job Actions (with payload validation)
         ActionType.JOB_RETRY: lambda self, p, **kw: self.jobs_service.retry_job(job_id=self._get_job_id(p), is_admin=True),
         ActionType.JOB_CANCEL: lambda self, p, **kw: self.jobs_service.cancel_job(job_id=self._get_job_id(p), is_admin=True),
@@ -351,7 +351,7 @@ class ActionDispatcher:
 
     async def execute(
         self,
-        action: ActionType,
+        action: Union[ActionType, str],
         payload: Dict[str, Any],
         user: Any,
         trace_id: Optional[str] = None,
@@ -383,10 +383,13 @@ class ActionDispatcher:
         if not trace_id:
             trace_id = str(uuid4())
 
+        # Normalize action to string early (support both Enum and str)
+        action_str = action.value if hasattr(action, 'value') else str(action)
+
         # Setup logging context
         log_context = {
             "trace_id": trace_id,
-            "action": action.value,
+            "action": action_str,
             "user_id": getattr(user, 'id', 'unknown'),
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
@@ -473,7 +476,7 @@ class ActionDispatcher:
                 # Traditional event dispatch
                 await self.events.dispatch(event, {
                     **payload,
-                    "action": action.value,
+                    "action": action_str,
                     "user_id": user.id,
                     "trace_id": trace_id,
                     "result": result,
@@ -486,7 +489,7 @@ class ActionDispatcher:
                     logger.debug(f"Smart cache invalidation triggered for event: {event}")
 
             # CRITICAL FIX: Always trigger cache invalidation for job actions
-            if action.value.startswith("job."):
+            if action_str.startswith("job."):
                 # Map job actions to cache invalidation events
                 cache_event_mapping = {
                     "job.retry": "job:retry_requested",
@@ -494,16 +497,16 @@ class ActionDispatcher:
                     "job.delete": "job:deleted"
                 }
 
-                cache_event = cache_event_mapping.get(action.value)
+                cache_event = cache_event_mapping.get(action_str)
                 if cache_event:
                     await self.cache_invalidator.invalidate(cache_event)
-                    logger.info(f"Dashboard cache invalidation triggered for {action.value} -> {cache_event}")
+                    logger.info(f"Dashboard cache invalidation triggered for {action_str} -> {cache_event}")
 
             # Queue actions cache invalidation
-            elif action.value.startswith("queue."):
-                if action.value == "queue.clear":
+            elif action_str.startswith("queue."):
+                if action_str == "queue.clear":
                     await self.cache_invalidator.invalidate("queue:cleared")
-                    logger.info(f"Queue cache invalidation triggered for {action.value}")
+                    logger.info(f"Queue cache invalidation triggered for {action_str}")
 
             # 9. Success logging
             logger.info(
@@ -587,12 +590,14 @@ class ActionDispatcher:
 
         return available_actions
 
-    async def get_action_status(self, action: ActionType) -> Dict[str, Any]:
+    async def get_action_status(self, action: Union[ActionType, str]) -> Dict[str, Any]:
         """Get status information for an action (rate limits, circuit breaker, etc.)"""
+        # Normalize action key
+        action_str = action.value if hasattr(action, 'value') else str(action)
         config = self.ACTION_CONFIG.get(action, {})
 
         return {
-            "action": action.value,
+            "action": action_str,
             "rate_limit": config.get("rate_limit", {}),
             "circuit_breaker_open": CircuitBreaker(f"action:{action}").is_open if config.get("circuit_breaker") else False,
             "timeout": config.get("timeout", 30),
