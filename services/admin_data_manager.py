@@ -661,11 +661,14 @@ class AdminDataManager:
                 "metrics_timestamp": datetime.now().isoformat()
             }
         except Exception as e:
-            logger.error(f"Failed to get database pool metrics: {str(e)}")
+            # Security: Log error type but not details to prevent credential leakage
+            logger.error(f"Failed to get database pool metrics ({type(e).__name__}). Details verborgen om secrets te beschermen.")
+            # Log full details only to debug level for diagnostics
+            logger.debug("Database pool metrics error details:", exc_info=True)
             return {
                 "status": "error",
                 "status_color": "red",
-                "error": str(e),
+                "error": "Database pool metrics unavailable",
                 "total_capacity": 10,
                 "checked_out": 0,
                 "usage_percentage": 0.0,

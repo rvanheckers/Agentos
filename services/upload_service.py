@@ -44,9 +44,12 @@ class UploadService:
                 self.db = get_db_session  # Store factory for per-operation sessions
                 logger.info("✅ Database integration enabled for upload service")
             except Exception as e:
-                logger.error(f"❌ Database factory import failed: {e}")
+                # Security: Log error type but not details to prevent credential leakage
+                logger.error(f"❌ Database factory import mislukt ({type(e).__name__}). Details verborgen om secrets te beschermen.")
+                # Log full details only to debug level for diagnostics
+                logger.debug("Database factory import error details:", exc_info=True)
                 self.db = None
-                raise
+                raise RuntimeError("UploadService requires database connection")
 
         # Ensure directories exist
         os.makedirs(self.upload_dir, exist_ok=True)

@@ -52,10 +52,13 @@ class AgentsService:
                 logger.info("✅ Database integration enabled for agents service")
                 
             except Exception as e:
-                logger.error(f"❌ Database integration failed: {e}")
+                # Security: Log error type but not details to prevent credential leakage
+                logger.error(f"❌ Database integratie mislukt ({type(e).__name__}). Details verborgen om secrets te beschermen.")
+                # Log full details only to debug level for diagnostics
+                logger.debug("Database integration error details:", exc_info=True)
                 self.db = None
                 self.get_db_session = None
-                raise RuntimeError(f"AgentsService requires database connection: {e}")
+                raise RuntimeError("AgentsService requires database connection")
         self.available_agents = [
             {
                 "name": "video-downloader",
