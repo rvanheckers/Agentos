@@ -348,34 +348,75 @@ class MomentDetector:
 #### Implementation:
 ```python
 def _process_large_transcript(self, transcript: str, max_chunk_size: int = 4000) -> List[dict]:
-    """Process large transcripts in chunks to prevent memory issues"""
+    """Process large transcripts in chunks with retry logic and fallback"""
     
     if len(transcript) <= max_chunk_size:
         # Small transcript - process normally
         return self._analyze_with_claude_protected(transcript, ...)
     
-    # Large transcript - chunk processing
+    # Large transcript - chunk processing with resilience
     logger.info(f"Large transcript ({len(transcript)} chars) - using chunked processing")
     
     chunks = self._split_transcript_intelligently(transcript, max_chunk_size)
     all_moments = []
+    failed_chunks = []
     
     for i, chunk in enumerate(chunks):
+        chunk_moments = self._process_chunk_with_retry(chunk, i, len(chunks))
+        if chunk_moments is not None:
+            all_moments.extend(chunk_moments)
+        else:
+            failed_chunks.append(i)
+    
+    # If we got some results, proceed with merging
+    if all_moments:
+        logger.info(f"Successfully processed {len(chunks) - len(failed_chunks)}/{len(chunks)} chunks")
+        if failed_chunks:
+            logger.warning(f"Failed chunks: {failed_chunks}")
+        return self._merge_overlapping_moments(all_moments)
+    
+    # All chunks failed - attempt fallback to full transcript
+    logger.warning("All chunks failed, attempting fallback to full transcript processing")
+    try:
+        fallback_moments = self._analyze_with_claude_protected(transcript, ...)
+        logger.info("Fallback full transcript processing succeeded")
+        return fallback_moments
+        
+    except Exception as e:
+        logger.error(f"Fallback full transcript processing also failed: {e}")
+        logger.error(f"Transcript length: {len(transcript)} chars, chunks attempted: {len(chunks)}")
+        # Return deterministic empty result with clear documentation
+        return []  # Documented: Empty list indicates complete processing failure
+
+def _process_chunk_with_retry(self, chunk: str, chunk_index: int, total_chunks: int, 
+                             max_retries: int = 3) -> Optional[List[dict]]:
+    """Process a single chunk with retry logic and exponential backoff"""
+    import time
+    
+    for attempt in range(max_retries):
         try:
             chunk_moments = self._analyze_with_claude_protected(chunk, ...)
             
             # Adjust timestamps for chunk position
             adjusted_moments = self._adjust_timestamps_for_chunk(
-                chunk_moments, i, len(chunks)
+                chunk_moments, chunk_index, total_chunks
             )
-            all_moments.extend(adjusted_moments)
+            
+            if attempt > 0:
+                logger.info(f"Chunk {chunk_index+1}/{total_chunks} succeeded on retry {attempt+1}")
+            
+            return adjusted_moments
             
         except Exception as e:
-            logger.warning(f"Chunk {i+1}/{len(chunks)} processing failed: {e}")
-            continue
+            if attempt < max_retries - 1:
+                # Exponential backoff: 1s, 2s, 4s
+                backoff_time = 2 ** attempt
+                logger.warning(f"Chunk {chunk_index+1}/{total_chunks} attempt {attempt+1} failed: {e}, retrying in {backoff_time}s")
+                time.sleep(backoff_time)
+            else:
+                logger.error(f"Chunk {chunk_index+1}/{total_chunks} failed after {max_retries} attempts: {e}")
     
-    # Merge and deduplicate moments
-    return self._merge_overlapping_moments(all_moments)
+    return None  # All retries exhausted
 
 def _split_transcript_intelligently(self, transcript: str, chunk_size: int) -> List[str]:
     """Split transcript at sentence boundaries when possible"""
