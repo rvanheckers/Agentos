@@ -139,12 +139,12 @@ def print_migration_plan():
         if phase.startswith('phase_'):
             print(f"  {phase.upper()}: {description}")
     
-    print(f"\n📊 IMPACT:")
+    print("\n📊 IMPACT:")
     print(f"  • Files to migrate: {plan['files_affected']}")
     print(f"  • Connection reduction: {plan['expected_reduction']}")
     print(f"  • Pattern: {plan['approach']}")
     
-    print(f"\n🔄 BEFORE/AFTER EXAMPLES:")
+    print("\n🔄 BEFORE/AFTER EXAMPLES:")
     for example in examples:
         print(f"\n📄 {example['file']}:")
         print("  BEFORE (Multiple Pools):")

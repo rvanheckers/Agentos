@@ -61,9 +61,8 @@ class DatabaseLoggerMixin:
         started_at = datetime.utcnow()
 
         # Start logging in database
-        with get_db_session() as session:
-            # Database logging would go here, currently simplified
-            step_id = f"{job_id}_{step_number}_{started_at.isoformat()}"
+        # Database logging would go here, currently simplified
+        step_id = f"{job_id}_{step_number}_{started_at.isoformat()}"
 
         logger = StepLogger(step_id)
 
@@ -151,9 +150,8 @@ def log_agent_step(agent_name: str, job_id: str, step_number: int,
     try:
         from core.database_pool import get_db_session
         # Using shared database pool
-        with get_db_session() as session:
-            # Database logging would go here, currently simplified
-            print(f"Logged step for {agent_name}: job={job_id}, step={step_number}, success={success}")
+        # Database logging would go here, currently simplified
+        print(f"Logged step for {agent_name}: job={job_id}, step={step_number}, success={success}")
 
     except ImportError:
         # Database niet beschikbaar, skip logging
