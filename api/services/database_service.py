@@ -8,21 +8,24 @@ Flow: Legacy Routes → DatabaseService → SSOT Services (JobsService, AgentsSe
 Purpose: Facade pattern voor legacy compatibility zonder duplicatie
 """
 from typing import List, Optional, Dict, Any
-from core.database_manager import PostgreSQLManager, Job
+from core.database_pool import get_db_session
+from core.database_manager import Job
 from core.logging_config import get_logger
 from sqlalchemy import desc, func
 from datetime import datetime, timezone, date
+from uuid import UUID
 
 logger = get_logger("api_server")
 
 class DatabaseService:
     def __init__(self):
-        self.db_manager = PostgreSQLManager()
+        # Using shared database pool
+        pass
 
     def get_jobs(self, limit: int = 50) -> List[Dict[str, Any]]:
         """Get all jobs from database"""
         try:
-            with self.db_manager.get_session() as session:
+            with get_db_session() as session:
                 jobs = session.query(Job)\
                             .order_by(desc(Job.created_at))\
                             .limit(limit)\
@@ -35,8 +38,10 @@ class DatabaseService:
     def get_job_by_id(self, job_id: str) -> Optional[Dict[str, Any]]:
         """Get specific job by ID"""
         try:
-            with self.db_manager.get_session() as session:
-                job = session.query(Job).filter(Job.id == job_id).first()
+            with get_db_session() as session:
+                # Ensure job_id is UUID for proper database comparison
+                job_uuid = UUID(job_id)
+                job = session.query(Job).filter(Job.id == job_uuid).first()
                 return self._job_to_dict(job) if job else None
         except Exception as e:
             logger.error(f"Database service error getting job {job_id}: {e}")
@@ -45,11 +50,9 @@ class DatabaseService:
     def create_job(self, job_data: Dict[str, Any]) -> str:
         """Create new job"""
         try:
-            return self.db_manager.create_job(
-                video_url=job_data.get('video_url', ''),
-                user_id=job_data.get('user_id', 'anonymous'),
-                video_title=job_data.get('video_title', '')
-            )
+            from services.jobs_service import JobsService
+            jobs_service = JobsService()
+            return jobs_service.create_job(job_data)
         except Exception as e:
             logger.error(f"Database service error creating job: {e}")
             raise
@@ -57,7 +60,9 @@ class DatabaseService:
     def update_job_status(self, job_id: str, status: str, progress: int = None) -> bool:
         """Update job status"""
         try:
-            return self.db_manager.update_job_status(job_id, status, progress)
+            from services.jobs_service import JobsService
+            jobs_service = JobsService()
+            return jobs_service.update_job_status(job_id, status, progress)
         except Exception as e:
             logger.error(f"Database service error updating job {job_id}: {e}")
             return False
@@ -65,18 +70,10 @@ class DatabaseService:
     def get_stats(self) -> Dict[str, Any]:
         """Get database statistics - Enhanced with SSOT success rate"""
         try:
-            # Get raw stats from database manager
-            stats = self.db_manager.get_stats()
-
-            # 🎯 FIXED: Override success rate with SSOT calculation
+            # 🎯 FIXED: Use SSOT via JobsService instead of db_manager
             from services.jobs_service import JobsService
             jobs_service = JobsService()
-            job_stats = jobs_service.get_job_statistics(is_admin=True)
-
-            # Use SSOT success rate instead of database manager calculation
-            stats["success_rate"] = job_stats.get("success_rate", stats.get("success_rate", 0))
-
-            return stats
+            return jobs_service.get_job_statistics(is_admin=True)
         except Exception as e:
             logger.error(f"Database service error getting stats: {e}")
             return {
@@ -90,7 +87,7 @@ class DatabaseService:
     def get_today_jobs(self) -> Dict[str, Any]:
         """Get today's job statistics and recent jobs"""
         try:
-            with self.db_manager.get_session() as session:
+            with get_db_session() as session:
                 # Filter jobs created today
                 today = date.today()
                 jobs_query = session.query(Job).filter(func.date(Job.created_at) == today)
@@ -127,7 +124,21 @@ class DatabaseService:
     def get_recent_clips(self, limit: int = 10) -> List[Dict[str, Any]]:
         """Get recent clips from database"""
         try:
-            return self.db_manager.get_recent_clips(limit)
+            with get_db_session() as session:
+                from core.database_manager import Clip
+                clips = session.query(Clip).order_by(Clip.created_at.desc()).limit(limit).all()
+                return [
+                    {
+                        "id": str(clip.id),
+                        "job_id": str(clip.job_id),
+                        "clip_number": clip.clip_number,
+                        "title": clip.title,
+                        "duration": clip.duration,
+                        "file_size": clip.file_size,
+                        "created_at": clip.created_at.isoformat() if clip.created_at else None
+                    }
+                    for clip in clips
+                ]
         except Exception as e:
             logger.error(f"Database service error getting recent clips: {e}")
             return []
@@ -214,6 +225,16 @@ class DatabaseService:
             # 🎯 FIXED: Use SSOT instead of mock data
             from services.agents_service import AgentsService
             agents_service = AgentsService()
+
+            # Register for explicit shutdown during application stop
+            try:
+                from api.main import register_agents_service
+                register_agents_service(agents_service)
+            except (ImportError, AttributeError) as e:
+                # Not running via API or register_agents_service not available
+                import logging
+                logging.getLogger(__name__).debug(f"Shutdown registration unavailable: {e}")
+                pass
 
             # Get agents data from the proper SSOT
             return agents_service.get_agents_summary()

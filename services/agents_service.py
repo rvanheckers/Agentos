@@ -8,6 +8,7 @@ Updated to Database-First pattern for consistency with AgentOS v2.4.0
 
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
+from sqlalchemy import text
 import logging
 
 logger = logging.getLogger("agentos.services.agents")
@@ -36,14 +37,28 @@ class AgentsService:
         # Database-First Integration
         if db_manager:
             self.db = db_manager
+            logger.info("✅ Database integration enabled (provided manager)")
         else:
             try:
-                from core.database_manager import PostgreSQLManager
-                self.db = PostgreSQLManager()
+                from core.database_pool import get_db_session, db_pool
+                # Test database connection during initialization
+                with get_db_session() as session:
+                    # Validate connection works
+                    session.execute(text("SELECT 1"))
+
+                # Store reference to the shared database pool
+                self.db = db_pool
+                self.get_db_session = get_db_session
                 logger.info("✅ Database integration enabled for agents service")
+
             except Exception as e:
-                logger.warning(f"⚠️ Database integration failed, mock-only mode: {e}")
+                # Security: Log error type but not details to prevent credential leakage
+                logger.error(f"❌ Database integratie mislukt ({type(e).__name__}). Details verborgen om secrets te beschermen.")
+                # Log full details only to debug level for diagnostics
+                logger.debug("Database integration error details:", exc_info=True)
                 self.db = None
+                self.get_db_session = None
+                raise RuntimeError("AgentsService requires database connection")
         self.available_agents = [
             {
                 "name": "video-downloader",
@@ -706,3 +721,33 @@ class AgentsService:
         except Exception as e:
             logger.error(f"Failed to test agent {agent_name}: {e}")
             return {"error": str(e)}
+
+    def shutdown(self):
+        """Gracefully shutdown the agents service and clean up database resources"""
+        try:
+            if hasattr(self, 'db') and self.db:
+                # If we're using the shared database pool, don't shutdown the entire pool
+                # as other services may still be using it
+                if hasattr(self.db, 'session_factory'):
+                    # Clean up any remaining scoped sessions for this service
+                    self.db.session_factory.remove()
+                    logger.info("✅ AgentsService database sessions cleaned up")
+                else:
+                    # If we have a dedicated db manager, shut it down
+                    if hasattr(self.db, 'close'):
+                        self.db.close()
+                        logger.info("✅ AgentsService database manager closed")
+
+                self.db = None
+                self.get_db_session = None
+
+        except Exception as e:
+            logger.error(f"❌ Error during AgentsService shutdown: {e}")
+
+    def __del__(self):
+        """Destructor to ensure cleanup on garbage collection"""
+        try:
+            self.shutdown()
+        except Exception:
+            # Avoid exceptions during garbage collection
+            pass

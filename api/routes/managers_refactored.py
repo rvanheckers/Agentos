@@ -78,7 +78,16 @@ if JobsService:
 
 if AgentsService:
     try:
-        managers["agents"] = AgentsService()
+        agents_instance = AgentsService()
+        managers["agents"] = agents_instance
+
+        # Register for explicit shutdown during application stop
+        try:
+            from api.main import register_agents_service
+            register_agents_service(agents_instance)
+        except ImportError:
+            # Not running via API, no explicit shutdown available
+            pass
     except Exception as e:
         logger.warning(f"Failed to initialize AgentsService: {e}")
 

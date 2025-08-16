@@ -26,10 +26,11 @@ export class CentralDataService {
     this.interval = 30000; // 30 seconden (fallback)
     this.lastUpdate = null;
     
-    // WebSocket configuration
+    // WebSocket configuration with environment-aware URLs
     this.websocket = null;
     this.useWebSocket = true; // Toggle for WebSocket vs polling
-    this.websocketUrl = 'ws://localhost:8765';
+    this.websocketUrl = this._getWebSocketUrl();
+    this.apiUrl = this._getApiUrl();
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 2000; // 2 seconds
@@ -39,6 +40,61 @@ export class CentralDataService {
     this.subscribed_rooms = new Set();
     
     console.log('🚀 V4 Central Data Service initialized - Event-Driven Real-time Architecture');
+    console.log('🔧 Service URLs:', { websocket: this.websocketUrl, api: this.apiUrl });
+  }
+
+  /**
+   * Get WebSocket URL with environment detection
+   */
+  _getWebSocketUrl() {
+    // Check for runtime configuration
+    if (typeof window !== 'undefined' && window.AGENTOS_CONFIG && window.AGENTOS_CONFIG.WEBSOCKET_URL) {
+      return window.AGENTOS_CONFIG.WEBSOCKET_URL;
+    }
+    
+    // Derive from current location
+    if (typeof window !== 'undefined' && window.location) {
+      const currentHost = window.location.hostname;
+      const isLocalhost = currentHost === 'localhost' || currentHost === '127.0.0.1';
+      
+      if (isLocalhost) {
+        return 'ws://localhost:8765'; // Development WebSocket port
+      } else {
+        // Production: use same host with wss protocol
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        return `${protocol}//${currentHost}/ws`;
+      }
+    }
+    
+    // Fallback
+    return 'ws://localhost:8765';
+  }
+
+  /**
+   * Get API URL with environment detection
+   */
+  _getApiUrl() {
+    // Check for runtime configuration
+    if (typeof window !== 'undefined' && window.AGENTOS_CONFIG && window.AGENTOS_CONFIG.API_BASE_URL) {
+      return window.AGENTOS_CONFIG.API_BASE_URL + '/api/admin/ssot';
+    }
+    
+    // Derive from current location
+    if (typeof window !== 'undefined' && window.location) {
+      const currentOrigin = window.location.origin;
+      
+      // Development: map UI ports to API port
+      if (currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')) {
+        const apiOrigin = currentOrigin.replace(':8080', ':8001').replace(':8004', ':8001').replace(':3000', ':8001');
+        return apiOrigin + '/api/admin/ssot';
+      }
+      
+      // Production/staging: assume API on same origin
+      return currentOrigin + '/api/admin/ssot';
+    }
+    
+    // Fallback
+    return 'http://localhost:8001/api/admin/ssot';
   }
 
   /**
@@ -345,8 +401,8 @@ export class CentralDataService {
       
       try {
         // V4 CACHE-FIRST: Use default route with complete cached data
-        console.log('🔍 ATTEMPTING FETCH:', 'http://localhost:8001/api/admin/ssot');
-        const response = await fetch('http://localhost:8001/api/admin/ssot', {
+        console.log('🔍 ATTEMPTING FETCH:', this.apiUrl);
+        const response = await fetch(this.apiUrl, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

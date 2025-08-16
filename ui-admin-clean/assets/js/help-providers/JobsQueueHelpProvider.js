@@ -225,6 +225,214 @@ export const JobsQueueHelpProvider = {
             "SLA compliance: Target processing time benchmarks"
           ]
         }
+      },
+
+      // NEW METRICS HELP ENTRIES - Queue Management Redesign
+      'queue_depth_help': {
+        beginner: {
+          title: "Queue Depth - Wachtrij Diepte",
+          praktisch: "Aantal jobs die wachten om verwerkt te worden. Net als de wachtrij bij de bakker - hoe hoger, hoe langer je moet wachten.",
+          wat_te_doen: [
+            "📥 0-10 jobs = Rustige wachtrij, snelle verwerking",
+            "🟡 11-20 jobs = Normale drukte, acceptabele wachttijd", 
+            "🔴 >20 jobs = Lange wachtrij, overweeg meer workers",
+            "💡 Hoge queue depth = Tijd om capaciteit op te schalen"
+          ]
+        },
+        intermediate: {
+          title: "Queue Depth - Pipeline Bottleneck Analysis",
+          praktisch: "Real-time queue depth voor capacity planning en bottleneck detectie.",
+          technisch: "Count van jobs met status 'pending' in database",
+          metrics: [
+            "Queue depth trends: Peak loading patterns analysis",
+            "Worker utilization correlation: High depth = underutilized workers",
+            "SLA impact: Queue depth directly affects processing latency"
+          ]
+        }
+      },
+
+      'active_processing_help': {
+        beginner: {
+          title: "Active Processing - Lopende Verwerking",
+          praktisch: "Jobs die NU bezig zijn met verwerken. Dit zijn je actieve projecten die door het systeem lopen.",
+          wat_te_doen: [
+            "⚡ 0 jobs = Systeem staat stil, geen activiteit",
+            "✅ 1-5 jobs = Normale activiteit, systeem werkt goed",
+            "🔄 >5 jobs = Hoge activiteit, veel projecten tegelijk",
+            "📊 Vergelijk met Worker Utilization voor efficiency"
+          ]
+        },
+        intermediate: {
+          title: "Active Processing - Concurrent Job Analysis",
+          praktisch: "Real-time concurrent job execution monitoring voor resource management.",
+          technisch: "Count van jobs met status 'processing' - actual running jobs",
+          metrics: [
+            "Concurrency patterns: Peak concurrent job analysis",
+            "Resource utilization: Processing count vs available workers",
+            "Throughput optimization: Optimal concurrent job levels"
+          ]
+        }
+      },
+
+      'queue_throughput_help': {
+        beginner: {
+          title: "Queue Throughput - Verwerkingssnelheid",
+          praktisch: "Hoeveel jobs per uur je systeem afrondt. Net als auto's per uur door een tolpoort.",
+          wat_te_doen: [
+            "📊 0-5/hr = Laag, systeem verwerkt weinig",
+            "✅ 6-20/hr = Goed, normale verwerkingssnelheid",
+            "🚀 >20/hr = Excellent, zeer efficiënt systeem",
+            "📈 Trend pijl toont of snelheid stijgt of daalt"
+          ]
+        },
+        intermediate: {
+          title: "Queue Throughput - Performance Optimization",
+          praktisch: "Jobs/hour completion rate met trend analysis voor performance tuning.",
+          technisch: "Completed jobs count per hour met rolling trend calculation",
+          metrics: [
+            "Throughput trends: Hourly completion rate patterns",
+            "Performance correlation: Throughput vs system resource usage",
+            "Capacity planning: Expected throughput under different load conditions"
+          ]
+        }
+      },
+
+      'success_rate_24h_help': {
+        beginner: {
+          title: "24h Success Rate - Dagelijkse Betrouwbaarheid", 
+          praktisch: "Percentage jobs van vandaag die succesvol zijn afgerond. Toont hoe betrouwbaar je systeem vandaag presteert.",
+          wat_te_doen: [
+            "✅ >90% = Excellent, systeem werkt zeer betrouwbaar",
+            "🟡 70-90% = Goed, maar kan beter - check failed jobs",
+            "🔴 <70% = Probleem, veel jobs falen - actie nodig",
+            "📅 Dagelijkse metric, verse data vs historisch gemiddelde"
+          ]
+        },
+        intermediate: {
+          title: "24h Success Rate - Pipeline Health Monitoring",
+          praktisch: "Recent success rate voor pipeline health assessment en trend analysis.",
+          technisch: "Completed/(Completed + Failed) × 100% voor jobs created in laatste 24h",
+          metrics: [
+            "Pipeline reliability: Recent success patterns vs historical baseline",
+            "Quality assurance: Success rate correlation met job complexity",
+            "Operational health: Daily success rate als system health indicator"
+          ]
+        }
+      },
+
+      'failed_today_help': {
+        beginner: {
+          title: "Failed Jobs Today - Vandaagse Problemen",
+          praktisch: "Aantal jobs dat vandaag is mislukt. Als een dagelijkse 'problem report' voor je systeem.",
+          wat_te_doen: [
+            "✅ 0 failed = Perfect, geen problemen vandaag",
+            "🟡 1-3 failed = Normaal, kleine problemen opgelost",
+            "🔴 >3 failed = Aandacht nodig, structureel probleem",
+            "🔍 Klik door naar failed jobs voor details en oplossingen"
+          ]
+        },
+        intermediate: {
+          title: "Failed Jobs Today - Error Pattern Analysis",
+          praktisch: "Daily failure count voor error pattern detection en proactive maintenance.",
+          technisch: "Count van jobs met status 'failed' created in laatste 24h",
+          metrics: [
+            "Error patterns: Daily failure trends en root cause correlation",
+            "System stability: Failure rate vs normal operational baseline",
+            "Proactive alerts: Failure threshold monitoring voor incident prevention"
+          ]
+        }
+      },
+
+      'total_jobs_help': {
+        beginner: {
+          title: "Total Jobs - Complete Projectenlijst",
+          praktisch: "Alle jobs die ooit in je systeem zijn geweest. Toont je complete werkhistorie met verdeling per status.",
+          wat_te_doen: [
+            "📁 Total count = Complete geschiedenis van al je projecten", 
+            "📊 Breakdown = Verdeling: hoeveel complete, failed, actief",
+            "📈 Hoog totaal = Veel gebruik, systeem wordt goed benut",
+            "🎯 Status verdeling toont overall systeem prestaties"
+          ]
+        },
+        intermediate: {
+          title: "Total Jobs - Historical Workload Analysis",
+          praktisch: "Complete job inventory met status breakdown voor capacity planning.",
+          technisch: "Aggregate count van alle jobs met status distribution analysis",
+          metrics: [
+            "Workload history: Total job volume trends over tijd",
+            "Status distribution: Complete vs failed vs active job ratios",
+            "Capacity utilization: Total workload vs system capacity over time"
+          ]
+        }
+      },
+
+      'today_jobs_help': {
+        beginner: {
+          title: "Today's Jobs - Vandaagse Werkload",
+          praktisch: "Alle jobs die vandaag zijn gestart. Toont je dagelijkse activiteit en hoe die verdeeld is.",
+          wat_te_doen: [
+            "📅 0 jobs = Rustige dag, geen nieuwe projecten",
+            "✅ 1-10 jobs = Normale dag, goed tempo",
+            "🚀 >10 jobs = Drukke dag, veel nieuwe projecten",
+            "📊 Status breakdown toont hoe de dag verloopt"
+          ]
+        },
+        intermediate: {
+          title: "Today's Jobs - Daily Activity Monitoring",
+          praktisch: "Daily job volume met status breakdown voor operational awareness.",
+          technisch: "Count van jobs created vandaag met real-time status distribution",
+          metrics: [
+            "Daily patterns: Typical workload vs today's volume",
+            "Operational tempo: Today's job creation rate analysis",
+            "Performance tracking: Daily completion vs creation ratios"
+          ]
+        }
+      },
+
+      'worker_utilization_help': {
+        beginner: {
+          title: "Worker Utilization - Werknemers Bezetting",
+          praktisch: "Percentage van je workers die bezig zijn. Net als bezettingsgraad van je team - hoeveel zijn er aan het werk.",
+          wat_te_doen: [
+            "😴 0-30% = Onderbenut, workers staan stil - meer work toewijzen",
+            "✅ 31-80% = Goed, gezonde werklast verdeling",
+            "🔥 81-100% = Volledig benut, overweeg meer workers toevoegen",
+            "⚖️ Balanceer workload vs beschikbare capaciteit"
+          ]
+        },
+        intermediate: {
+          title: "Worker Utilization - Resource Optimization",
+          praktisch: "Worker busy percentage voor resource allocation en scaling decisions.",
+          technisch: "Active workers / Total workers × 100% met real-time monitoring",
+          metrics: [
+            "Resource efficiency: Worker utilization vs throughput correlation",
+            "Scaling indicators: High utilization = scale up triggers",
+            "Cost optimization: Utilization patterns voor worker pool sizing"
+          ]
+        }
+      },
+
+      'avg_processing_help': {
+        beginner: {
+          title: "Avg Processing Time - Gemiddelde Verwerkingstijd", 
+          praktisch: "Hoe lang een gemiddelde job erover doet om af te komen. Toont de snelheid van je systeem.",
+          wat_te_doen: [
+            "⚡ <60s = Zeer snel, excellent systeem performance",
+            "✅ 60-300s = Normaal, goede verwerkingssnelheid",
+            "🟡 >300s = Langzaam, mogelijk performance problemen",
+            "📊 Vergelijk met throughput voor complete performance beeld"
+          ]
+        },
+        intermediate: {
+          title: "Avg Processing Time - Performance Benchmarking",
+          praktisch: "Mean job completion time voor performance optimization en SLA monitoring.",
+          technisch: "Average (completed_at - started_at) voor completed jobs",
+          metrics: [
+            "Performance trends: Processing time patterns over time",
+            "SLA compliance: Processing time vs configured service levels",
+            "Optimization targets: Processing time reduction opportunities"
+          ]
+        }
       }
     };
 
@@ -312,7 +520,7 @@ export const JobsQueueHelpProvider = {
             }
           ]
         }
-      };
+      }
     }
 
     if (componentId === null) {

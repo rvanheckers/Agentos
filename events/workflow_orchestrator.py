@@ -30,7 +30,7 @@ from datetime import datetime, timezone
 from enum import Enum
 
 from events.dispatcher import dispatcher
-from core.database_manager import PostgreSQLManager
+from core.database_pool import get_db_session
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ class WorkflowOrchestrator:
 
     def __init__(self):
         """Initialize workflow orchestrator"""
-        self.db = PostgreSQLManager()
+        # Using shared database pool
         self.active_workflows: Dict[str, Dict[str, Any]] = {}
 
         # Workflow registry - hier registreren we alle beschikbare workflows
@@ -329,7 +329,7 @@ class WorkflowOrchestrator:
     async def _update_job_status(self, job_id: str, status: str, progress: Optional[int], message: str):
         """Update job status in database"""
         try:
-            with self.db.get_session() as session:
+            with get_db_session() as session:
                 from core.database_manager import Job
                 job = session.query(Job).filter(Job.id == job_id).first()
                 if job:

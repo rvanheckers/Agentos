@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Analytics Filter Tab Switching</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .pass { background-color: #d4edda; color: #155724; }
+        .fail { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button { padding: 8px 16px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Analytics Filter Tab Switching Test</h1>
+    
+    <div id="test-results"></div>
+    
+    <button onclick="testTabSwitching()">Test Tab Switching</button>
+    <button onclick="testActionButtons()">Test Action Buttons</button>
+    <button onclick="openAnalytics()">Open Analytics View</button>
+    
+    <script>
+        // Configuration: Set base URL for tests (can be overridden for different environments)
+        const TEST_BASE_URL = window.location.origin || 'http://localhost:8080';
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = `${new Date().toLocaleTimeString()}: ${message}`;
+            document.getElementById('test-results').appendChild(div);
+        }
+        
+        function openAnalytics() {
+            window.open(`${TEST_BASE_URL}/index.html#analytics`, '_blank');
+        }
+        
+        async function testTabSwitching() {
+            log('Testing Analytics tab switching...', 'info');
+            
+            // Create iframe to test in isolation
+            const iframe = document.createElement('iframe');
+            iframe.src = `${TEST_BASE_URL}/index.html#analytics`;
+            iframe.style.width = '1px';
+            iframe.style.height = '1px';
+            iframe.style.position = 'absolute';
+            iframe.style.left = '-9999px';
+            
+            let originalConsoleError = null;
+            
+            try {
+                document.body.appendChild(iframe);
+                
+                await new Promise((resolve, reject) => {
+                    iframe.onload = async function() {
+                        try {
+                            await new Promise(resolveDelay => setTimeout(resolveDelay, 2000)); // Wait for page to load
+                            
+                            const iframeWindow = iframe.contentWindow;
+                            const iframeDocument = iframe.contentDocument;
+                            
+                            // Check if Analytics view exists
+                            const analyticsView = iframeDocument.querySelector('.view-analytics');
+                            if (analyticsView) {
+                                log('✅ Analytics view loaded successfully', 'pass');
+                                
+                                // Check for filter tabs
+                                const filterTabs = iframeDocument.querySelectorAll('.filter-tab, [data-filter]');
+                                log(`Found ${filterTabs.length} filter elements`, 'info');
+                                
+                                // Check for ActionableMetricCards
+                                const metricCards = iframeDocument.querySelectorAll('.metric-card');
+                                log(`Found ${metricCards.length} metric cards`, 'info');
+                                
+                                // Check if console shows any errors
+                                let consoleErrors = [];
+                                originalConsoleError = iframeWindow.console.error;
+                                iframeWindow.console.error = function(...args) {
+                                    consoleErrors.push(args.join(' '));
+                                    originalConsoleError.apply(console, args);
+                                };
+                                
+                                setTimeout(() => {
+                                    try {
+                                        if (consoleErrors.length === 0) {
+                                            log('✅ No console errors detected', 'pass');
+                                        } else {
+                                            log(`❌ Console errors found: ${consoleErrors.join(', ')}`, 'fail');
+                                        }
+                                        resolve();
+                                    } catch (error) {
+                                        reject(error);
+                                    }
+                                }, 1000);
+                                
+                            } else {
+                                log('❌ Analytics view not found', 'fail');
+                                resolve();
+                            }
+                        } catch (error) {
+                            log(`❌ Test failed: ${error.message}`, 'fail');
+                            reject(error);
+                        }
+                    };
+                    
+                    iframe.onerror = function() {
+                        log('❌ Failed to load iframe', 'fail');
+                        reject(new Error('Failed to load iframe'));
+                    };
+                });
+                
+            } finally {
+                // Guaranteed cleanup - always runs regardless of success/failure
+                try {
+                    // Restore original console.error if we modified it
+                    if (originalConsoleError && iframe.contentWindow) {
+                        iframe.contentWindow.console.error = originalConsoleError;
+                    }
+                } catch (cleanupError) {
+                    // Ignore cleanup errors for console restoration
+                }
+                
+                // Always remove iframe from DOM
+                if (iframe.parentNode) {
+                    document.body.removeChild(iframe);
+                }
+            }
+        }
+        
+        async function testActionButtons() {
+            log('Testing Action Service integration...', 'info');
+            
+            try {
+                // Test if ActionService can be imported (simulation)
+                const response = await fetch(`${TEST_BASE_URL}/src/services/ActionService.js`);
+                if (response.ok) {
+                    log('✅ ActionService.js file exists', 'pass');
+                    const content = await response.text();
+                    
+                    if (content.includes('class ActionService')) {
+                        log('✅ ActionService class found', 'pass');
+                    } else {
+                        log('❌ ActionService class not found in file', 'fail');
+                    }
+                    
+                    if (content.includes('analytics.drill_down')) {
+                        log('✅ Analytics actions found in ActionService', 'pass');
+                    } else {
+                        log('⚠️ Analytics actions not found in ActionService', 'fail');
+                    }
+                } else {
+                    log('❌ ActionService.js file not found', 'fail');
+                }
+            } catch (error) {
+                log(`❌ Failed to test ActionService: ${error.message}`, 'fail');
+            }
+        }
+        
+        log('Test page loaded. Click buttons to run tests.', 'info');
+    </script>
+</body>
+</html>

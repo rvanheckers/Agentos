@@ -77,33 +77,28 @@ async def get_admin_ssot_data(
         # V4 PARALLEL EXECUTION: Use async AdminDataManager for 128x faster performance
         logger.debug(f"V4: Fetching admin SSOT data with parallel execution (time_range={time_range})")
 
-        # V4 CACHE-FIRST ARCHITECTURE: Use optimized cache path for default time_range
+        # V4 CACHE-FIRST ARCHITECTURE: Use direct sync calls for reliable data
         if time_range == "24h":
-            # FAST PATH: Use complete AdminDataManager response with proper flattening
-            raw_data = await admin_data.get_all_data()
-            
-            # V4 CACHE HIT: raw_data contains complete structure (dashboard + agents_workers + etc.)
-            dashboard = raw_data.get('dashboard', {})  # extract dashboard part
-            agents_workers = raw_data.get('agents_workers', {})  # extract agents part
-            
+            # FIXED: Use direct sync methods instead of async for reliable data
+            dashboard_data = admin_data.get_dashboard_data()
+            analytics_data = admin_data.get_analytics_data()
+            agents_workers_data = admin_data.get_agents_workers_data()
+            logs_data = admin_data.get_logs_data()
+            system_control_data = admin_data.get_system_control_data()
+            configuration_data = admin_data.get_configuration_data()
+
             response_data = {
-                'timestamp': raw_data.get('timestamp'),
-                'dashboard': {
-                    'workers': dashboard.get('workers', {}),
-                    'queue': dashboard.get('queue', {}),
-                    'jobs': dashboard.get('jobs', {}),
-                    'system': dashboard.get('system', {}),
-                    'recent_activity': dashboard.get('recent_activity', [])
-                },
-                'analytics': raw_data.get('analytics', {}),
-                'agents_workers': agents_workers,
-                'agents': agents_workers,  # Provide both keys for compatibility
-                'logs': raw_data.get('logs', {}),
-                'system_control': raw_data.get('system_control', {}),
-                'configuration': raw_data.get('configuration', {}),
+                'timestamp': datetime.now().isoformat(),
+                'dashboard': dashboard_data,
+                'analytics': analytics_data,
+                'agents_workers': agents_workers_data,
+                'agents': agents_workers_data,  # Provide both keys for compatibility
+                'logs': logs_data,
+                'system_control': system_control_data,
+                'configuration': configuration_data,
                 'status': 'success',
-                'architecture': raw_data.get('architecture', 'v4_cache_first'),
-                'response_time_ms': raw_data.get('response_time_ms', 0),
+                'architecture': 'v4_direct_sync',
+                'response_time_ms': 0,
                 'time_range': time_range
             }
         else:

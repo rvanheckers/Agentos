@@ -202,8 +202,9 @@ export class Dashboard {
       // Transform queue data to ensure expected format
       const fallbackQueue = this.transformQueueData(queueStatus);
       
-      // Transform jobs data to ensure expected format  
-      const fallbackJobs = this.transformJobsData(todayJobs);
+      // Transform jobs data to ensure expected format
+      // FIX: Pass queue data to get completed_today and failed_today  
+      const fallbackJobs = this.transformJobsData(todayJobs, queueStatus);
       
       // Transform agents data for Active Agents metric card
       const fallbackAgents = this.transformAgentsData(agents);
@@ -483,9 +484,9 @@ export class Dashboard {
     }
   }
 
-  transformJobsData(todayJobs) {
+  transformJobsData(todayJobs, queueData) {
     try {
-      console.log('🔍 transformJobsData input:', todayJobs);
+      console.log('🔍 transformJobsData input:', todayJobs, 'queue:', queueData);
       
       // If no jobs data, return default structure
       if (!todayJobs) {
@@ -508,11 +509,12 @@ export class Dashboard {
         return counts;
       }, {});
       
+      // Combine both approaches: use queue data when available, fallback to calculated counts
       return {
-        completed: statusCounts.completed || 0,
-        processing: statusCounts.processing || 0,
-        pending: statusCounts.queued || statusCounts.pending || 0,
-        failed: statusCounts.failed || 0,
+        completed: queueData?.completed_today || statusCounts.completed || todayJobs.completed || 0,
+        processing: statusCounts.processing || todayJobs.processing || 0,
+        pending: statusCounts.queued || statusCounts.pending || todayJobs.pending || 0,
+        failed: queueData?.failed_today || statusCounts.failed || todayJobs.failed || 0,
         cancelled: statusCounts.cancelled || 0,
         total: todayJobs.total_today || todayJobs.total || 0,  // CRITICAL FIX: Use total_today from API
         jobs: recentJobs,   // CRITICAL FIX: Use recent_jobs from API

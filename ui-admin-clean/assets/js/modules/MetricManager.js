@@ -170,7 +170,7 @@ export class MetricManager {
 
   updateJobs(data) {
     const card = this.metricCards.get('jobs');
-    const completed = data.completed || 0;
+    const completed = data.completed || 0;  // Now correctly passed from Dashboard.js
     const failed = data.failed || 0;
     const processing = data.processing || 0;
     const pending = data.pending || 0;

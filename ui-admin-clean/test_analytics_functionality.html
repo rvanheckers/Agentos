@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Analytics Filter Tab Switching</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .pass { background-color: #d4edda; color: #155724; }
+        .fail { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button { padding: 8px 16px; margin: 5px; }
+        iframe { width: 100%; height: 600px; border: 1px solid #ccc; margin: 20px 0; }
+        .console-output { background: #000; color: #0f0; font-family: monospace; padding: 10px; margin: 10px 0; height: 200px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>Analytics Filter Tab Switching Test</h1>
+    
+    <div id="test-results"></div>
+    
+    <button onclick="testBasicLoad()">Test Basic Load</button>
+    <button onclick="testConsoleForErrors()">Check Console Errors</button>
+    <button onclick="loadAnalyticsInFrame()">Load Analytics in Frame</button>
+    
+    <div id="console-output" class="console-output" style="display: none;"></div>
+    <iframe id="test-frame" style="display: none;"></iframe>
+    
+    <script>
+        let consoleMessages = [];
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = `${new Date().toLocaleTimeString()}: ${message}`;
+            document.getElementById('test-results').appendChild(div);
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        // Capture console messages
+        const originalConsole = {
+            log: console.log,
+            error: console.error,
+            warn: console.warn
+        };
+        
+        function captureConsole() {
+            console.log = function(...args) {
+                consoleMessages.push({type: 'log', message: args.join(' ')});
+                originalConsole.log.apply(console, args);
+            };
+            
+            console.error = function(...args) {
+                consoleMessages.push({type: 'error', message: args.join(' ')});
+                originalConsole.error.apply(console, args);
+            };
+            
+            console.warn = function(...args) {
+                consoleMessages.push({type: 'warn', message: args.join(' ')});
+                originalConsole.warn.apply(console, args);
+            };
+        }
+        
+        async function testBasicLoad() {
+            log('Testing if Analytics JavaScript files exist...', 'info');
+            
+            const filesToCheck = [
+                'assets/js/views/Analytics.js',
+                'assets/js/components/ActionableMetricCard.js',
+                'src/services/ActionService.js',
+                'assets/js/help-providers/AnalyticsHelpProvider.js'
+            ];
+            
+            for (const file of filesToCheck) {
+                try {
+                    const response = await fetch(file);
+                    if (response.ok) {
+                        log(`✅ ${file} - OK`, 'pass');
+                        const content = await response.text();
+                        
+                        // Check for specific methods
+                        if (file.includes('Analytics.js')) {
+                            if (content.includes('getKPIConfigsForTab')) {
+                                log(`✅ Analytics.js contains getKPIConfigsForTab method`, 'pass');
+                            } else {
+                                log(`❌ Analytics.js missing getKPIConfigsForTab method`, 'fail');
+                            }
+                            
+                            if (content.includes('handleFilterChange')) {
+                                log(`✅ Analytics.js contains handleFilterChange method`, 'pass');
+                            } else {
+                                log(`❌ Analytics.js missing handleFilterChange method`, 'fail');
+                            }
+                        }
+                    } else {
+                        log(`❌ ${file} - ${response.status} ${response.statusText}`, 'fail');
+                    }
+                } catch (error) {
+                    log(`❌ ${file} - Error: ${error.message}`, 'fail');
+                }
+            }
+        }
+        
+        function testConsoleForErrors() {
+            log('Starting console error monitoring...', 'info');
+            document.getElementById('console-output').style.display = 'block';
+            captureConsole();
+            
+            setTimeout(() => {
+                const errorCount = consoleMessages.filter(m => m.type === 'error').length;
+                const warnCount = consoleMessages.filter(m => m.type === 'warn').length;
+                
+                if (errorCount === 0) {
+                    log(`✅ No console errors detected`, 'pass');
+                } else {
+                    log(`❌ ${errorCount} console errors detected`, 'fail');
+                }
+                
+                if (warnCount > 0) {
+                    log(`⚠️ ${warnCount} console warnings detected`, 'info');
+                }
+                
+                // Display console messages
+                const consoleDiv = document.getElementById('console-output');
+                consoleDiv.innerHTML = consoleMessages.map(m => 
+                    `[${m.type.toUpperCase()}] ${m.message}`
+                ).join('<br>');
+                
+            }, 5000);
+        }
+        
+        function loadAnalyticsInFrame() {
+            log('Loading Analytics view in frame...', 'info');
+            const frame = document.getElementById('test-frame');
+            frame.style.display = 'block';
+            frame.src = 'index.html#analytics';
+            
+            frame.onload = function() {
+                log('✅ Analytics page loaded in frame', 'pass');
+                
+                setTimeout(() => {
+                    try {
+                        const frameDoc = frame.contentDocument;
+                        const analyticsView = frameDoc.querySelector('.view-analytics');
+                        
+                        if (analyticsView) {
+                            log('✅ Analytics view DOM element found', 'pass');
+                            
+                            // Check for filter elements
+                            const filterElements = frameDoc.querySelectorAll('[data-filter], .filter-tab, .smart-filter');
+                            log(`Found ${filterElements.length} filter elements`, 'info');
+                            
+                            // Check for metric cards
+                            const metricCards = frameDoc.querySelectorAll('.metric-card, .actionable-metric-card');
+                            log(`Found ${metricCards.length} metric cards`, 'info');
+                            
+                        } else {
+                            log('❌ Analytics view DOM element not found', 'fail');
+                        }
+                    } catch (error) {
+                        log(`❌ Error accessing frame content: ${error.message}`, 'fail');
+                    }
+                }, 2000);
+            };
+            
+            frame.onerror = function() {
+                log('❌ Error loading Analytics page in frame', 'fail');
+            };
+        }
+        
+        log('Test page ready. Start with "Test Basic Load"', 'info');
+    </script>
+</body>
+</html>
