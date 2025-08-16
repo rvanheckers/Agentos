@@ -26,7 +26,7 @@ Implement **Netflix/Google-style production hardening patterns** while maintaini
 ### Current AgentOS Architecture
 ```
 AgentOS v2.7.0 - Distributed AI Agent Framework
-├── Database Pool: PostgreSQL (93% connection reduction achieved: 150+ → 10)
+├── Database Pool: PostgreSQL (93% connection reduction: Dev 150+→10, Prod 150+→50)
 ├── Task Queue: Celery (5 workers × 4 concurrency = 20 parallel tasks)
 ├── Cache Warming: Redis (every 5 seconds for real-time admin dashboard)
 ├── API Layer: FastAPI (31 endpoints, enterprise patterns)
@@ -35,7 +35,7 @@ AgentOS v2.7.0 - Distributed AI Agent Framework
 
 ### Database Pool Migration Status
 **✅ COMPLETED**: 11+ services successfully migrated to shared enterprise database pool
-- **Connection Reduction**: 150+ → 10 total connections (93% improvement)
+- **Connection Reduction**: 150+ → 10 (dev) / 50 (prod) connections (93% improvement)
 - **Environment Aware**: Development (10), Production (50) connection limits
 - **Pattern**: `from core.database_pool import get_db_session`
 
