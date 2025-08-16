@@ -151,7 +151,7 @@ def detect_moments(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         return result
         
     except Exception as e:
-        # Log failure with error details
+        # Log failure with error details - use fresh session for clean state
         with get_db_session() as session:
             step = session.query(ProcessingStep).filter(
                 ProcessingStep.job_id == job_id,
@@ -162,6 +162,7 @@ def detect_moments(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
                 step.completed_at = datetime.now(timezone.utc)
                 step.duration_seconds = time.time() - start_time
                 step.error_message = str(e)
+                session.commit()  # Explicit commit for failure status
         
         raise
 ```
