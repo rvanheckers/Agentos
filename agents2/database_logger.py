@@ -112,13 +112,10 @@ class StepLogger:
 
     def complete(self):
         """Complete de step en update database"""
-        try:
-            from core.database_pool import get_db_session
-            with get_db_session() as session:
-                # Database update would go here, currently simplified
-                print(f"Step {self.step_id} completed: success={self.success}")
-        except Exception as e:
-            print(f"Failed to update step {self.step_id}: {e}")
+        # Database logging intentionally not implemented (KISS principle)
+        # Job-level tracking already exists in Celery
+        # File logging is sufficient for debugging
+        print(f"Step {self.step_id} completed: success={self.success}")
 
 
 class DummyLogger:

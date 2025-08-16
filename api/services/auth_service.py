@@ -11,7 +11,7 @@ from core.database_pool import get_db_session
 class AuthService:
     def __init__(self):
         # Using shared database pool
+        pass
 
     # Service methods will be added here
-    pass
 
