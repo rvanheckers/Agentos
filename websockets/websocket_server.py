@@ -325,13 +325,25 @@ class AdminWebSocketServer:
             # Use shared database pool
             from core.database_pool import get_db_session
             from core.database_manager import Job, ProcessingStep
+            from uuid import UUID
             
+            # Valideer/cast job_id
+            try:
+                job_uuid = UUID(job_id)
+            except (ValueError, TypeError, AttributeError):
+                await websocket.send(json.dumps({
+                    'type': 'invalid_job_id',
+                    'job_id': job_id,
+                    'timestamp': datetime.utcnow().isoformat()
+                }))
+                return
+
             with get_db_session() as session:
-                job = session.query(Job).filter(Job.id == job_id).first()
+                job = session.query(Job).filter(Job.id == job_uuid).first()
                 if job:
                     # Get processing steps for detailed progress
                     processing_steps = session.query(ProcessingStep).filter(
-                        ProcessingStep.job_id == job_id
+                        ProcessingStep.job_id == job_uuid
                     ).all()
 
                     message = {

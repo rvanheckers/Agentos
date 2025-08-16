@@ -291,6 +291,33 @@
     </div>
 
     <script>
+        // Environment-aware API base URL detection
+        function getAPIBaseURL() {
+            // 1. Check for runtime configuration
+            if (typeof window !== 'undefined' && window.AGENTOS_CONFIG && window.AGENTOS_CONFIG.API_BASE_URL) {
+                return window.AGENTOS_CONFIG.API_BASE_URL;
+            }
+            
+            // 2. Derive from current location
+            if (typeof window !== 'undefined' && window.location) {
+                const currentOrigin = window.location.origin;
+                
+                // Development: map UI ports to API port
+                if (currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')) {
+                    return currentOrigin.replace(':8080', ':8001').replace(':8004', ':8001').replace(':3000', ':8001');
+                }
+                
+                // Production/staging: assume API on same origin
+                return currentOrigin;
+            }
+            
+            // 3. Fallback
+            return 'http://localhost:8001';
+        }
+        
+        // Set configurable API base URL
+        const API_BASE_URL = getAPIBaseURL();
+        
         let validationData = {
             ui: null,
             api: null,
@@ -376,7 +403,7 @@
 
         async function fetchAPIData() {
             try {
-                const response = await fetch('http://localhost:8001/api/admin/ssot');
+                const response = await fetch(`${API_BASE_URL}/api/admin/ssot`);
                 
                 // Check if response is ok (status 200-299)
                 if (!response.ok) {
@@ -387,6 +414,10 @@
                         url: response.url,
                         headers: Object.fromEntries(response.headers.entries())
                     });
+                    
+                    // Clear stale API data before returning
+                    validationData.api = null;
+                    
                     setStatus(`API error: ${response.status} ${response.statusText}`, 'error');
                     return;
                 }
@@ -402,6 +433,9 @@
                 
                 displayAPIData(validationData.api);
             } catch (error) {
+                // Clear stale API data before error handling
+                validationData.api = null;
+                
                 // Log full error details for debugging
                 console.error('API fetch error details:', {
                     name: error.name,

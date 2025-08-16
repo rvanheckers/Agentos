@@ -12,31 +12,32 @@ function getAPIBaseURL() {
     // 4. Development fallback
     
     if (typeof process !== 'undefined' && process.env && process.env.API_BASE_URL) {
-        return process.env.API_BASE_URL;
+        return { url: process.env.API_BASE_URL, source: 'Environment Variable' };
     }
     
     if (typeof window !== 'undefined' && window.AGENTOS_CONFIG && window.AGENTOS_CONFIG.API_BASE_URL) {
-        return window.AGENTOS_CONFIG.API_BASE_URL;
+        return { url: window.AGENTOS_CONFIG.API_BASE_URL, source: 'Runtime Config' };
     }
     
     if (typeof window !== 'undefined' && window.location) {
         // Use current origin but switch to API port (8001)
         const currentOrigin = window.location.origin;
         if (currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')) {
-            return currentOrigin.replace(':8080', ':8001').replace(':3000', ':8001');
+            return { url: currentOrigin.replace(':8080', ':8001').replace(':3000', ':8001'), source: 'Derived from Location' };
         }
         // For production environments, assume API is on same origin with /api prefix
-        return currentOrigin;
+        return { url: currentOrigin, source: 'Production Origin' };
     }
     
     // Development fallback
-    return 'http://localhost:8001';
+    return { url: 'http://localhost:8001', source: 'Development Fallback' };
 }
 
-const API_BASE_URL = getAPIBaseURL();
+const apiConfig = getAPIBaseURL();
+const API_BASE_URL = apiConfig.url;
 console.log('🔧 API Configuration:', {
     'API_BASE_URL': API_BASE_URL,
-    'Detection_Method': getAPIBaseURL === API_BASE_URL ? 'Cached' : 'Runtime',
+    'Detection_Method': apiConfig.source,
     'Environment': typeof process !== 'undefined' ? 'Node.js' : 'Browser'
 });
 

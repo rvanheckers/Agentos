@@ -2941,7 +2941,39 @@ export class JobHistory {
     }
     
     return jobs.filter(job => {
-      const jobDate = new Date(job.created_at || job.timestamp);
+      // Check if date fields exist and get the first available one
+      const dateValue = job.created_at || job.timestamp;
+      
+      // Skip jobs with no date field
+      if (!dateValue) {
+        console.warn('Job missing date field:', job.id || 'unknown');
+        return false; // Business rule: exclude jobs without dates
+      }
+      
+      // Validate date and handle invalid dates
+      let jobDate;
+      if (typeof dateValue === 'string' || typeof dateValue === 'number') {
+        // Check if it's a valid date string/timestamp
+        const parsedTime = Date.parse(dateValue);
+        if (isNaN(parsedTime)) {
+          console.warn('Job has invalid date format:', dateValue, 'for job:', job.id || 'unknown');
+          return false; // Business rule: exclude jobs with invalid dates
+        }
+        jobDate = new Date(parsedTime);
+      } else if (dateValue instanceof Date) {
+        // Already a Date object, check if valid
+        if (isNaN(dateValue.getTime())) {
+          console.warn('Job has invalid Date object for job:', job.id || 'unknown');
+          return false;
+        }
+        jobDate = dateValue;
+      } else {
+        // Invalid date type
+        console.warn('Job has invalid date type:', typeof dateValue, 'for job:', job.id || 'unknown');
+        return false;
+      }
+      
+      // Perform safe date comparison
       return jobDate >= filterDate;
     });
   }
@@ -3039,22 +3071,6 @@ export class JobHistory {
       return `${Math.round(totalBytes / (1024 * 1024))}MB`;
     } else {
       return `${Math.round(totalBytes / (1024 * 1024 * 1024))}GB`;
-    }
-  }
-
-  formatDuration(milliseconds) {
-    if (!milliseconds || milliseconds < 1000) return '0s';
-    
-    const seconds = Math.floor(milliseconds / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    
-    if (hours > 0) {
-      return `${hours}h ${minutes % 60}m`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${seconds % 60}s`;
-    } else {
-      return `${seconds}s`;
     }
   }
 

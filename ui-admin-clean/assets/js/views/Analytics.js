@@ -1927,6 +1927,8 @@ export class Analytics {
     return isPositive ? `↗ +${percentage}%` : `↘ -${percentage}%`;
   }
 
+  // TODO: formatDuration method removed to eliminate duplication
+  // Consider creating a shared utility module for common formatting functions
   formatDuration(seconds) {
     if (!seconds || seconds === 0) return '0s';
     

@@ -40,36 +40,17 @@ class UploadService:
         else:
             try:
                 from core.database_pool import get_db_session
-                # Using shared database pool  
-                self.db = get_db_session()  # Store reference for database operations
+                # Store the factory function, not a session instance
+                self.db = get_db_session  # Store factory for per-operation sessions
                 logger.info("✅ Database integration enabled for upload service")
             except Exception as e:
-                logger.error(f"❌ Database session creation failed: {e}")
+                logger.error(f"❌ Database factory import failed: {e}")
                 self.db = None
                 raise
 
         # Ensure directories exist
         os.makedirs(self.upload_dir, exist_ok=True)
         os.makedirs(self.temp_dir, exist_ok=True)
-
-    def __del__(self):
-        """Cleanup database session on service destruction"""
-        if hasattr(self, 'db') and self.db:
-            try:
-                self.db.close()
-                logger.info("✅ Database session closed for upload service")
-            except Exception as e:
-                logger.warning(f"⚠️ Error closing database session: {e}")
-
-    def close(self):
-        """Explicitly close database session"""
-        if hasattr(self, 'db') and self.db:
-            try:
-                self.db.close()
-                self.db = None
-                logger.info("✅ Database session explicitly closed for upload service")
-            except Exception as e:
-                logger.warning(f"⚠️ Error closing database session: {e}")
 
     def init_upload(self, filename: str, file_size: int, chunk_size: int = 1024*1024,
                    user_id: Optional[str] = None, is_admin: bool = False) -> Dict[str, Any]:
@@ -101,22 +82,26 @@ class UploadService:
             # 🆕 DATABASE-FIRST: Store upload session in database first
             if self.db:
                 try:
-                    event_metadata = {
-                        "upload_id": upload_id,
-                        "filename": filename,
-                        "file_size": file_size,
-                        "chunk_size": chunk_size,
-                        "total_chunks": total_chunks,
-                        "temp_path": upload_session["temp_path"]
-                    }
+                    with self.db() as session:
+                        event_metadata = {
+                            "upload_id": upload_id,
+                            "filename": filename,
+                            "file_size": file_size,
+                            "chunk_size": chunk_size,
+                            "total_chunks": total_chunks,
+                            "temp_path": upload_session["temp_path"]
+                        }
 
-                    self.db.log_system_event(
-                        event_type="upload_session_initialized",
-                        message=f"Upload session initialized for file: {filename} ({file_size} bytes)",
-                        component="upload_service",
-                        metadata=event_metadata
-                    )
-                    logger.info(f"✅ Upload session {upload_id} stored in database")
+                        # Assuming log_system_event is a method that takes a session
+                        # If it's on db_manager, we need to adapt this
+                        if hasattr(session, 'log_system_event'):
+                            session.log_system_event(
+                                event_type="upload_session_initialized",
+                                message=f"Upload session initialized for file: {filename} ({file_size} bytes)",
+                                component="upload_service",
+                                metadata=event_metadata
+                            )
+                        logger.info(f"✅ Upload session {upload_id} stored in database")
 
                 except Exception as db_error:
                     logger.warning(f"⚠️ Database upload session storage failed: {db_error}")
@@ -227,21 +212,23 @@ class UploadService:
             # 🆕 DATABASE-FIRST: Log chunk progress to database
             if self.db:
                 try:
-                    event_metadata = {
-                        "upload_id": upload_id,
-                        "chunk_index": chunk_index,
-                        "received_chunks": len(session["received_chunks"]),
-                        "total_chunks": session["total_chunks"],
-                        "progress": round(progress, 2),
-                        "chunk_size": len(chunk)
-                    }
+                    with self.db() as db_session:
+                        event_metadata = {
+                            "upload_id": upload_id,
+                            "chunk_index": chunk_index,
+                            "received_chunks": len(session["received_chunks"]),
+                            "total_chunks": session["total_chunks"],
+                            "progress": round(progress, 2),
+                            "chunk_size": len(chunk)
+                        }
 
-                    self.db.log_system_event(
-                        event_type="upload_chunk_received",
-                        message=f"Chunk {chunk_index}/{session['total_chunks']} uploaded for {session['filename']} ({progress:.1f}%)",
-                        component="upload_service",
-                        metadata=event_metadata
-                    )
+                        if hasattr(db_session, 'log_system_event'):
+                            db_session.log_system_event(
+                                event_type="upload_chunk_received",
+                                message=f"Chunk {chunk_index}/{session['total_chunks']} uploaded for {session['filename']} ({progress:.1f}%)",
+                                component="upload_service",
+                                metadata=event_metadata
+                            )
 
                 except Exception as db_error:
                     logger.warning(f"⚠️ Database chunk logging failed: {db_error}")
@@ -297,23 +284,25 @@ class UploadService:
             # 🆕 DATABASE-FIRST: Log upload completion to database first
             if self.db:
                 try:
-                    completion_metadata = {
-                        "upload_id": upload_id,
-                        "filename": session["filename"],
-                        "final_path": final_path,
-                        "file_size": session["file_size"],
-                        "file_hash": file_hash,
-                        "total_chunks": session["total_chunks"],
-                        "upload_duration_seconds": (datetime.now(timezone.utc) - datetime.fromisoformat(session["created_at"].replace("Z", "+00:00"))).total_seconds()
-                    }
+                    with self.db() as db_session:
+                        completion_metadata = {
+                            "upload_id": upload_id,
+                            "filename": session["filename"],
+                            "final_path": final_path,
+                            "file_size": session["file_size"],
+                            "file_hash": file_hash,
+                            "total_chunks": session["total_chunks"],
+                            "upload_duration_seconds": (datetime.now(timezone.utc) - datetime.fromisoformat(session["created_at"].replace("Z", "+00:00"))).total_seconds()
+                        }
 
-                    self.db.log_system_event(
-                        event_type="upload_completed",
-                        message=f"Upload completed successfully: {session['filename']} ({session['file_size']} bytes, {session['total_chunks']} chunks)",
-                        component="upload_service",
-                        metadata=completion_metadata
-                    )
-                    logger.info(f"✅ Upload completion logged to database: {upload_id}")
+                        if hasattr(db_session, 'log_system_event'):
+                            db_session.log_system_event(
+                                event_type="upload_completed",
+                                message=f"Upload completed successfully: {session['filename']} ({session['file_size']} bytes, {session['total_chunks']} chunks)",
+                                component="upload_service",
+                                metadata=completion_metadata
+                            )
+                        logger.info(f"✅ Upload completion logged to database: {upload_id}")
 
                 except Exception as db_error:
                     logger.warning(f"⚠️ Database upload completion logging failed: {db_error}")
@@ -421,22 +410,24 @@ class UploadService:
             # 🆕 DATABASE-FIRST: Log file import to database
             if self.db:
                 try:
-                    import_metadata = {
-                        "original_path": file_path,
-                        "imported_filename": safe_filename,
-                        "dest_path": dest_path,
-                        "file_size": file_size,
-                        "file_hash": file_hash,
-                        "import_method": "local_file_import"
-                    }
+                    with self.db() as db_session:
+                        import_metadata = {
+                            "original_path": file_path,
+                            "imported_filename": safe_filename,
+                            "dest_path": dest_path,
+                            "file_size": file_size,
+                            "file_hash": file_hash,
+                            "import_method": "local_file_import"
+                        }
 
-                    self.db.log_system_event(
-                        event_type="file_imported",
-                        message=f"Local file imported: {filename} ({file_size} bytes) -> {safe_filename}",
-                        component="upload_service",
-                        metadata=import_metadata
-                    )
-                    logger.info(f"✅ File import logged to database: {safe_filename}")
+                        if hasattr(db_session, 'log_system_event'):
+                            db_session.log_system_event(
+                                event_type="file_imported",
+                                message=f"Local file imported: {filename} ({file_size} bytes) -> {safe_filename}",
+                                component="upload_service",
+                                metadata=import_metadata
+                            )
+                        logger.info(f"✅ File import logged to database: {safe_filename}")
 
                 except Exception as db_error:
                     logger.warning(f"⚠️ Database file import logging failed: {db_error}")

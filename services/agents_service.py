@@ -8,6 +8,7 @@ Updated to Database-First pattern for consistency with AgentOS v2.4.0
 
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
+from sqlalchemy import text
 import logging
 
 logger = logging.getLogger("agentos.services.agents")
@@ -43,7 +44,7 @@ class AgentsService:
                 # Test database connection during initialization
                 with get_db_session() as session:
                     # Validate connection works
-                    session.execute("SELECT 1")
+                    session.execute(text("SELECT 1"))
                 
                 # Store reference to the shared database pool
                 self.db = db_pool

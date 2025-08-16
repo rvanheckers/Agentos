@@ -4,7 +4,8 @@ Handles all job-related business logic for both admin and user endpoints
 Eliminates 12 duplicate method implementations
 """
 from typing import List, Dict, Optional, Any
-from datetime import datetime, date
+from datetime import datetime, date, timezone
+from uuid import UUID, uuid4
 from core.database_manager import Job, Clip
 from core.database_pool import get_db_session
 from sqlalchemy import desc, func
@@ -67,7 +68,7 @@ class JobsService:
                 "offset": offset
             }
 
-    def get_job_by_id(self, job_id: str, user_id: Optional[str] = None, is_admin: bool = False) -> Optional[Dict[str, Any]]:
+    def get_job_by_id(self, job_id: UUID | str, user_id: Optional[str] = None, is_admin: bool = False) -> Optional[Dict[str, Any]]:
         """Get single job by ID
         Admin can see any job, users can only see their own"""
         with get_db_session() as session:
@@ -80,7 +81,7 @@ class JobsService:
             job = query.first()
             return self._job_to_dict(job) if job else None
 
-    def get_job_status(self, job_id: str, user_id: Optional[str] = None, is_admin: bool = False) -> Optional[Dict[str, str]]:
+    def get_job_status(self, job_id: UUID | str, user_id: Optional[str] = None, is_admin: bool = False) -> Optional[Dict[str, str]]:
         """Get job status
         Admin can see any job status, users can only see their own"""
         job = self.get_job_by_id(job_id, user_id, is_admin)
@@ -93,7 +94,7 @@ class JobsService:
             }
         return None
 
-    def update_job_status(self, job_id: str, status: str, progress: Optional[int] = None,
+    def update_job_status(self, job_id: UUID | str, status: str, progress: Optional[int] = None,
                          user_id: Optional[str] = None, is_admin: bool = False) -> bool:
         """Update job status
         Only admin or job owner can update"""
@@ -109,12 +110,12 @@ class JobsService:
                 job.status = status
                 if progress is not None:
                     job.progress = progress
-                job.updated_at = datetime.utcnow()
+                job.updated_at = datetime.now(timezone.utc)
                 session.commit()
                 return True
             return False
 
-    def delete_job(self, job_id: str, user_id: Optional[str] = None, is_admin: bool = False, **kwargs) -> Dict[str, Any]:
+    def delete_job(self, job_id: UUID | str, user_id: Optional[str] = None, is_admin: bool = False, **kwargs) -> Dict[str, Any]:
         """Delete a job
         Only admin or job owner can delete"""
         with get_db_session() as session:
@@ -154,7 +155,7 @@ class JobsService:
             jobs = query.order_by(desc(Job.created_at)).all()
             return [self._job_to_dict(job) for job in jobs]
 
-    def get_job_clips(self, job_id: str, user_id: Optional[str] = None, is_admin: bool = False) -> List[Dict[str, Any]]:
+    def get_job_clips(self, job_id: UUID | str, user_id: Optional[str] = None, is_admin: bool = False) -> List[Dict[str, Any]]:
         """Get all clips for a job
         Admin can see any job's clips, users only their own"""
         # First verify job access
@@ -195,7 +196,7 @@ class JobsService:
                 "success_rate": (completed / total * 100) if total > 0 else 0
             }
 
-    def cancel_job(self, job_id: str, user_id: Optional[str] = None, is_admin: bool = False, **kwargs) -> Dict[str, Any]:
+    def cancel_job(self, job_id: UUID | str, user_id: Optional[str] = None, is_admin: bool = False, **kwargs) -> Dict[str, Any]:
         """Cancel a job
         Only admin or job owner can cancel"""
         # First check if job exists
@@ -226,7 +227,7 @@ class JobsService:
             "message": "Job cancelled successfully" if success else "Failed to cancel job"
         }
 
-    def retry_job(self, job_id: str, user_id: Optional[str] = None, is_admin: bool = False, **kwargs) -> Dict[str, Any]:
+    def retry_job(self, job_id: UUID | str, user_id: Optional[str] = None, is_admin: bool = False, **kwargs) -> Dict[str, Any]:
         """Retry a failed job
         Only admin or job owner can retry"""
         # First check if job exists
@@ -321,7 +322,7 @@ class JobsService:
                     "success_rate": round(success_rate, 2),
                     "todays_jobs": len(todays_jobs),
                     "avg_processing_time": avg_processing_time,
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat()
                 }
 
         except Exception as e:
@@ -336,7 +337,7 @@ class JobsService:
                 "todays_jobs": 0,
                 "avg_processing_time": 0,
                 "error": str(e),
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
 
     def create_job(self, job_data: Dict[str, Any], is_admin: bool = False) -> Dict[str, Any]:
@@ -347,14 +348,14 @@ class JobsService:
         with get_db_session() as session:
             # Create new job instance
             job = Job(
-                id=str(uuid.uuid4()),
+                id=uuid4(),
                 user_id=job_data.get("user_id", "user1"),
                 video_url=job_data.get("video_url", ""),
                 video_title=job_data.get("video_title", ""),
                 status="queued",
                 progress=0,
                 current_step="Queued for processing",
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
                 retry_count=0,
                 worker_id=None
             )
