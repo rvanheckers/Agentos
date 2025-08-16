@@ -319,10 +319,29 @@
             const view = document.getElementById('viewSelector').value;
             const uiData = {};
             
+            // Safe document access with fallback
+            function getDocument() {
+                // Check if we're in an iframe and parent is accessible
+                if (window.parent && window.parent !== window) {
+                    try {
+                        // Test cross-origin access by attempting to read parent document
+                        window.parent.document.domain;
+                        return window.parent.document;
+                    } catch (e) {
+                        console.warn('Cross-origin access denied, falling back to current document:', e.message);
+                        return document;
+                    }
+                }
+                // Not in iframe or parent is same as window
+                return document;
+            }
+            
+            const targetDocument = getDocument();
+            
             if (view === 'dashboard') {
                 // Capture Dashboard metrics
-                const jobsCard = window.parent.document.querySelector('.metric-card__description');
-                if (jobsCard) {
+                const jobsCard = targetDocument.querySelector('.metric-card__description');
+                if (jobsCard && jobsCard.textContent) {
                     const match = jobsCard.textContent.match(/(\d+)% success \((\d+)\/(\d+) completed today\)/);
                     if (match) {
                         uiData.successRate = parseInt(match[1]);
@@ -332,7 +351,7 @@
                 }
                 
                 // Capture all metric cards
-                const cards = window.parent.document.querySelectorAll('.metric-card');
+                const cards = targetDocument.querySelectorAll('.metric-card');
                 uiData.metrics = Array.from(cards).map(card => ({
                     title: card.querySelector('.metric-card__title')?.textContent?.trim(),
                     value: card.querySelector('.metric-card__value')?.textContent?.trim(),
@@ -340,7 +359,7 @@
                 }));
             } else {
                 // Capture Queue & Jobs metrics
-                const metrics = window.parent.document.querySelectorAll('.metric-card');
+                const metrics = targetDocument.querySelectorAll('.metric-card');
                 uiData.metrics = Array.from(metrics).map(card => ({
                     title: card.querySelector('.metric-title')?.textContent?.trim(),
                     value: card.querySelector('.metric-value')?.textContent?.trim(),

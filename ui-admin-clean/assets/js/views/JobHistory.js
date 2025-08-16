@@ -1947,6 +1947,18 @@ export class JobHistory {
         } catch (error) {
           console.error(`❌ Failed to create ActionableMetricCard for ${config.id}:`, error);
           console.error(`Container:`, config.container);
+          
+          // Show user-visible error notification
+          this.showKPILoadError(config.id, error.message);
+          
+          // Create error placeholder card for downstream safety
+          const errorCard = this.createErrorMetricCard(config);
+          this.metricCards.set(config.id, errorCard);
+          
+          // Render the error placeholder immediately
+          errorCard.render();
+          
+          // Continue loop - don't rethrow
         }
       } else {
         console.warn(`⚠️ Missing container for KPI ${config.id}, selector: ${config.container}`);
@@ -1994,6 +2006,31 @@ export class JobHistory {
     }
   }
 
+  // KPI BUILDER CLASS - Reduces repetitive KPI configuration code
+  // =============================================================================
+  
+  /**
+   * Generic KPI builder to eliminate code duplication across get*KPIs methods
+   */
+  createKPIBuilder() {
+    return {
+      container: this.container,
+      kpis: [],
+      
+      addKPI(selector, config) {
+        this.kpis.push({
+          ...config,
+          container: this.container.querySelector(selector)
+        });
+        return this;
+      },
+      
+      build() {
+        return this.kpis;
+      }
+    };
+  }
+
   getTodayKPIs(data) {
     const todayJobs = this.filterJobsByDate(data.allJobs, 'today');
     const todayCompleted = todayJobs.filter(j => j.status === 'completed').length;
@@ -2001,10 +2038,11 @@ export class JobHistory {
     const todayProcessing = todayJobs.filter(j => j.status === 'processing').length;
     const successRate = todayJobs.length > 0 ? (todayCompleted / todayJobs.length * 100).toFixed(1) : 0;
 
-    return [
-      {
+    const builder = this.createKPIBuilder();
+    
+    return builder
+      .addKPI('#queue-depth-card', {
         id: 'today-total',
-        container: this.container.querySelector('#queue-depth-card'),
         title: 'Jobs Today',
         icon: '📅',
         value: todayJobs.length.toString(),
@@ -2015,10 +2053,9 @@ export class JobHistory {
           { label: 'View Today Details', action: 'analytics.drill_down', params: { filter: 'today_jobs' }, icon: '🔍' },
           { label: 'Export Today', action: 'analytics.generate_report', params: { type: 'daily' }, icon: '📊' }
         ]
-      },
-      {
+      })
+      .addKPI('#active-processing-card', {
         id: 'today-success-rate',
-        container: this.container.querySelector('#active-processing-card'),
         title: 'Today Success Rate',
         icon: '✅',
         value: `${successRate}%`,
@@ -2032,10 +2069,9 @@ export class JobHistory {
           { label: 'Analyze Failures', action: 'analytics.drill_down', params: { filter: 'today_failed' }, icon: '🔍' },
           { label: 'Retry Failed', action: 'job.bulk_retry', params: { filter: 'today' }, icon: '🔄' }
         ]
-      },
-      {
+      })
+      .addKPI('#queue-throughput-card', {
         id: 'today-active',
-        container: this.container.querySelector('#queue-throughput-card'),
         title: 'Active Now',
         icon: '⚡',
         value: todayProcessing.toString(),
@@ -2045,10 +2081,9 @@ export class JobHistory {
           { label: 'Monitor Active', action: 'analytics.drill_down', params: { filter: 'active_jobs' }, icon: '👁️' },
           { label: 'Worker Status', action: 'worker.status', icon: '👷' }
         ]
-      },
-      {
+      })
+      .addKPI('#success-rate-24h-card', {
         id: 'today-avg-time',
-        container: this.container.querySelector('#success-rate-24h-card'),
         title: 'Avg Processing Time',
         icon: '⏱️',
         value: this.calculateAvgProcessingTime(todayJobs),
@@ -2058,8 +2093,8 @@ export class JobHistory {
           { label: 'Performance Analysis', action: 'analytics.drill_down', params: { filter: 'performance' }, icon: '📊' },
           { label: 'Optimize Performance', action: 'system.performance_tune', icon: '🚀' }
         ]
-      }
-    ];
+      })
+      .build();
   }
 
   getThisWeekKPIs(data) {
@@ -2068,10 +2103,11 @@ export class JobHistory {
     const weekFailed = weekJobs.filter(j => j.status === 'failed').length;
     const dailyAvg = Math.round(weekJobs.length / 7);
 
-    return [
-      {
+    const builder = this.createKPIBuilder();
+    
+    return builder
+      .addKPI('#queue-depth-card', {
         id: 'week-total',
-        container: this.container.querySelector('#queue-depth-card'),
         title: 'Week Total',
         icon: '📆',
         value: weekJobs.length.toString(),
@@ -2082,10 +2118,9 @@ export class JobHistory {
           { label: 'Weekly Report', action: 'analytics.generate_report', params: { type: 'weekly' }, icon: '📊' },
           { label: 'Trend Analysis', action: 'analytics.drill_down', params: { filter: 'week_trends' }, icon: '📈' }
         ]
-      },
-      {
+      })
+      .addKPI('#active-processing-card', {
         id: 'week-growth',
-        container: this.container.querySelector('#active-processing-card'),
         title: 'Week Growth',
         icon: '📈',
         value: '+23%',
@@ -2096,10 +2131,9 @@ export class JobHistory {
           { label: 'Growth Analysis', action: 'analytics.drill_down', params: { filter: 'growth' }, icon: '📊' },
           { label: 'Capacity Planning', action: 'analytics.capacity_analysis', icon: '⚖️' }
         ]
-      },
-      {
+      })
+      .addKPI('#queue-throughput-card', {
         id: 'week-completion',
-        container: this.container.querySelector('#queue-throughput-card'),
         title: 'Completion Rate',
         icon: '🎯',
         value: `${weekCompleted}/${weekJobs.length}`,
@@ -2108,10 +2142,9 @@ export class JobHistory {
         actions: [
           { label: 'Success Analysis', action: 'analytics.drill_down', params: { filter: 'success_patterns' }, icon: '✅' }
         ]
-      },
-      {
+      })
+      .addKPI('#success-rate-24h-card', {
         id: 'week-peak-day',
-        container: this.container.querySelector('#success-rate-24h-card'),
         title: 'Peak Day',
         icon: '🔥',
         value: 'Wednesday',
@@ -2120,8 +2153,8 @@ export class JobHistory {
         actions: [
           { label: 'Daily Breakdown', action: 'analytics.drill_down', params: { filter: 'daily_breakdown' }, icon: '📅' }
         ]
-      }
-    ];
+      })
+      .build();
   }
 
   getSuccessfulKPIs(data) {
@@ -2129,10 +2162,11 @@ export class JobHistory {
     const avgSuccessTime = this.calculateAvgProcessingTime(successfulJobs);
     const qualityScore = this.calculateQualityScore(successfulJobs);
 
-    return [
-      {
+    const builder = this.createKPIBuilder();
+    
+    return builder
+      .addKPI('#queue-depth-card', {
         id: 'successful-total',
-        container: this.container.querySelector('#queue-depth-card'),
         title: 'Successful Jobs',
         icon: '✅',
         value: successfulJobs.length.toString(),
@@ -2143,10 +2177,9 @@ export class JobHistory {
           { label: 'Success Report', action: 'analytics.generate_report', params: { type: 'success' }, icon: '📊' },
           { label: 'Success Patterns', action: 'analytics.drill_down', params: { filter: 'success_analysis' }, icon: '🔍' }
         ]
-      },
-      {
+      })
+      .addKPI('#active-processing-card', {
         id: 'quality-score',
-        container: this.container.querySelector('#active-processing-card'),
         title: 'Quality Score',
         icon: '⭐',
         value: `${qualityScore}%`,
@@ -2160,10 +2193,9 @@ export class JobHistory {
           { label: 'Quality Analysis', action: 'analytics.drill_down', params: { filter: 'quality' }, icon: '📊' },
           { label: 'Improve Quality', action: 'system.optimize_quality', icon: '⚡' }
         ]
-      },
-      {
+      })
+      .addKPI('#queue-throughput-card', {
         id: 'success-avg-time',
-        container: this.container.querySelector('#queue-throughput-card'),
         title: 'Avg Success Time',
         icon: '⚡',
         value: avgSuccessTime,
@@ -2172,10 +2204,9 @@ export class JobHistory {
         actions: [
           { label: 'Performance Deep Dive', action: 'analytics.drill_down', params: { filter: 'performance_analysis' }, icon: '🔍' }
         ]
-      },
-      {
+      })
+      .addKPI('#success-rate-24h-card', {
         id: 'success-rate',
-        container: this.container.querySelector('#success-rate-24h-card'),
         title: 'Overall Success Rate',
         icon: '🎯',
         value: `${data.allJobs.length > 0 ? (successfulJobs.length/data.allJobs.length*100).toFixed(1) : 0}%`,
@@ -2187,8 +2218,8 @@ export class JobHistory {
         actions: [
           { label: 'Success Optimization', action: 'system.optimize_success', icon: '🚀' }
         ]
-      }
-    ];
+      })
+      .build();
   }
 
   getErrorKPIs(data) {
@@ -3367,5 +3398,80 @@ export class JobHistory {
     } else {
       return `${failedJobs} failed jobs need attention`;
     }
+  }
+
+  showKPILoadError(kpiId, errorMessage) {
+    // Create user-visible error notification
+    const errorNotification = document.createElement('div');
+    errorNotification.className = 'kpi-error-notification';
+    errorNotification.innerHTML = `
+      <div class="error-content">
+        <span class="error-icon">⚠️</span>
+        <span class="error-text">KPI "${kpiId}" failed to load: ${errorMessage}</span>
+        <button class="error-close" onclick="this.parentElement.parentElement.remove()">✕</button>
+      </div>
+    `;
+    errorNotification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      border-radius: 4px;
+      padding: 12px;
+      z-index: 1000;
+      max-width: 400px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    `;
+    
+    document.body.appendChild(errorNotification);
+    
+    // Auto-remove after 8 seconds
+    setTimeout(() => {
+      if (errorNotification.parentNode) {
+        errorNotification.parentNode.removeChild(errorNotification);
+      }
+    }, 8000);
+  }
+
+  createErrorMetricCard(config) {
+    // Create lightweight error placeholder that mimics ActionableMetricCard interface
+    return {
+      id: config.id,
+      container: config.container,
+      isError: true,
+      
+      // Mock ActionableMetricCard methods to prevent downstream breaks
+      update: () => {
+        console.warn(`Cannot update error placeholder for KPI ${config.id}`);
+      },
+      
+      render: () => {
+        // Insert error placeholder into container if it exists
+        const container = document.querySelector(config.container);
+        if (container) {
+          container.innerHTML = `
+            <div class="metric-card error-metric-card">
+              <div class="metric-card__title">⚠️ Error</div>
+              <div class="metric-card__value">—</div>
+              <div class="metric-card__description">KPI "${config.id}" failed to load</div>
+            </div>
+          `;
+          container.style.cssText = `
+            opacity: 0.6;
+            border: 1px solid #f5c6cb;
+            background: #f8d7da;
+          `;
+        }
+      },
+      
+      getData: () => ({ error: true, id: config.id }),
+      destroy: () => {},
+      
+      // Properties that might be accessed downstream
+      options: config,
+      element: document.querySelector(config.container)
+    };
   }
 }

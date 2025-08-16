@@ -178,10 +178,10 @@
             };
 
             // Analyze the data
-            analyzeResults(results);
+            await analyzeResults(results);
         }
 
-        function analyzeResults(results) {
+        async function analyzeResults(results) {
             // Quick Status
             const quickStatus = document.getElementById('quick-status');
             const apiQueue = results.api?.data?.dashboard?.queue || {};
@@ -278,9 +278,58 @@
                 fullResults: results
             };
             
-            // Save to clipboard
-            navigator.clipboard.writeText(JSON.stringify(summary, null, 2));
-            console.log('Debug summary copied to clipboard!');
+            // Save to clipboard with error handling
+            try {
+                await navigator.clipboard.writeText(JSON.stringify(summary, null, 2));
+                console.log('✅ Debug summary copied to clipboard!');
+                showClipboardFeedback('✅ Copied to clipboard!', 'success');
+            } catch (error) {
+                console.error('❌ Failed to copy to clipboard:', error);
+                showClipboardFeedback('❌ Could not copy to clipboard — check browser permissions', 'error');
+            }
+        }
+
+        function showClipboardFeedback(message, type) {
+            // Create or update feedback element
+            let feedback = document.getElementById('clipboard-feedback');
+            if (!feedback) {
+                feedback = document.createElement('div');
+                feedback.id = 'clipboard-feedback';
+                feedback.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 12px 16px;
+                    border-radius: 4px;
+                    font-weight: bold;
+                    z-index: 1000;
+                    transition: opacity 0.3s ease;
+                `;
+                document.body.appendChild(feedback);
+            }
+            
+            // Set message and style based on type
+            feedback.textContent = message;
+            if (type === 'success') {
+                feedback.style.backgroundColor = '#d4edda';
+                feedback.style.color = '#155724';
+                feedback.style.border = '1px solid #c3e6cb';
+            } else {
+                feedback.style.backgroundColor = '#f8d7da';
+                feedback.style.color = '#721c24';
+                feedback.style.border = '1px solid #f5c6cb';
+            }
+            
+            // Show and auto-hide
+            feedback.style.opacity = '1';
+            setTimeout(() => {
+                feedback.style.opacity = '0';
+                setTimeout(() => {
+                    if (feedback.parentNode) {
+                        feedback.parentNode.removeChild(feedback);
+                    }
+                }, 300);
+            }, 3000);
         }
 
         function extractCompletedFromDOM(text) {

@@ -7,15 +7,32 @@ by checking all layers of the data flow.
 """
 
 import json
+import os
 import requests
 import sys
-import os
 from datetime import datetime, timezone
 from colorama import init, Fore, Style
 from tabulate import tabulate
 
-# Add project to path
-sys.path.append('/mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/AgentOS')
+# Add project to path - portable approach
+# Fallback order: 1) PROJECT_ROOT env var -> 2) relative discovery -> 3) skip
+project_path = None
+
+# Try environment variable first
+if 'PROJECT_ROOT' in os.environ:
+    project_path = os.environ['PROJECT_ROOT']
+elif 'PYTHONPATH' in os.environ and os.environ['PYTHONPATH']:
+    # Use first path from PYTHONPATH if available
+    project_path = os.environ['PYTHONPATH'].split(os.pathsep)[0]
+else:
+    # Fallback: compute relative to script location
+    # Assume script is in project root, so use directory containing this script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_path = script_dir
+
+# Add to sys.path only if path exists and not already present
+if project_path and os.path.exists(project_path) and project_path not in sys.path:
+    sys.path.append(project_path)
 
 # Initialize colorama for colored output
 init(autoreset=True)

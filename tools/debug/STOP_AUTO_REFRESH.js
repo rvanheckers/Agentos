@@ -186,10 +186,31 @@ console.log('💾 Current UI state preserved:', UI_STATE);
 // Monitor voor changes en log ze
 const observer = new MutationObserver(function(mutations) {
     mutations.forEach(function(mutation) {
-        if (mutation.target.classList && mutation.target.classList.contains('metric-card__description')) {
+        let targetElement = null;
+        let newValue = null;
+        
+        // Check if target is an element node (nodeType 1) or text node (nodeType 3)
+        if (mutation.target.nodeType === Node.ELEMENT_NODE) {
+            // Element node - check classList directly
+            if (mutation.target.classList && mutation.target.classList.contains('metric-card__description')) {
+                targetElement = mutation.target;
+                newValue = mutation.target.textContent;
+            }
+        } else if (mutation.target.nodeType === Node.TEXT_NODE) {
+            // Text node - check parentElement for the class
+            const parentElement = mutation.target.parentElement;
+            if (parentElement && parentElement.classList && parentElement.classList.contains('metric-card__description')) {
+                targetElement = parentElement;
+                newValue = parentElement.textContent;
+            }
+        }
+        
+        // Log if we found a metric card change
+        if (targetElement) {
             console.log('⚠️ Metric card changed!', {
                 oldValue: mutation.oldValue,
-                newValue: mutation.target.textContent,
+                newValue: newValue,
+                targetType: mutation.target.nodeType === Node.ELEMENT_NODE ? 'element' : 'text',
                 timestamp: new Date().toISOString()
             });
         }
