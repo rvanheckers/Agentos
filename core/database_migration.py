@@ -134,25 +134,25 @@ def print_migration_plan():
     print("🚀 ENTERPRISE DATABASE MIGRATION PLAN")
     print("=" * 50)
     
-    print("\\n📋 PHASES:")
+    print("\n📋 PHASES:")
     for phase, description in plan.items():
         if phase.startswith('phase_'):
             print(f"  {phase.upper()}: {description}")
     
-    print(f"\\n📊 IMPACT:")
+    print(f"\n📊 IMPACT:")
     print(f"  • Files to migrate: {plan['files_affected']}")
     print(f"  • Connection reduction: {plan['expected_reduction']}")
     print(f"  • Pattern: {plan['approach']}")
     
-    print(f"\\n🔄 BEFORE/AFTER EXAMPLES:")
+    print(f"\n🔄 BEFORE/AFTER EXAMPLES:")
     for example in examples:
-        print(f"\\n📄 {example['file']}:")
+        print(f"\n📄 {example['file']}:")
         print("  BEFORE (Multiple Pools):")
-        print("  " + "\\n  ".join(example['before'].strip().split("\\n")))
-        print("  \\n  AFTER (Shared Pool):") 
-        print("  " + "\\n  ".join(example['after'].strip().split("\\n")))
+        print("  " + "\n  ".join(example['before'].strip().split("\n")))
+        print("  \n  AFTER (Shared Pool):") 
+        print("  " + "\n  ".join(example['after'].strip().split("\n")))
     
-    print("\\n✅ BENEFITS:")
+    print("\n✅ BENEFITS:")
     print("  • 90%+ connection reduction")
     print("  • No more pool exhaustion crashes") 
     print("  • Industry-standard architecture")
