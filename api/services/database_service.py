@@ -13,6 +13,7 @@ from core.database_manager import Job
 from core.logging_config import get_logger
 from sqlalchemy import desc, func
 from datetime import datetime, timezone, date
+from uuid import UUID
 
 logger = get_logger("api_server")
 
@@ -38,7 +39,9 @@ class DatabaseService:
         """Get specific job by ID"""
         try:
             with get_db_session() as session:
-                job = session.query(Job).filter(Job.id == job_id).first()
+                # Ensure job_id is UUID for proper database comparison
+                job_uuid = UUID(job_id)
+                job = session.query(Job).filter(Job.id == job_uuid).first()
                 return self._job_to_dict(job) if job else None
         except Exception as e:
             logger.error(f"Database service error getting job {job_id}: {e}")
