@@ -329,7 +329,7 @@ class WorkflowOrchestrator:
     async def _update_job_status(self, job_id: str, status: str, progress: Optional[int], message: str):
         """Update job status in database"""
         try:
-            with self.db.get_session() as session:
+            with get_db_session() as session:
                 from core.database_manager import Job
                 job = session.query(Job).filter(Job.id == job_id).first()
                 if job:

@@ -322,35 +322,41 @@ class AdminWebSocketServer:
     async def send_job_status(self, websocket: WebSocketServerProtocol, job_id: str):
         """Send current job status to client"""
         try:
-            job = self.db.get_job(job_id)
-            if job:
-                # Get processing steps for detailed progress
-                processing_steps = self.db.get_job_processing_steps(job_id)
+            # Use shared database pool
+            from core.database_pool import get_db_session
+            from core.database_manager import Job, ProcessingStep
+            
+            with get_db_session() as session:
+                job = session.query(Job).filter(Job.id == job_id).first()
+                if job:
+                    # Get processing steps for detailed progress
+                    processing_steps = session.query(ProcessingStep).filter(
+                        ProcessingStep.job_id == job_id
+                    ).all()
 
-                message = {
-                    'type': 'job_status',
-                    'job_id': job_id,
-                    'status': job['status'],
-                    'progress': job['progress'],
-                    'current_step': job['current_step'],
-                    'created_at': job['created_at'],
-                    'started_at': job['started_at'],
-                    'completed_at': job['completed_at'],
-                    'processing_steps': [
-                        {
-                            'agent_name': step['agent_name'],
-                            'step_number': step['step_number'],
-                            'success': step['success'],
-                            'duration_seconds': step['duration_seconds'],
-                            'completed_at': step['completed_at']
-                        }
-                        for step in processing_steps
-                    ],
-                    'timestamp': datetime.utcnow().isoformat()
-                }
+                    message = {
+                        'type': 'job_status',
+                        'job_id': str(job.id),
+                        'status': job.status,
+                        'progress': job.progress,
+                        'current_step': job.current_step,
+                        'created_at': job.created_at.isoformat() if job.created_at else None,
+                        'started_at': job.started_at.isoformat() if job.started_at else None,
+                        'completed_at': job.completed_at.isoformat() if job.completed_at else None,
+                        'processing_steps': [
+                            {
+                                'step_name': step.step_name,
+                                'status': step.status,
+                                'duration_seconds': step.duration_seconds,
+                                'completed_at': step.completed_at.isoformat() if step.completed_at else None
+                            }
+                            for step in processing_steps
+                        ],
+                        'timestamp': datetime.utcnow().isoformat()
+                    }
 
-                await websocket.send(json.dumps(message))
-            else:
+                    await websocket.send(json.dumps(message))
+                else:
                 await websocket.send(json.dumps({
                     'type': 'job_not_found',
                     'job_id': job_id,
@@ -367,8 +373,9 @@ class AdminWebSocketServer:
             queue_length = self.redis_client.llen('video_jobs')
             processing_jobs = self.redis_client.llen('processing_jobs') if self.redis_client.exists('processing_jobs') else 0
 
-            # Get job stats from database
-            stats = self.db.get_stats()
+            # Get job stats from database using pool manager
+            from core.database_pool import db_pool
+            stats = db_pool.get_pool_metrics()
 
             message = {
                 'type': 'queue_stats',
