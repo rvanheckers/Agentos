@@ -358,6 +358,20 @@
         async function fetchAPIData() {
             try {
                 const response = await fetch('http://localhost:8001/api/admin/ssot');
+                
+                // Check if response is ok (status 200-299)
+                if (!response.ok) {
+                    const errorMessage = `API request failed with ${response.status} ${response.statusText}`;
+                    console.error('API HTTP error:', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        url: response.url,
+                        headers: Object.fromEntries(response.headers.entries())
+                    });
+                    setStatus(`API error: ${response.status} ${response.statusText}`, 'error');
+                    return;
+                }
+                
                 const data = await response.json();
                 
                 validationData.api = {
@@ -369,8 +383,39 @@
                 
                 displayAPIData(validationData.api);
             } catch (error) {
-                console.error('API fetch failed:', error);
-                setStatus('API fetch failed', 'error');
+                // Log full error details for debugging
+                console.error('API fetch error details:', {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack,
+                    cause: error.cause
+                });
+                
+                // Detect CORS and network-specific issues
+                const errorName = error.name || '';
+                const errorMessage = error.message || '';
+                
+                if (errorName === 'TypeError' && 
+                    (errorMessage.includes('Failed to fetch') || 
+                     errorMessage.includes('NetworkError') ||
+                     errorMessage.includes('CORS') ||
+                     errorMessage.includes('Cross-Origin'))) {
+                    
+                    setStatus('API fetch failed — possible CORS issue. Check if API server is running on port 8001.', 'error');
+                    
+                } else if (errorName === 'SyntaxError' && errorMessage.includes('JSON')) {
+                    
+                    setStatus('API returned invalid JSON — check server response format', 'error');
+                    
+                } else if (errorName === 'AbortError') {
+                    
+                    setStatus('API request was aborted or timed out', 'error');
+                    
+                } else {
+                    
+                    // Generic error with actionable advice
+                    setStatus(`API fetch failed — ${errorName}: ${errorMessage}. Check console for details.`, 'error');
+                }
             }
         }
 
