@@ -3,9 +3,16 @@
 
 console.log('🛑 STOPPING ALL AUTO-REFRESH MECHANISMS...');
 
-// Stop alle intervals
-let highestTimeoutId = setTimeout(";");
-for (let i = 0; i < highestTimeoutId; i++) {
+// Stop alle intervals - safe deterministic pattern
+// Create a no-op timeout to get current highest ID
+let highestTimeoutId = setTimeout(function() {}, 0);
+// Convert to integer to ensure proper bounds handling
+highestTimeoutId = parseInt(highestTimeoutId, 10);
+// Clear the probe timeout immediately
+clearTimeout(highestTimeoutId);
+
+// Iterate downward from highest ID to zero clearing all timeouts and intervals
+for (let i = highestTimeoutId; i >= 0; i--) {
     clearTimeout(i);
     clearInterval(i);
 }
@@ -23,10 +30,111 @@ if (window.centralDataService) {
 // Stop alle WebSocket verbindingen
 if (window.WebSocket) {
     const originalWebSocket = window.WebSocket;
-    window.WebSocket = function() {
-        console.log('🚫 WebSocket creation blocked');
-        return { close: () => {}, send: () => {} };
+    
+    // Complete WebSocket mock implementation
+    window.WebSocket = function(url, protocols) {
+        console.log('🚫 WebSocket creation blocked for URL:', url);
+        
+        // WebSocket readyState constants (as per WebSocket API specification)
+        const CONNECTING = 0;
+        const OPEN = 1;
+        const CLOSING = 2;
+        const CLOSED = 3;
+        
+        // Create mock WebSocket instance with full API compatibility
+        const mockWebSocket = {
+            // Standard WebSocket properties
+            url: url,
+            protocol: Array.isArray(protocols) ? protocols[0] || '' : protocols || '',
+            readyState: CLOSED, // Start as CLOSED since we're blocking
+            bufferedAmount: 0,
+            extensions: '',
+            binaryType: 'blob',
+            
+            // WebSocket constants (attached to instance)
+            CONNECTING: CONNECTING,
+            OPEN: OPEN,
+            CLOSING: CLOSING,
+            CLOSED: CLOSED,
+            
+            // Event handlers (default to no-ops)
+            onopen: null,
+            onmessage: null,
+            onerror: null,
+            onclose: null,
+            
+            // Methods
+            send: function(data) {
+                console.log('🚫 WebSocket send() blocked, data:', data);
+                // Silently ignore - don't queue messages since we're intentionally blocking
+            },
+            
+            close: function(code = 1000, reason = 'Connection closed by mock') {
+                if (this.readyState === CLOSED || this.readyState === CLOSING) {
+                    return; // Already closed/closing
+                }
+                
+                console.log('🚫 WebSocket close() called, code:', code, 'reason:', reason);
+                this.readyState = CLOSED;
+                
+                // Call onclose handler if it exists
+                if (typeof this.onclose === 'function') {
+                    try {
+                        this.onclose({
+                            type: 'close',
+                            code: code,
+                            reason: reason,
+                            wasClean: true,
+                            target: this
+                        });
+                    } catch (e) {
+                        console.warn('🚫 WebSocket onclose handler error:', e);
+                    }
+                }
+            },
+            
+            // EventTarget methods for addEventListener/removeEventListener compatibility
+            addEventListener: function(type, listener, options) {
+                console.log(`🚫 WebSocket addEventListener(${type}) blocked`);
+                // No-op - don't actually register listeners
+            },
+            
+            removeEventListener: function(type, listener, options) {
+                console.log(`🚫 WebSocket removeEventListener(${type}) blocked`);
+                // No-op
+            },
+            
+            dispatchEvent: function(event) {
+                console.log('🚫 WebSocket dispatchEvent blocked:', event.type);
+                return false;
+            }
+        };
+        
+        // Simulate immediate close event (async to match real WebSocket behavior)
+        setTimeout(() => {
+            if (typeof mockWebSocket.onclose === 'function') {
+                try {
+                    mockWebSocket.onclose({
+                        type: 'close',
+                        code: 1006, // Abnormal closure
+                        reason: 'WebSocket blocked by debug script',
+                        wasClean: false,
+                        target: mockWebSocket
+                    });
+                } catch (e) {
+                    console.warn('🚫 WebSocket mock onclose error:', e);
+                }
+            }
+        }, 0);
+        
+        return mockWebSocket;
     };
+    
+    // Copy static constants to constructor function
+    window.WebSocket.CONNECTING = 0;
+    window.WebSocket.OPEN = 1;
+    window.WebSocket.CLOSING = 2;
+    window.WebSocket.CLOSED = 3;
 }
 
 // Stop fetch calls naar admin endpoints
