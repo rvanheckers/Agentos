@@ -3,6 +3,43 @@
 
 console.log('🧪 MANUAL DASHBOARD TESTER ACTIVATED');
 
+// Configuration: API Base URL with environment-aware fallbacks
+function getAPIBaseURL() {
+    // Priority order for API URL detection:
+    // 1. Build-time environment variable (if available)
+    // 2. Runtime configuration window variable
+    // 3. Derive from current window location 
+    // 4. Development fallback
+    
+    if (typeof process !== 'undefined' && process.env && process.env.API_BASE_URL) {
+        return process.env.API_BASE_URL;
+    }
+    
+    if (typeof window !== 'undefined' && window.AGENTOS_CONFIG && window.AGENTOS_CONFIG.API_BASE_URL) {
+        return window.AGENTOS_CONFIG.API_BASE_URL;
+    }
+    
+    if (typeof window !== 'undefined' && window.location) {
+        // Use current origin but switch to API port (8001)
+        const currentOrigin = window.location.origin;
+        if (currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')) {
+            return currentOrigin.replace(':8080', ':8001').replace(':3000', ':8001');
+        }
+        // For production environments, assume API is on same origin with /api prefix
+        return currentOrigin;
+    }
+    
+    // Development fallback
+    return 'http://localhost:8001';
+}
+
+const API_BASE_URL = getAPIBaseURL();
+console.log('🔧 API Configuration:', {
+    'API_BASE_URL': API_BASE_URL,
+    'Detection_Method': getAPIBaseURL === API_BASE_URL ? 'Cached' : 'Runtime',
+    'Environment': typeof process !== 'undefined' ? 'Node.js' : 'Browser'
+});
+
 // Functie om exact te zien wat er in de UI staat
 function captureCurrentUIState() {
     const metrics = Array.from(document.querySelectorAll('.metric-card')).map(card => {
@@ -47,8 +84,9 @@ function captureCurrentUIState() {
 // Functie om API data op te halen
 async function fetchCurrentAPIData() {
     try {
-        console.log('📡 Fetching API data...');
-        const response = await fetch('http://localhost:8001/api/admin/ssot');
+        const apiUrl = `${API_BASE_URL}/api/admin/ssot`;
+        console.log('📡 Fetching API data from:', apiUrl);
+        const response = await fetch(apiUrl);
         const data = await response.json();
         
         const queue = data.dashboard?.queue || {};
