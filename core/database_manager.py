@@ -128,10 +128,10 @@ class PostgreSQLManager:
     def _get_pool_config(self) -> Dict[str, Any]:
         """Get environment-aware pool configuration with fallback to env vars"""
         import os
-        
+
         # Get environment
         env = os.getenv('ENV', 'development').lower()
-        
+
         # Environment-based defaults (same as database_pool.py)
         if env in ['production', 'prod']:
             defaults = {'pool_size': 20, 'max_overflow': 30, 'pool_timeout': 30, 'pool_recycle': 3600}
@@ -139,20 +139,20 @@ class PostgreSQLManager:
             defaults = {'pool_size': 10, 'max_overflow': 15, 'pool_timeout': 20, 'pool_recycle': 1800}
         else:  # development
             defaults = {'pool_size': 3, 'max_overflow': 7, 'pool_timeout': 15, 'pool_recycle': 1800}
-        
+
         # Override with environment variables if provided
         try:
             pool_size = int(os.getenv('DB_POOL_SIZE', defaults['pool_size']))
             max_overflow = int(os.getenv('DB_MAX_OVERFLOW', defaults['max_overflow']))
             pool_timeout = int(os.getenv('DB_POOL_TIMEOUT', defaults['pool_timeout']))
             pool_recycle = int(os.getenv('DB_POOL_RECYCLE', defaults['pool_recycle']))
-            
+
             # Validate ranges
             pool_size = max(1, min(pool_size, 100))  # 1-100 range
             max_overflow = max(0, min(max_overflow, 200))  # 0-200 range
             pool_timeout = max(5, min(pool_timeout, 300))  # 5-300 seconds
             pool_recycle = max(300, min(pool_recycle, 7200))  # 5min-2hour
-            
+
         except (ValueError, TypeError):
             # Fall back to defaults if env vars are invalid
             pool_size = defaults['pool_size']
@@ -160,7 +160,7 @@ class PostgreSQLManager:
             pool_timeout = defaults['pool_timeout']
             pool_recycle = defaults['pool_recycle']
             logger.warning("Invalid pool configuration in env vars, using defaults")
-        
+
         config = {
             'pool_size': pool_size,
             'max_overflow': max_overflow,
@@ -169,7 +169,7 @@ class PostgreSQLManager:
             'pool_timeout': pool_timeout,
             'pool_reset_on_return': 'commit'
         }
-        
+
         logger.info(f"Database pool config: {config} (env: {env})")
         return config
 
@@ -178,7 +178,7 @@ class PostgreSQLManager:
         try:
             # Get pool configuration from enterprise database pool
             pool_config = self._get_pool_config()
-            
+
             self.engine = create_engine(
                 self.database_url,
                 poolclass=QueuePool,

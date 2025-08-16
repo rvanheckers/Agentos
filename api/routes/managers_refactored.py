@@ -80,7 +80,7 @@ if AgentsService:
     try:
         agents_instance = AgentsService()
         managers["agents"] = agents_instance
-        
+
         # Register for explicit shutdown during application stop
         try:
             from api.main import register_agents_service

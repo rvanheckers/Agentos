@@ -129,7 +129,7 @@ class ActionDispatcher:
         ActionType.SYSTEM_MAINTENANCE: lambda self, p, **kw: self.system_service.set_maintenance(**p, **kw),
         ActionType.CACHE_CLEAR: lambda self, p, **kw: self.admin_data_manager.clear_cache(**p, **kw),
         ActionType.CACHE_WARM: lambda self, p, **kw: self.admin_data_manager.warm_cache(**p, **kw),
-        
+
         # Analytics Actions - NEW for Analytics redesign
         "analytics.drill_down": lambda self, p, **kw: self._handle_analytics_drill_down(p),
         "analytics.generate_report": lambda self, p, **kw: self._handle_analytics_generate_report(p),
@@ -400,7 +400,7 @@ class ActionDispatcher:
         try:
             # 1. Validate action exists (handle both ActionType enums and string actions)
             action_key = action.value if hasattr(action, 'value') else str(action)
-            
+
             if action not in self.ACTION_HANDLERS and action_key not in self.ACTION_HANDLERS:
                 raise ValueError(f"Unknown action: {action}")
 
@@ -612,7 +612,7 @@ class ActionDispatcher:
         """Handle analytics drill-down requests"""
         filter_type = payload.get('filter', 'all')
         timeframe = payload.get('timeframe', '24h')
-        
+
         # Mock implementation - in real system this would query actual data
         drill_down_data = {
             'failed_last_24h': {
@@ -638,7 +638,7 @@ class ActionDispatcher:
                 'breakdown_by_hour': []  # Would contain hourly data
             }
         }
-        
+
         return {
             'filter': filter_type,
             'data': drill_down_data.get(filter_type, {}),
@@ -649,7 +649,7 @@ class ActionDispatcher:
         """Handle analytics report generation"""
         report_type = payload.get('type', 'standard')
         include_recommendations = payload.get('include_recommendations', True)
-        
+
         # Mock report generation
         reports = {
             'sla_analysis': {
@@ -687,12 +687,12 @@ class ActionDispatcher:
                 ] if include_recommendations else []
             }
         }
-        
+
         report_data = reports.get(report_type, reports['sla_analysis'])
-        
+
         # Simulate report file generation
         report_url = f"/downloads/analytics_report_{report_type}_{int(time.time())}.pdf"
-        
+
         return {
             'report_type': report_type,
             'report_url': report_url,
@@ -704,7 +704,7 @@ class ActionDispatcher:
     async def _handle_analytics_capacity_analysis(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Handle capacity analysis requests"""
         timeframe = payload.get('timeframe', 'daily')
-        
+
         capacity_data = {
             'current_utilization': {
                 'workers': 75,
@@ -723,12 +723,12 @@ class ActionDispatcher:
                 'next_month': 'Evaluate database scaling'
             }
         }
-        
+
         return capacity_data
 
     async def _handle_system_performance_tune(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Handle system performance tuning"""
-        
+
         # Mock performance tuning actions
         optimizations_applied = [
             'Database query optimization',
@@ -736,7 +736,7 @@ class ActionDispatcher:
             'Cache warming',
             'Worker load balancing'
         ]
-        
+
         return {
             'optimizations_applied': optimizations_applied,
             'estimated_improvement': '15-20% response time reduction',
@@ -747,7 +747,7 @@ class ActionDispatcher:
     async def _handle_system_health_check(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Handle comprehensive system health check"""
         comprehensive = payload.get('comprehensive', False)
-        
+
         health_data = {
             'overall_health': 94,
             'components': {
@@ -767,20 +767,20 @@ class ActionDispatcher:
                 'Consider adding read replicas'
             ]
         }
-        
+
         if comprehensive:
             health_data['detailed_metrics'] = {
                 'response_times': {'avg': 1.2, 'p95': 2.8},
                 'error_rates': {'last_1h': 0.3, 'last_24h': 0.8},
                 'resource_usage': {'cpu': 68, 'memory': 72}
             }
-        
+
         return health_data
 
     async def _handle_system_emergency_report(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Handle emergency system reports"""
         trigger = payload.get('trigger', 'manual')
-        
+
         emergency_data = {
             'trigger': trigger,
             'severity': 'high',
@@ -801,7 +801,7 @@ class ActionDispatcher:
                 'Update incident documentation'
             ]
         }
-        
+
         return emergency_data
 
     # ============ ANALYTICS & SYSTEM HANDLERS WITH ERROR HANDLING ============
@@ -812,20 +812,20 @@ class ActionDispatcher:
             # Input validation
             if not isinstance(payload, dict):
                 raise ValueError("Payload must be a dictionary")
-            
+
             filter_type = payload.get('filter', 'all')
             timeframe = payload.get('timeframe', '24h')
-            
+
             # Validate filter_type
             valid_filters = ['all', 'failed_last_24h', 'recent_failures', 'today_jobs']
             if filter_type not in valid_filters:
                 raise ValueError(f"Invalid filter type: {filter_type}. Must be one of: {valid_filters}")
-            
+
             # Validate timeframe
             valid_timeframes = ['1h', '6h', '24h', '7d', '30d']
             if timeframe not in valid_timeframes:
                 raise ValueError(f"Invalid timeframe: {timeframe}. Must be one of: {valid_timeframes}")
-            
+
             # Mock implementation - in real system this would query actual data with database error handling
             try:
                 drill_down_data = {
@@ -852,13 +852,13 @@ class ActionDispatcher:
                         'breakdown_by_hour': []  # Would contain hourly data
                     }
                 }
-                
+
                 result_data = drill_down_data.get(filter_type, drill_down_data['today_jobs']) if filter_type == 'all' else drill_down_data.get(filter_type, {})
-                
+
             except Exception as data_error:
                 logger.error(f"Database query error in analytics drill-down: {data_error}")
                 raise ValueError("Failed to retrieve analytics data from database")
-            
+
             return {
                 'success': True,
                 'filter': filter_type,
@@ -866,7 +866,7 @@ class ActionDispatcher:
                 'data': result_data,
                 'generated_at': datetime.now(timezone.utc).isoformat()
             }
-            
+
         except ValueError as e:
             logger.error(f"Analytics drill-down validation error: {e}")
             return {
@@ -890,19 +890,19 @@ class ActionDispatcher:
             # Input validation
             if not isinstance(payload, dict):
                 raise ValueError("Payload must be a dictionary")
-            
+
             report_type = payload.get('type', 'sla_analysis')
             include_recommendations = payload.get('include_recommendations', True)
-            
+
             # Validate report type
             valid_types = ['sla_analysis', 'performance_deep_dive', 'system_health']
             if report_type not in valid_types:
                 raise ValueError(f"Invalid report type: {report_type}. Must be one of: {valid_types}")
-            
+
             # Validate boolean parameter
             if not isinstance(include_recommendations, bool):
                 raise ValueError("include_recommendations must be a boolean")
-            
+
             # Mock report generation with potential failures
             try:
                 reports = {
@@ -941,18 +941,18 @@ class ActionDispatcher:
                         ] if include_recommendations else []
                     }
                 }
-                
+
                 report_data = reports.get(report_type)
                 if not report_data:
                     raise ValueError(f"Report data not found for type: {report_type}")
-                
+
                 # Simulate report file generation with potential file system errors
                 report_url = f"/downloads/analytics_report_{report_type}_{int(time.time())}.pdf"
-                
+
             except Exception as gen_error:
                 logger.error(f"Report generation error: {gen_error}")
                 raise ValueError("Failed to generate report data")
-            
+
             return {
                 'success': True,
                 'report_type': report_type,
@@ -961,7 +961,7 @@ class ActionDispatcher:
                 'expires_at': (datetime.now(timezone.utc)).isoformat(),
                 'generated_at': datetime.now(timezone.utc).isoformat()
             }
-            
+
         except ValueError as e:
             logger.error(f"Analytics report generation validation error: {e}")
             return {
@@ -985,14 +985,14 @@ class ActionDispatcher:
             # Input validation
             if not isinstance(payload, dict):
                 raise ValueError("Payload must be a dictionary")
-            
+
             timeframe = payload.get('timeframe', 'daily')
-            
+
             # Validate timeframe
             valid_timeframes = ['hourly', 'daily', 'weekly', 'monthly']
             if timeframe not in valid_timeframes:
                 raise ValueError(f"Invalid timeframe: {timeframe}. Must be one of: {valid_timeframes}")
-            
+
             try:
                 # Mock capacity analysis with potential system query failures
                 capacity_data = {
@@ -1016,13 +1016,13 @@ class ActionDispatcher:
                     'timeframe': timeframe,
                     'generated_at': datetime.now(timezone.utc).isoformat()
                 }
-                
+
             except Exception as analysis_error:
                 logger.error(f"Capacity analysis computation error: {analysis_error}")
                 raise ValueError("Failed to compute capacity analysis")
-            
+
             return capacity_data
-            
+
         except ValueError as e:
             logger.error(f"Capacity analysis validation error: {e}")
             return {
@@ -1046,18 +1046,18 @@ class ActionDispatcher:
             # Input validation
             if not isinstance(payload, dict):
                 raise ValueError("Payload must be a dictionary")
-            
+
             tune_type = payload.get('type', 'auto')
             aggressive = payload.get('aggressive', False)
-            
+
             # Validate tuning type
             valid_types = ['auto', 'conservative', 'aggressive', 'database', 'workers']
             if tune_type not in valid_types:
                 raise ValueError(f"Invalid tune type: {tune_type}. Must be one of: {valid_types}")
-            
+
             if not isinstance(aggressive, bool):
                 raise ValueError("aggressive parameter must be a boolean")
-            
+
             try:
                 # Mock performance tuning actions with potential system errors
                 optimizations_applied = [
@@ -1066,23 +1066,23 @@ class ActionDispatcher:
                     'Cache warming',
                     'Worker load balancing'
                 ]
-                
+
                 if aggressive:
                     optimizations_applied.extend([
                         'Memory allocation optimization',
                         'CPU affinity adjustment',
                         'Disk I/O optimization'
                     ])
-                
+
                 # Simulate potential tuning failures
                 if tune_type == 'database' and aggressive:
                     # Simulate database tuning that might fail
                     pass
-                
+
             except Exception as tune_error:
                 logger.error(f"Performance tuning execution error: {tune_error}")
                 raise ValueError("Failed to apply performance optimizations")
-            
+
             return {
                 'success': True,
                 'tune_type': tune_type,
@@ -1092,7 +1092,7 @@ class ActionDispatcher:
                 'status': 'Performance tuning completed successfully',
                 'applied_at': datetime.now(timezone.utc).isoformat()
             }
-            
+
         except ValueError as e:
             logger.error(f"Performance tuning validation error: {e}")
             return {
@@ -1116,16 +1116,16 @@ class ActionDispatcher:
             # Input validation
             if not isinstance(payload, dict):
                 raise ValueError("Payload must be a dictionary")
-            
+
             comprehensive = payload.get('comprehensive', False)
             include_metrics = payload.get('include_metrics', True)
-            
+
             # Validate parameters
             if not isinstance(comprehensive, bool):
                 raise ValueError("comprehensive parameter must be a boolean")
             if not isinstance(include_metrics, bool):
                 raise ValueError("include_metrics parameter must be a boolean")
-            
+
             try:
                 # Mock health check with potential system access failures
                 health_data = {
@@ -1150,20 +1150,20 @@ class ActionDispatcher:
                     'check_type': 'comprehensive' if comprehensive else 'basic',
                     'generated_at': datetime.now(timezone.utc).isoformat()
                 }
-                
+
                 if comprehensive and include_metrics:
                     health_data['detailed_metrics'] = {
                         'response_times': {'avg': 1.2, 'p95': 2.8},
                         'error_rates': {'last_1h': 0.3, 'last_24h': 0.8},
                         'resource_usage': {'cpu': 68, 'memory': 72}
                     }
-                
+
             except Exception as health_error:
                 logger.error(f"Health check execution error: {health_error}")
                 raise ValueError("Failed to perform system health check")
-            
+
             return health_data
-            
+
         except ValueError as e:
             logger.error(f"System health check validation error: {e}")
             return {
@@ -1187,20 +1187,20 @@ class ActionDispatcher:
             # Input validation
             if not isinstance(payload, dict):
                 raise ValueError("Payload must be a dictionary")
-            
+
             trigger = payload.get('trigger', 'manual')
             severity = payload.get('severity', 'high')
-            
+
             # Validate trigger
             valid_triggers = ['manual', 'automated', 'threshold', 'external']
             if trigger not in valid_triggers:
                 raise ValueError(f"Invalid trigger: {trigger}. Must be one of: {valid_triggers}")
-            
+
             # Validate severity
             valid_severities = ['low', 'medium', 'high', 'critical']
             if severity not in valid_severities:
                 raise ValueError(f"Invalid severity: {severity}. Must be one of: {valid_severities}")
-            
+
             try:
                 # Mock emergency report generation with potential failures
                 emergency_data = {
@@ -1225,7 +1225,7 @@ class ActionDispatcher:
                     'success': True,
                     'generated_at': datetime.now(timezone.utc).isoformat()
                 }
-                
+
                 # Additional actions based on severity
                 if severity == 'critical':
                     emergency_data['immediate_actions'].extend([
@@ -1233,13 +1233,13 @@ class ActionDispatcher:
                         'Notify executive team',
                         'Prepare public status update'
                     ])
-                
+
             except Exception as emergency_error:
                 logger.error(f"Emergency report generation error: {emergency_error}")
                 raise ValueError("Failed to generate emergency report")
-            
+
             return emergency_data
-            
+
         except ValueError as e:
             logger.error(f"Emergency report validation error: {e}")
             return {
@@ -1263,40 +1263,40 @@ class ActionDispatcher:
             # Input validation
             if not isinstance(payload, dict):
                 raise ValueError("Payload must be a dictionary")
-            
+
             trigger = payload.get('trigger', 'manual')
             direction = payload.get('direction', 'up')
             count = payload.get('count', 2)
-            
+
             # Validate direction
             valid_directions = ['up', 'down']
             if direction not in valid_directions:
                 raise ValueError(f"Invalid direction: {direction}. Must be one of: {valid_directions}")
-            
+
             # Validate count
             if not isinstance(count, int) or count < 1 or count > 10:
                 raise ValueError("count must be an integer between 1 and 10")
-            
+
             # Validate trigger
             valid_triggers = ['manual', 'load_threshold', 'queue_depth', 'scheduled']
             if trigger not in valid_triggers:
                 raise ValueError(f"Invalid trigger: {trigger}. Must be one of: {valid_triggers}")
-            
+
             try:
                 # Mock worker scaling with potential infrastructure failures
                 current_workers = 6
                 new_count = current_workers + count if direction == 'up' else max(1, current_workers - count)
-                
+
                 # Simulate scaling limits
                 if new_count > 20:
                     raise ValueError("Maximum worker limit (20) would be exceeded")
                 if new_count < 1:
                     raise ValueError("Minimum worker count (1) required")
-                
+
             except Exception as scale_error:
                 logger.error(f"Worker scaling execution error: {scale_error}")
                 raise ValueError("Failed to execute worker scaling")
-            
+
             return {
                 'success': True,
                 'action': f'scale_{direction}',
@@ -1308,7 +1308,7 @@ class ActionDispatcher:
                 'status': 'Scaling operation initiated',
                 'initiated_at': datetime.now(timezone.utc).isoformat()
             }
-            
+
         except ValueError as e:
             logger.error(f"Worker auto-scale validation error: {e}")
             return {
@@ -1332,20 +1332,20 @@ class ActionDispatcher:
             # Input validation
             if not isinstance(payload, dict):
                 raise ValueError("Payload must be a dictionary")
-            
+
             based_on = payload.get('based_on', 'current_load')
             optimize_type = payload.get('type', 'performance')
-            
+
             # Validate optimization basis
             valid_bases = ['current_load', 'historical_patterns', 'queue_analysis', 'resource_usage']
             if based_on not in valid_bases:
                 raise ValueError(f"Invalid based_on: {based_on}. Must be one of: {valid_bases}")
-            
+
             # Validate optimization type
             valid_types = ['performance', 'memory', 'throughput', 'balanced']
             if optimize_type not in valid_types:
                 raise ValueError(f"Invalid optimization type: {optimize_type}. Must be one of: {valid_types}")
-            
+
             try:
                 # Mock worker optimization with potential configuration failures
                 optimization_result = {
@@ -1365,19 +1365,19 @@ class ActionDispatcher:
                     'success': True,
                     'optimized_at': datetime.now(timezone.utc).isoformat()
                 }
-                
+
                 # Add type-specific optimizations
                 if optimize_type == 'memory':
                     optimization_result['actions_taken'].append('Garbage collection tuning')
                 elif optimize_type == 'throughput':
                     optimization_result['actions_taken'].append('Connection pool optimization')
-                
+
             except Exception as optimize_error:
                 logger.error(f"Worker optimization execution error: {optimize_error}")
                 raise ValueError("Failed to optimize workers")
-            
+
             return optimization_result
-            
+
         except ValueError as e:
             logger.error(f"Worker optimization validation error: {e}")
             return {

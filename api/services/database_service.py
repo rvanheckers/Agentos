@@ -225,7 +225,7 @@ class DatabaseService:
             # 🎯 FIXED: Use SSOT instead of mock data
             from services.agents_service import AgentsService
             agents_service = AgentsService()
-            
+
             # Register for explicit shutdown during application stop
             try:
                 from api.main import register_agents_service

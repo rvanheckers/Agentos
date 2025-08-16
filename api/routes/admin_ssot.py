@@ -79,14 +79,14 @@ async def get_admin_ssot_data(
 
         # V4 CACHE-FIRST ARCHITECTURE: Use direct sync calls for reliable data
         if time_range == "24h":
-            # FIXED: Use direct sync methods instead of async for reliable data 
+            # FIXED: Use direct sync methods instead of async for reliable data
             dashboard_data = admin_data.get_dashboard_data()
             analytics_data = admin_data.get_analytics_data()
             agents_workers_data = admin_data.get_agents_workers_data()
             logs_data = admin_data.get_logs_data()
             system_control_data = admin_data.get_system_control_data()
             configuration_data = admin_data.get_configuration_data()
-            
+
             response_data = {
                 'timestamp': datetime.now().isoformat(),
                 'dashboard': dashboard_data,

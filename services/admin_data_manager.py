@@ -515,7 +515,7 @@ class AdminDataManager:
         try:
             # Original queue status metrics
             queue_status = self.queue_service.get_queue_status()
-            
+
             # NEW METRICS for JobHistory redesign
             queue_depth = self.queue_service.get_queue_depth()
             queue_throughput = self.queue_service.get_queue_throughput()
@@ -524,7 +524,7 @@ class AdminDataManager:
             success_rate_24h = self.queue_service.get_24h_success_rate()
             jobs_breakdown = self.jobs_service.get_jobs_breakdown()
             today_jobs_breakdown = self.jobs_service.get_today_jobs_breakdown()
-            
+
             return {
                 # Original metrics (keep for compatibility)
                 "pending": queue_status.get("pending", 0),
@@ -532,7 +532,7 @@ class AdminDataManager:
                 "completed_today": queue_status.get("completed_today", 0),
                 "failed_today": queue_status.get("failed_today", 0),
                 "avg_processing_time": queue_status.get("avg_processing_time", 0),
-                
+
                 # NEW METRICS - JobHistory Redesign
                 "queue_depth": queue_depth,
                 "queue_throughput": queue_throughput,
@@ -566,7 +566,7 @@ class AdminDataManager:
                 "avg_duration": job_stats.get("avg_duration", 0),
                 "active_workflows": len(active_workflows),
                 "workflow_details": list(active_workflows.values()) if active_workflows else [],
-                
+
                 # ✅ FIXED: Add missing job metrics for complete dashboard
                 "total_jobs": job_stats.get("total_jobs", 0),
                 "completed_jobs": job_stats.get("completed_jobs", 0),
@@ -633,17 +633,17 @@ class AdminDataManager:
         """Get comprehensive database pool metrics for monitoring."""
         try:
             from core.database_pool import db_pool
-            
+
             # Get real-time pool metrics
             pool_metrics = db_pool.get_pool_metrics()
-            
+
             # Calculate additional metrics
             total_capacity = pool_metrics.get("total_capacity", 10)
             checked_out = pool_metrics.get("checked_out", 0)
             checked_in = pool_metrics.get("checked_in", 0)
             overflow = pool_metrics.get("overflow", 0)
             usage_percentage = pool_metrics.get("usage_percentage", 0.0)
-            
+
             # Health status based on usage
             if usage_percentage < 50:
                 status = "healthy"
@@ -654,7 +654,7 @@ class AdminDataManager:
             else:
                 status = "critical"
                 status_color = "red"
-            
+
             return {
                 "status": status,
                 "status_color": status_color,
@@ -778,7 +778,7 @@ class AdminDataManager:
         job_history_task = asyncio.get_event_loop().run_in_executor(None, self.jobs_service.get_recent_jobs, 50)
         worker_assignments_task = asyncio.get_event_loop().run_in_executor(None, self.queue_service.get_worker_assignments)
         queue_stats_task = asyncio.get_event_loop().run_in_executor(None, self.queue_service.get_queue_statistics)
-        
+
         # NEW QUEUE METRICS FOR JOBHISTORY REDESIGN
         queue_depth_task = asyncio.get_event_loop().run_in_executor(None, self.queue_service.get_queue_depth)
         queue_throughput_task = asyncio.get_event_loop().run_in_executor(None, self.queue_service.get_queue_throughput)
@@ -801,7 +801,7 @@ class AdminDataManager:
             "job_history": results[1] if not isinstance(results[1], Exception) else [],
             "worker_assignments": results[2] if not isinstance(results[2], Exception) else {},
             "statistics": results[3] if not isinstance(results[3], Exception) else {},
-            
+
             # NEW METRICS FOR JOBHISTORY REDESIGN
             "queue_depth": results[4] if not isinstance(results[4], Exception) else 0,
             "queue_throughput": results[5] if not isinstance(results[5], Exception) else {"per_hour": 0, "trend": "unknown"},
@@ -810,7 +810,7 @@ class AdminDataManager:
             "success_rate_24h": results[8] if not isinstance(results[8], Exception) else 0.0,
             "jobs_breakdown": results[9] if not isinstance(results[9], Exception) else {"total": 0, "completed": 0, "failed": 0, "processing": 0, "pending": 0},
             "today_jobs_breakdown": results[10] if not isinstance(results[10], Exception) else {"total": 0, "completed": 0, "failed": 0, "processing": 0, "pending": 0},
-            
+
             "status": "success"
         }
 

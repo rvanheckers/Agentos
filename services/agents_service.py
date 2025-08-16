@@ -45,12 +45,12 @@ class AgentsService:
                 with get_db_session() as session:
                     # Validate connection works
                     session.execute(text("SELECT 1"))
-                
+
                 # Store reference to the shared database pool
                 self.db = db_pool
                 self.get_db_session = get_db_session
                 logger.info("✅ Database integration enabled for agents service")
-                
+
             except Exception as e:
                 # Security: Log error type but not details to prevent credential leakage
                 logger.error(f"❌ Database integratie mislukt ({type(e).__name__}). Details verborgen om secrets te beschermen.")
@@ -737,13 +737,13 @@ class AgentsService:
                     if hasattr(self.db, 'close'):
                         self.db.close()
                         logger.info("✅ AgentsService database manager closed")
-                
+
                 self.db = None
                 self.get_db_session = None
-                
+
         except Exception as e:
             logger.error(f"❌ Error during AgentsService shutdown: {e}")
-    
+
     def __del__(self):
         """Destructor to ensure cleanup on garbage collection"""
         try:

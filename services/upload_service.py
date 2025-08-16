@@ -85,26 +85,16 @@ class UploadService:
             # 🆕 DATABASE-FIRST: Store upload session in database first
             if self.db:
                 try:
-                    with self.db() as session:
-                        event_metadata = {
-                            "upload_id": upload_id,
-                            "filename": filename,
-                            "file_size": file_size,
-                            "chunk_size": chunk_size,
-                            "total_chunks": total_chunks,
-                            "temp_path": upload_session["temp_path"]
-                        }
-
-                        # Log system event using centralized logger
-                        from core.system_event_logger import log_upload_event
-                        log_upload_event(
-                            upload_id=upload_id,
-                            status="initialized",
-                            message=f"Upload session initialized for file: {filename} ({file_size} bytes)",
-                            filename=filename,
-                            file_size=file_size
-                        )
-                        logger.info(f"✅ Upload session {upload_id} stored in database")
+                    # Log system event using centralized logger
+                    from core.system_event_logger import log_upload_event
+                    log_upload_event(
+                        upload_id=upload_id,
+                        status="initialized",
+                        message=f"Upload session initialized for file: {filename} ({file_size} bytes)",
+                        filename=filename,
+                        file_size=file_size
+                    )
+                    logger.info(f"✅ Upload session {upload_id} stored in database")
 
                 except Exception as db_error:
                     logger.warning(f"⚠️ Database upload session storage failed: {db_error}")
@@ -215,26 +205,16 @@ class UploadService:
             # 🆕 DATABASE-FIRST: Log chunk progress to database
             if self.db:
                 try:
-                    with self.db() as db_session:
-                        event_metadata = {
-                            "upload_id": upload_id,
-                            "chunk_index": chunk_index,
-                            "received_chunks": len(session["received_chunks"]),
-                            "total_chunks": session["total_chunks"],
-                            "progress": round(progress, 2),
-                            "chunk_size": len(chunk)
-                        }
-
-                        # Log chunk upload event
-                        from core.system_event_logger import log_upload_event
-                        log_upload_event(
-                            upload_id=upload_id,
-                            status="chunk_received",
-                            message=f"Chunk {chunk_index}/{session['total_chunks']} uploaded for {session['filename']} ({progress:.1f}%)",
-                            chunk_index=chunk_index,
-                            total_chunks=session['total_chunks'],
-                            progress=progress
-                        )
+                    # Log chunk upload event
+                    from core.system_event_logger import log_upload_event
+                    log_upload_event(
+                        upload_id=upload_id,
+                        status="chunk_received",
+                        message=f"Chunk {chunk_index}/{session['total_chunks']} uploaded for {session['filename']} ({progress:.1f}%)",
+                        chunk_index=chunk_index,
+                        total_chunks=session['total_chunks'],
+                        progress=progress
+                    )
 
                 except Exception as db_error:
                     logger.warning(f"⚠️ Database chunk logging failed: {db_error}")
@@ -290,29 +270,18 @@ class UploadService:
             # 🆕 DATABASE-FIRST: Log upload completion to database first
             if self.db:
                 try:
-                    with self.db() as db_session:
-                        completion_metadata = {
-                            "upload_id": upload_id,
-                            "filename": session["filename"],
-                            "final_path": final_path,
-                            "file_size": session["file_size"],
-                            "file_hash": file_hash,
-                            "total_chunks": session["total_chunks"],
-                            "upload_duration_seconds": (datetime.now(timezone.utc) - datetime.fromisoformat(session["created_at"].replace("Z", "+00:00"))).total_seconds()
-                        }
-
-                        # Log upload completion
-                        from core.system_event_logger import log_upload_event
-                        log_upload_event(
-                            upload_id=upload_id,
-                            status="completed",
-                            message=f"Upload completed successfully: {session['filename']} ({session['file_size']} bytes, {session['total_chunks']} chunks)",
-                            filename=session['filename'],
-                            file_size=session['file_size'],
-                            total_chunks=session['total_chunks'],
-                            final_path=final_path
-                        )
-                        logger.info(f"✅ Upload completion logged to database: {upload_id}")
+                    # Log upload completion
+                    from core.system_event_logger import log_upload_event
+                    log_upload_event(
+                        upload_id=upload_id,
+                        status="completed",
+                        message=f"Upload completed successfully: {session['filename']} ({session['file_size']} bytes, {session['total_chunks']} chunks)",
+                        filename=session['filename'],
+                        file_size=session['file_size'],
+                        total_chunks=session['total_chunks'],
+                        final_path=final_path
+                    )
+                    logger.info(f"✅ Upload completion logged to database: {upload_id}")
 
                 except Exception as db_error:
                     logger.warning(f"⚠️ Database upload completion logging failed: {db_error}")
@@ -420,27 +389,17 @@ class UploadService:
             # 🆕 DATABASE-FIRST: Log file import to database
             if self.db:
                 try:
-                    with self.db() as db_session:
-                        import_metadata = {
-                            "original_path": file_path,
-                            "imported_filename": safe_filename,
-                            "dest_path": dest_path,
-                            "file_size": file_size,
-                            "file_hash": file_hash,
-                            "import_method": "local_file_import"
-                        }
-
-                        # Log file import event
-                        from core.system_event_logger import log_upload_event
-                        log_upload_event(
-                            upload_id="import_" + datetime.now().strftime('%Y%m%d_%H%M%S'),
-                            status="imported",
-                            message=f"Local file imported: {filename} ({file_size} bytes) -> {safe_filename}",
-                            original_path=file_path,
-                            filename=safe_filename,
-                            file_size=file_size
-                        )
-                        logger.info(f"✅ File import logged to database: {safe_filename}")
+                    # Log file import event
+                    from core.system_event_logger import log_upload_event
+                    log_upload_event(
+                        upload_id="import_" + datetime.now().strftime('%Y%m%d_%H%M%S'),
+                        status="imported",
+                        message=f"Local file imported: {filename} ({file_size} bytes) -> {safe_filename}",
+                        original_path=file_path,
+                        filename=safe_filename,
+                        file_size=file_size
+                    )
+                    logger.info(f"✅ File import logged to database: {safe_filename}")
 
                 except Exception as db_error:
                     logger.warning(f"⚠️ Database file import logging failed: {db_error}")

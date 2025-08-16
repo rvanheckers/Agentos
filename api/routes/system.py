@@ -781,9 +781,6 @@ async def ping_all_workers():
     Triggert worker heartbeat refresh voor alle actieve workers
     """
     try:
-        from core.database_manager import PostgreSQLManager
-
-        db = PostgreSQLManager()
 
         # Use industry standard worker summary
         worker_summary = get_worker_summary()
@@ -858,7 +855,7 @@ async def ping_all_workers():
                 "successful_pings": successful_pings,
                 "failed_pings": len(running_instances) - successful_pings,
                 "ping_results": ping_results,
-                "event_id": event_id,
+                "event_logged": True,
                 "ping_time": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z").replace('+00:00', 'Z')
             }
         }
@@ -887,10 +884,7 @@ async def toggle_maintenance_mode():
     Schakelt maintenance mode aan/uit - FIXED for PostgreSQL compatibility
     """
     try:
-        from core.database_manager import PostgreSQLManager
         import os
-
-        db = PostgreSQLManager()
 
         # Check current maintenance status via flag file
         maintenance_flag_path = "/tmp/agentos_maintenance"

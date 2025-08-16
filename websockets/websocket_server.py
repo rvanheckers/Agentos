@@ -33,7 +33,6 @@ from pathlib import Path
 # Add project root to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
 
-from core.database_pool import get_db_session
 from core.logging_config import get_logger
 
 # V4 Event System Integration

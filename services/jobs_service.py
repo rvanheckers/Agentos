@@ -349,7 +349,7 @@ class JobsService:
     def create_job(self, job_data: Dict[str, Any], is_admin: bool = False) -> Dict[str, Any]:
         """Create a new job
         Returns created job data"""
-        
+
         with get_db_session() as session:
             # Create new job instance
             job = Job(
@@ -483,11 +483,11 @@ class JobsService:
             "file_size": clip.file_size,
             "created_at": clip.created_at.isoformat() if clip.created_at else None
         }
-    
+
     # ==========================================
     # NEW JOB BREAKDOWN METRICS FOR REDESIGN
     # ==========================================
-    
+
     def get_jobs_breakdown(self) -> Dict[str, int]:
         """
         Get complete job counts breakdown by status
@@ -497,13 +497,13 @@ class JobsService:
             with get_db_session() as session:
                 # Get total job count
                 total = session.query(func.count(Job.id)).scalar() or 0
-                
+
                 # Get counts by status
                 completed = session.query(func.count(Job.id)).filter(Job.status == "completed").scalar() or 0
                 failed = session.query(func.count(Job.id)).filter(Job.status == "failed").scalar() or 0
                 processing = session.query(func.count(Job.id)).filter(Job.status == "processing").scalar() or 0
                 pending = session.query(func.count(Job.id)).filter(Job.status.in_(["pending", "queued"])).scalar() or 0
-                
+
                 breakdown = {
                     "total": total,
                     "completed": completed,
@@ -511,10 +511,10 @@ class JobsService:
                     "processing": processing,
                     "pending": pending
                 }
-                
+
                 logger.debug(f"Jobs breakdown: {breakdown}")
                 return breakdown
-                
+
         except Exception as e:
             logger.error(f"Failed to get jobs breakdown: {e}")
             return {
@@ -524,7 +524,7 @@ class JobsService:
                 "processing": 0,
                 "pending": 0
             }
-    
+
     def get_today_jobs_breakdown(self) -> Dict[str, int]:
         """
         Get today's job counts breakdown by status
@@ -533,33 +533,33 @@ class JobsService:
         try:
             with get_db_session() as session:
                 today = date.today()
-                
+
                 # Get total jobs created today
                 total_today = session.query(func.count(Job.id)).filter(
                     func.date(Job.created_at) == today
                 ).scalar() or 0
-                
+
                 # Get today's counts by status
                 completed_today = session.query(func.count(Job.id)).filter(
                     func.date(Job.created_at) == today,
                     Job.status == "completed"
                 ).scalar() or 0
-                
+
                 failed_today = session.query(func.count(Job.id)).filter(
                     func.date(Job.created_at) == today,
                     Job.status == "failed"
                 ).scalar() or 0
-                
+
                 processing_today = session.query(func.count(Job.id)).filter(
                     func.date(Job.created_at) == today,
                     Job.status == "processing"
                 ).scalar() or 0
-                
+
                 pending_today = session.query(func.count(Job.id)).filter(
                     func.date(Job.created_at) == today,
                     Job.status.in_(["pending", "queued"])
                 ).scalar() or 0
-                
+
                 breakdown = {
                     "total": total_today,
                     "completed": completed_today,
@@ -567,10 +567,10 @@ class JobsService:
                     "processing": processing_today,
                     "pending": pending_today
                 }
-                
+
                 logger.debug(f"Today's jobs breakdown: {breakdown}")
                 return breakdown
-                
+
         except Exception as e:
             logger.error(f"Failed to get today's jobs breakdown: {e}")
             return {
