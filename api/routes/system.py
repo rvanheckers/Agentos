@@ -840,7 +840,7 @@ async def ping_all_workers():
         }
 
         from core.system_event_logger import log_system_event
-        log_system_event(
+        event_id = log_system_event(
             event_type="worker_ping_all",
             message=f"Manual worker ping executed - {worker_summary['status_text']}",
             severity="info",
@@ -855,6 +855,7 @@ async def ping_all_workers():
                 "successful_pings": successful_pings,
                 "failed_pings": len(running_instances) - successful_pings,
                 "ping_results": ping_results,
+                "event_id": event_id,
                 "event_logged": True,
                 "ping_time": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z").replace('+00:00', 'Z')
             }
@@ -864,7 +865,7 @@ async def ping_all_workers():
         # Log failed ping attempt
         try:
             from core.system_event_logger import log_system_event
-            log_system_event(
+            event_id = log_system_event(
                 event_type="worker_ping_failed",
                 message=f"Worker ping failed: {str(e)}",
                 severity="error",

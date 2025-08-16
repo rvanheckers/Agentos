@@ -52,11 +52,13 @@ class DatabaseLoggerMixin:
         # Import hier om circular imports te voorkomen
         try:
             import importlib.util
-            if not importlib.util.find_spec('core.database_pool'):
+            if importlib.util.find_spec('core.database_pool'):
+                from core.database_pool import get_db_session  # noqa: F401
+                # Using shared database pool - get_db_session available for future use
+            else:
                 # Fallback als database niet beschikbaar is
                 yield DummyLogger()
                 return
-            # Using shared database pool
         except ImportError:
             # Fallback als database niet beschikbaar is
             yield DummyLogger()
@@ -154,7 +156,8 @@ def log_agent_step(agent_name: str, job_id: str, step_number: int,
     try:
         import importlib.util
         if importlib.util.find_spec('core.database_pool'):
-            # Using shared database pool
+            from core.database_pool import get_db_session  # noqa: F401
+            # Using shared database pool - get_db_session available for future use
             # Database logging would go here, currently simplified
             print(f"Logged step for {agent_name}: job={job_id}, step={step_number}, success={success}")
 
