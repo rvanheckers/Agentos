@@ -736,7 +736,9 @@
    HELP SYSTEM INTEGRATION
    ================================================================= */
 
-.help-icon {
+/* Job History specific help icon styling - overrides base .help-icon from help-panel.css */
+.job-history-view .help-icon,
+.section-title .help-icon {
   background: none;
   border: none;
   color: var(--gray-400);
@@ -747,7 +749,8 @@
   transition: var(--transition-fast);
 }
 
-.help-icon:hover {
+.job-history-view .help-icon:hover,
+.section-title .help-icon:hover {
   color: var(--primary-600);
   background: var(--primary-50);
 }
