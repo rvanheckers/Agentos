@@ -110,7 +110,7 @@ def video_processing_task(job_data):
     # Update job progress
     db = PostgreSQLManager()  # ❌ New pool in Celery worker!
     with db.get_session() as session:
-        job = session.query(Job).filter_by(id=job_id).first()
+        job = session.query(Job).filter_by(id=job_data['job_id']).first()
         job.status = 'processing'
 ''',
                 "after": '''
@@ -119,7 +119,7 @@ from core.database_pool import get_db_session
 def video_processing_task(job_data):
     # Update job progress  
     with get_db_session() as session:  # ✅ Shared pool
-        job = session.query(Job).filter_by(id=job_id).first()
+        job = session.query(Job).filter_by(id=job_data['job_id']).first()
         job.status = 'processing'
 '''
             }
