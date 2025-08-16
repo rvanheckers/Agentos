@@ -40,15 +40,36 @@ class UploadService:
         else:
             try:
                 from core.database_pool import get_db_session
-                # Using shared database pool
+                # Using shared database pool  
+                self.db = get_db_session()  # Store reference for database operations
                 logger.info("✅ Database integration enabled for upload service")
             except Exception as e:
-                logger.warning(f"⚠️ Database integration failed, memory-only mode: {e}")
+                logger.error(f"❌ Database session creation failed: {e}")
                 self.db = None
+                raise
 
         # Ensure directories exist
         os.makedirs(self.upload_dir, exist_ok=True)
         os.makedirs(self.temp_dir, exist_ok=True)
+
+    def __del__(self):
+        """Cleanup database session on service destruction"""
+        if hasattr(self, 'db') and self.db:
+            try:
+                self.db.close()
+                logger.info("✅ Database session closed for upload service")
+            except Exception as e:
+                logger.warning(f"⚠️ Error closing database session: {e}")
+
+    def close(self):
+        """Explicitly close database session"""
+        if hasattr(self, 'db') and self.db:
+            try:
+                self.db.close()
+                self.db = None
+                logger.info("✅ Database session explicitly closed for upload service")
+            except Exception as e:
+                logger.warning(f"⚠️ Error closing database session: {e}")
 
     def init_upload(self, filename: str, file_size: int, chunk_size: int = 1024*1024,
                    user_id: Optional[str] = None, is_admin: bool = False) -> Dict[str, Any]:
