@@ -21,6 +21,9 @@
     <button onclick="openAnalytics()">Open Analytics View</button>
     
     <script>
+        // Configuration: Set base URL for tests (can be overridden for different environments)
+        const TEST_BASE_URL = window.location.origin || 'http://localhost:8080';
+        
         function log(message, type = 'info') {
             const div = document.createElement('div');
             div.className = `test-result ${type}`;
@@ -29,7 +32,7 @@
         }
         
         function openAnalytics() {
-            window.open('http://localhost:8080/index.html#analytics', '_blank');
+            window.open(`${TEST_BASE_URL}/index.html#analytics`, '_blank');
         }
         
         async function testTabSwitching() {
@@ -37,66 +40,91 @@
             
             // Create iframe to test in isolation
             const iframe = document.createElement('iframe');
-            iframe.src = 'http://localhost:8080/index.html#analytics';
+            iframe.src = `${TEST_BASE_URL}/index.html#analytics`;
             iframe.style.width = '1px';
             iframe.style.height = '1px';
             iframe.style.position = 'absolute';
             iframe.style.left = '-9999px';
-            document.body.appendChild(iframe);
             
-            iframe.onload = async function() {
-                try {
-                    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for page to load
-                    
-                    const iframeWindow = iframe.contentWindow;
-                    const iframeDocument = iframe.contentDocument;
-                    
-                    // Check if Analytics view exists
-                    const analyticsView = iframeDocument.querySelector('.view-analytics');
-                    if (analyticsView) {
-                        log('✅ Analytics view loaded successfully', 'pass');
-                        
-                        // Check for filter tabs
-                        const filterTabs = iframeDocument.querySelectorAll('.filter-tab, [data-filter]');
-                        log(`Found ${filterTabs.length} filter elements`, 'info');
-                        
-                        // Check for ActionableMetricCards
-                        const metricCards = iframeDocument.querySelectorAll('.metric-card');
-                        log(`Found ${metricCards.length} metric cards`, 'info');
-                        
-                        // Check if console shows any errors
-                        let consoleErrors = [];
-                        const originalError = iframeWindow.console.error;
-                        iframeWindow.console.error = function(...args) {
-                            consoleErrors.push(args.join(' '));
-                            originalError.apply(console, args);
-                        };
-                        
-                        setTimeout(() => {
-                            if (consoleErrors.length === 0) {
-                                log('✅ No console errors detected', 'pass');
-                            } else {
-                                log(`❌ Console errors found: ${consoleErrors.join(', ')}`, 'fail');
-                            }
+            let originalConsoleError = null;
+            
+            try {
+                document.body.appendChild(iframe);
+                
+                await new Promise((resolve, reject) => {
+                    iframe.onload = async function() {
+                        try {
+                            await new Promise(resolveDelay => setTimeout(resolveDelay, 2000)); // Wait for page to load
                             
-                            // Clean up
-                            document.body.removeChild(iframe);
-                        }, 1000);
-                        
-                    } else {
-                        log('❌ Analytics view not found', 'fail');
-                        document.body.removeChild(iframe);
+                            const iframeWindow = iframe.contentWindow;
+                            const iframeDocument = iframe.contentDocument;
+                            
+                            // Check if Analytics view exists
+                            const analyticsView = iframeDocument.querySelector('.view-analytics');
+                            if (analyticsView) {
+                                log('✅ Analytics view loaded successfully', 'pass');
+                                
+                                // Check for filter tabs
+                                const filterTabs = iframeDocument.querySelectorAll('.filter-tab, [data-filter]');
+                                log(`Found ${filterTabs.length} filter elements`, 'info');
+                                
+                                // Check for ActionableMetricCards
+                                const metricCards = iframeDocument.querySelectorAll('.metric-card');
+                                log(`Found ${metricCards.length} metric cards`, 'info');
+                                
+                                // Check if console shows any errors
+                                let consoleErrors = [];
+                                originalConsoleError = iframeWindow.console.error;
+                                iframeWindow.console.error = function(...args) {
+                                    consoleErrors.push(args.join(' '));
+                                    originalConsoleError.apply(console, args);
+                                };
+                                
+                                setTimeout(() => {
+                                    try {
+                                        if (consoleErrors.length === 0) {
+                                            log('✅ No console errors detected', 'pass');
+                                        } else {
+                                            log(`❌ Console errors found: ${consoleErrors.join(', ')}`, 'fail');
+                                        }
+                                        resolve();
+                                    } catch (error) {
+                                        reject(error);
+                                    }
+                                }, 1000);
+                                
+                            } else {
+                                log('❌ Analytics view not found', 'fail');
+                                resolve();
+                            }
+                        } catch (error) {
+                            log(`❌ Test failed: ${error.message}`, 'fail');
+                            reject(error);
+                        }
+                    };
+                    
+                    iframe.onerror = function() {
+                        log('❌ Failed to load iframe', 'fail');
+                        reject(new Error('Failed to load iframe'));
+                    };
+                });
+                
+            } finally {
+                // Guaranteed cleanup - always runs regardless of success/failure
+                try {
+                    // Restore original console.error if we modified it
+                    if (originalConsoleError && iframe.contentWindow) {
+                        iframe.contentWindow.console.error = originalConsoleError;
                     }
-                } catch (error) {
-                    log(`❌ Test failed: ${error.message}`, 'fail');
+                } catch (cleanupError) {
+                    // Ignore cleanup errors for console restoration
+                }
+                
+                // Always remove iframe from DOM
+                if (iframe.parentNode) {
                     document.body.removeChild(iframe);
                 }
-            };
-            
-            iframe.onerror = function() {
-                log('❌ Failed to load iframe', 'fail');
-                document.body.removeChild(iframe);
-            };
+            }
         }
         
         async function testActionButtons() {
@@ -104,7 +132,7 @@
             
             try {
                 // Test if ActionService can be imported (simulation)
-                const response = await fetch('http://localhost:8080/src/services/ActionService.js');
+                const response = await fetch(`${TEST_BASE_URL}/src/services/ActionService.js`);
                 if (response.ok) {
                     log('✅ ActionService.js file exists', 'pass');
                     const content = await response.text();
