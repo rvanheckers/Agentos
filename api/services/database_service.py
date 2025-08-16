@@ -230,8 +230,10 @@ class DatabaseService:
             try:
                 from api.main import register_agents_service
                 register_agents_service(agents_service)
-            except ImportError:
-                # Not running via API, no explicit shutdown available
+            except (ImportError, AttributeError) as e:
+                # Not running via API or register_agents_service not available
+                import logging
+                logging.getLogger(__name__).debug(f"Shutdown registration unavailable: {e}")
                 pass
 
             # Get agents data from the proper SSOT

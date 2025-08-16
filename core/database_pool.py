@@ -71,11 +71,14 @@ class DatabasePoolManager:
         logger.info("✅ Enterprise Database Pool initialized (Singleton)")
 
     def _get_database_url(self) -> str:
-        """Get database URL with environment-specific defaults"""
-        return os.getenv(
-            'DATABASE_URL',
-            "postgresql://agentos_user:secure_agentos_2024@localhost:5432/agentos_production"
-        )
+        """Get database URL from environment variable"""
+        database_url = os.getenv('DATABASE_URL')
+        if not database_url:
+            raise ValueError(
+                "DATABASE_URL environment variable is required. "
+                "Example: postgresql://user:password@localhost:5432/dbname"
+            )
+        return database_url
 
     def _get_pool_config(self) -> Dict[str, Any]:
         """Environment-aware pool configuration"""

@@ -81,8 +81,8 @@
         }
         
         async function loadAnalyticsAndWait() {
-            updateStatus('Loading Analytics view and monitoring console...', 'info');
             clearConsole();
+            updateStatus('Loading Analytics view and monitoring console...', 'info');
             
             const iframe = document.getElementById('testFrame');
             iframe.style.display = 'block';

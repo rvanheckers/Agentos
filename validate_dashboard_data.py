@@ -137,40 +137,52 @@ class DashboardValidator:
 
         try:
             response = requests.get(self.api_url, timeout=10)
-            data = response.json()
+            response.raise_for_status()  # Raise exception for 4xx/5xx status codes
 
-            # Extract relevant data
-            dashboard = data.get('dashboard', {})
-            queue = dashboard.get('queue', {})
-            jobs = dashboard.get('jobs', {})
-
-            print(f"{Fore.GREEN}✓ API Response (http://localhost:8001/api/admin/ssot):{Style.RESET_ALL}")
-            print(f"  dashboard.queue.completed_today: {queue.get('completed_today', 'MISSING')}")
-            print(f"  dashboard.queue.failed_today: {queue.get('failed_today', 'MISSING')}")
-            print(f"  dashboard.jobs.total_today: {jobs.get('total_today', 'MISSING')}")
-            print(f"  dashboard.jobs.success_rate: {jobs.get('success_rate', 'MISSING')}")
-
-            self.results['api_response'] = {
-                'queue': queue,
-                'jobs': jobs
-            }
-
-            # Check for missing fields
-            missing_fields = []
-            if 'completed_today' not in queue:
-                missing_fields.append('queue.completed_today')
-            if 'failed_today' not in queue:
-                missing_fields.append('queue.failed_today')
-            if 'total_today' not in jobs:
-                missing_fields.append('jobs.total_today')
-
-            if missing_fields:
-                print(f"\n{Fore.RED}⚠️  Missing fields in API response:{Style.RESET_ALL}")
-                for field in missing_fields:
-                    print(f"  - {field}")
-
+            try:
+                data = response.json()
+            except requests.exceptions.JSONDecodeError as json_err:
+                print(f"{Fore.RED}✗ Failed to decode JSON response: {json_err}{Style.RESET_ALL}")
+                self.results['api_response'] = {'error': f'JSON decode error: {json_err}'}
+                return
+        except requests.exceptions.RequestException as req_err:
+            print(f"{Fore.RED}✗ API request failed: {req_err}{Style.RESET_ALL}")
+            self.results['api_response'] = {'error': f'Request failed: {req_err}'}
+            return
         except Exception as e:
-            print(f"{Fore.RED}✗ API check failed: {e}{Style.RESET_ALL}")
+            print(f"{Fore.RED}✗ Unexpected error during API call: {e}{Style.RESET_ALL}")
+            self.results['api_response'] = {'error': f'Unexpected error: {e}'}
+            return
+
+        # Extract relevant data
+        dashboard = data.get('dashboard', {})
+        queue = dashboard.get('queue', {})
+        jobs = dashboard.get('jobs', {})
+
+        print(f"{Fore.GREEN}✓ API Response (http://localhost:8001/api/admin/ssot):{Style.RESET_ALL}")
+        print(f"  dashboard.queue.completed_today: {queue.get('completed_today', 'MISSING')}")
+        print(f"  dashboard.queue.failed_today: {queue.get('failed_today', 'MISSING')}")
+        print(f"  dashboard.jobs.total_today: {jobs.get('total_today', 'MISSING')}")
+        print(f"  dashboard.jobs.success_rate: {jobs.get('success_rate', 'MISSING')}")
+
+        self.results['api_response'] = {
+            'queue': queue,
+            'jobs': jobs
+        }
+
+        # Check for missing fields
+        missing_fields = []
+        if 'completed_today' not in queue:
+            missing_fields.append('queue.completed_today')
+        if 'failed_today' not in queue:
+            missing_fields.append('queue.failed_today')
+        if 'total_today' not in jobs:
+            missing_fields.append('jobs.total_today')
+
+        if missing_fields:
+            print(f"\n{Fore.RED}⚠️  Missing fields in API response:{Style.RESET_ALL}")
+            for field in missing_fields:
+                print(f"  - {field}")
 
     def validate_data_consistency(self):
         """Check if data is consistent across layers"""
