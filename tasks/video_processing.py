@@ -901,6 +901,44 @@ def transcribe_audio(self, download_data: Dict[str, Any]):
             except Exception as debug_error:
                 logger.warning(f"⚠️ Debug logging failed (non-critical): {debug_error}")
 
+            # Save transcription to output folder
+            try:
+                output_dir = f'./io/output/{job_id}'
+                os.makedirs(output_dir, exist_ok=True)
+
+                # Save transcriptie.txt (human readable)
+                txt_path = os.path.join(output_dir, 'transcriptie.txt')
+                with open(txt_path, 'w', encoding='utf-8') as f:
+                    f.write("=" * 80 + "\n")
+                    f.write(f"TRANSCRIPTIE - {download_data.get('title', 'Unknown')}\n")
+                    f.write("=" * 80 + "\n\n")
+                    f.write(f"Taal: {detected_language}\n")
+                    f.write(f"Methode: {method_used}\n")
+                    f.write(f"Duur: {transcription_result.get('processing_time', 0):.2f}s\n\n")
+                    f.write("-" * 80 + "\n")
+                    f.write(transcript_text + "\n")
+                    f.write("-" * 80 + "\n")
+
+                # Save transcriptie.json (structured data)
+                json_path = os.path.join(output_dir, 'transcriptie.json')
+                import json
+                json_data = {
+                    'title': download_data.get('title', 'Unknown'),
+                    'language': detected_language,
+                    'method': method_used,
+                    'processing_time': transcription_result.get('processing_time', 0),
+                    'transcript': transcript_text,
+                    'segments': transcription_result.get('segments', []),
+                    'job_id': job_id,
+                    'video_duration': download_data.get('duration', 0)
+                }
+                with open(json_path, 'w', encoding='utf-8') as f:
+                    json.dump(json_data, f, ensure_ascii=False, indent=2)
+
+                logger.info(f"📝 Transcriptie opgeslagen: {txt_path} en {json_path}")
+            except Exception as save_error:
+                logger.warning(f"⚠️ Transcriptie opslaan mislukt (non-critical): {save_error}")
+
             return {
                 'success': True,
                 'video_path': video_path,
