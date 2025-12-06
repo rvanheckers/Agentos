@@ -17,6 +17,7 @@ Purpose: Elimineer HTTP cascade, garandeer data consistentie
 """
 
 import logging
+import os
 import time
 import json
 import redis
