@@ -19,6 +19,7 @@ Purpose: Enable instant dashboard loads via proactive cache warming
 import asyncio
 import json
 import logging
+import os
 import redis
 import time
 from datetime import datetime, timedelta
@@ -48,7 +49,7 @@ class CacheWarmingService:
     def __init__(self):
         """Initialize cache warming service with Redis connection"""
         try:
-            self.redis = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+            self.redis = redis.Redis(host='localhost', port=int(os.environ.get("REDIS_PORT", "6380")), db=0, decode_responses=True)
             self.redis.ping()
             logger.info("Cache warming service connected to Redis")
         except Exception as e:
@@ -174,7 +175,7 @@ class CacheWarmingService:
         try:
             # Simple cache stats using basic Redis connection
             import redis
-            redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+            redis_client = redis.Redis(host='localhost', port=int(os.environ.get("REDIS_PORT", "6380")), db=0, decode_responses=True)
 
             # Check main cache key
             cache_key = "admin:dashboard:v4"
@@ -229,7 +230,7 @@ def warm_admin_cache(self):
         from services.admin_data_manager import AdminDataManager
 
         # Connect to Redis
-        redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+        redis_client = redis.Redis(host='localhost', port=int(os.environ.get("REDIS_PORT", "6380")), db=0, decode_responses=True)
 
         # Get admin data - use sync version
         admin_manager = AdminDataManager()

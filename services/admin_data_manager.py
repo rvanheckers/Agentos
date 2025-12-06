@@ -111,7 +111,7 @@ class AdminDataManager:
 
             # Initialize Redis voor WebSocket broadcasting
             try:
-                self.redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
+                self.redis_client = redis.Redis(host='localhost', port=int(os.environ.get("REDIS_PORT", "6380")), decode_responses=True)
                 self.redis_client.ping()  # Test connection
                 logger.info("Redis connection established for WebSocket broadcasting")
             except Exception as redis_error:

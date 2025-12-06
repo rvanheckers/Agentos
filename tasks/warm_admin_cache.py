@@ -43,7 +43,7 @@ def warm_admin_cache():
 
         # Initialize services
         admin_manager = AdminDataManager()
-        redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
+        redis_client = redis.Redis(host='localhost', port=int(os.environ.get("REDIS_PORT", "6380")), decode_responses=True)
 
         # Fetch ALL data in parallel (including agents_workers!)
         logger.info("🔥 Cache warming: Starting parallel data collection")
@@ -102,7 +102,7 @@ def validate_cache_health():
     Runs every minute to ensure cache quality.
     """
     try:
-        redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
+        redis_client = redis.Redis(host='localhost', port=int(os.environ.get("REDIS_PORT", "6380")), decode_responses=True)
 
         # Get current cache
         cache_data = redis_client.get("admin:dashboard:v4")

@@ -80,7 +80,7 @@ def system_health_check():
         # Check Redis
         try:
             import redis
-            r = redis.Redis(host='localhost', port=6379, decode_responses=True)
+            r = redis.Redis(host='localhost', port=int(os.environ.get("REDIS_PORT", "6380")), decode_responses=True)
             r.ping()
             health_status['redis'] = 'healthy'
         except Exception as e:
