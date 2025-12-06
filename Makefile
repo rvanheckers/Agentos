@@ -533,6 +533,45 @@ cleanup-all: ## Clean up ALL AgentOS processes (including orphaned development w
 force-clean: kill-ports clean ## Force clean all processes and ports
 	@echo "$(GREEN)Force cleanup completed$(NC)"
 
+nuke: ## ☠️ Kill ALL zombie processes and clear ALL ports, then restart
+	@echo "$(RED)☠️  NUKING all AgentOS processes...$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Step 1: Stopping services gracefully...$(NC)"
+	@make stop 2>/dev/null || true
+	@echo ""
+	@echo "$(YELLOW)Step 2: Force killing all processes...$(NC)"
+	@pkill -9 -f "uvicorn.*api.main" 2>/dev/null || true
+	@pkill -9 -f "python.*http.server" 2>/dev/null || true
+	@pkill -9 -f "python.*websocket_server" 2>/dev/null || true
+	@pkill -9 -f "celery.*worker" 2>/dev/null || true
+	@pkill -9 -f "celery.*beat" 2>/dev/null || true
+	@pkill -9 -f "celery.*flower" 2>/dev/null || true
+	@pkill -9 -f "redis-server" 2>/dev/null || true
+	@echo ""
+	@echo "$(YELLOW)Step 3: Killing processes on all ports...$(NC)"
+	@lsof -ti :$(API_PORT) | xargs -r kill -9 2>/dev/null || true
+	@lsof -ti :$(FRONTEND_PORT) | xargs -r kill -9 2>/dev/null || true
+	@lsof -ti :$(ADMIN_CLEAN_PORT) | xargs -r kill -9 2>/dev/null || true
+	@lsof -ti :$(WEBSOCKET_PORT) | xargs -r kill -9 2>/dev/null || true
+	@lsof -ti :$(FLOWER_PORT) | xargs -r kill -9 2>/dev/null || true
+	@lsof -ti :$(REDIS_PORT) | xargs -r kill -9 2>/dev/null || true
+	@lsof -ti :5555 | xargs -r kill -9 2>/dev/null || true
+	@echo ""
+	@echo "$(YELLOW)Step 4: Cleaning PID files...$(NC)"
+	@rm -rf $(PID_DIR)
+	@mkdir -p $(PID_DIR)
+	@echo ""
+	@echo "$(GREEN)☠️  NUKE complete - all processes terminated$(NC)"
+	@echo "$(BLUE)Run 'make start' to restart services$(NC)"
+
+nuke-restart: nuke ## ☠️ Nuke everything and restart fresh
+	@echo ""
+	@echo "$(YELLOW)Step 5: Restarting all services...$(NC)"
+	@sleep 2
+	@make start
+	@echo ""
+	@echo "$(GREEN)🚀 Fresh restart complete!$(NC)"
+
 test: ## Test if all services are responding
 	@echo "$(BLUE)Testing services...$(NC)"
 	@echo "$(YELLOW)Redis:$(NC)"
