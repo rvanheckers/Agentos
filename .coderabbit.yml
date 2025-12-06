@@ -1,0 +1,134 @@
+# CodeRabbit configuratie voor AgentOS
+# Dit bestand vertelt CodeRabbit waar hij op moet letten
+
+# Globale instellingen
+language: nl
+chat:
+  auto_reply: true
+auto_review:
+  enabled: true
+  # Alleen reviewen als er code wijzigingen zijn
+  drafts: false
+
+# Tests automatisch laten draaien
+tests:
+  require_command: ["pytest -q"]
+  timeout: 300  # 5 minuten max voor tests
+
+# Type-checken en code stijl controleren
+tools:
+  ruff: { enabled: true }
+  mypy: { enabled: true }
+  eslint: { enabled: true }
+
+# Merge-gate: pas mergen als alles groen is
+merge_gate:
+  require_all_comments_resolved: true
+  require_status_checks: true
+  min_approvals: 1
+
+# Welke mappen wél nakijken (de belangrijke code)
+reviews:
+  include:
+    - "api/**"
+    - "core/**"
+    - "services/**"
+    - "agents2/**"
+    - "ui-admin-clean/assets/js/**"
+    - "ui-v2/src/**"
+    - "testing/**/*.py"
+    - "tools/**"
+    - "events/**"
+    - "tasks/**"
+
+  # Welke mappen NIET nakijken (rommel en tijdelijke bestanden)
+  exclude:
+    - "**/.git/**"
+    - "**/node_modules/**"
+    - "**/logs/**"
+    - "**/io/input/**"
+    - "**/io/output/**"
+    - "**/io/temp/**"
+    - "**/io/uploads/**"
+    - "**/database/postgresql/backups/**"
+    - "**/__pycache__/**"
+    - "**/*.pyc"
+    - "**/*.log"
+    - "**/*.log.*"
+    - "**/celerybeat-schedule"
+    - "**/dist/**"
+    - "**/build/**"
+    - "**/.DS_Store"
+    - "**/Thumbs.db"
+    - "**/*_BACKUP_*"
+    - "**/backup.sh"
+
+# Waar extra goed op letten
+rules:
+  # Beveiliging (heel belangrijk!)
+  security:
+    enabled: true
+    severity: high
+    patterns:
+      - "password"
+      - "secret"
+      - "api_key"
+      - "token"
+      - "auth"
+      - "credential"
+
+  # Code kwaliteit
+  code_quality:
+    enabled: true
+    severity: medium
+    max_line_length: 120
+
+  # Python specifiek
+  python:
+    enabled: true
+    check_imports: true
+    check_docstrings: false  # Niet zeuren over documentatie
+    check_type_hints: true
+
+  # JavaScript specifiek
+  javascript:
+    enabled: true
+    check_console_logs: true  # Waarschuwen voor console.log in productie
+
+  # Performance checks
+  performance:
+    enabled: true
+    severity: low
+    check_database_queries: true
+    check_loops: true
+
+# Custom prompts voor verschillende soorten files
+prompts:
+  python_files:
+    - "Let op database connecties en of ze goed afgesloten worden"
+    - "Check of error handling aanwezig is"
+    - "Kijk naar async/await usage"
+
+  javascript_files:
+    - "Check of event listeners worden afgesloten"
+    - "Let op memory leaks"
+    - "Controleer API error handling"
+
+  api_files:
+    - "Controleer input validatie"
+    - "Check rate limiting"
+    - "Let op SQL injection mogelijkheden"
+
+# Welke soort wijzigingen krijgen prioriteit
+priority:
+  high:
+    - "security"
+    - "api"
+    - "core"
+    - "services"
+  medium:
+    - "agents2"
+    - "ui-admin-clean"
+  low:
+    - "testing"
+    - "docs"

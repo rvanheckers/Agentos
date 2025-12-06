@@ -1,0 +1,149 @@
+{
+  "timestamp": "2025-10-13T15:07:35.863254",
+  "video_input": "/mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/vibecoder-agentos/io/downloads/video_1751933560.mp4",
+  "job_id": "profile_1760360855",
+  "system_info": {
+    "cpu_count": 20,
+    "cpu_freq_mhz": 1996.2030000000007,
+    "total_memory_gb": 15.18,
+    "available_memory_gb": 12.55,
+    "platform": "linux",
+    "python_version": "3.10.12"
+  },
+  "tasks": {
+    "download_video": {
+      "status": "success",
+      "execution_time_seconds": 2.739,
+      "cpu_time_user_seconds": 0.14,
+      "cpu_time_system_seconds": 0.21,
+      "memory_delta_mb": 18.33,
+      "memory_peak_mb": 72.22,
+      "result_type": "dict",
+      "priority": "LOW",
+      "issue": null
+    },
+    "transcribe_audio": {
+      "status": "success",
+      "execution_time_seconds": 190.011,
+      "cpu_time_user_seconds": 570.66,
+      "cpu_time_system_seconds": 33.28,
+      "memory_delta_mb": 635.18,
+      "memory_peak_mb": 707.41,
+      "result_type": "dict",
+      "priority": "HIGH",
+      "issue": "Task exceeds 30s threshold (190.0s)"
+    },
+    "detect_moments": {
+      "status": "success",
+      "execution_time_seconds": 9.898,
+      "cpu_time_user_seconds": 0.45,
+      "cpu_time_system_seconds": 0.35,
+      "memory_delta_mb": 6.2,
+      "memory_peak_mb": 713.6,
+      "result_type": "dict",
+      "priority": "LOW",
+      "issue": null
+    },
+    "detect_faces": {
+      "status": "success",
+      "execution_time_seconds": 15.161,
+      "cpu_time_user_seconds": 18.41,
+      "cpu_time_system_seconds": 4.14,
+      "memory_delta_mb": 243.8,
+      "memory_peak_mb": 957.4,
+      "result_type": "dict",
+      "priority": "MEDIUM",
+      "issue": "Task slower than expected (15.2s)"
+    },
+    "intelligent_crop": {
+      "status": "success",
+      "execution_time_seconds": 9.943,
+      "cpu_time_user_seconds": 17.46,
+      "cpu_time_system_seconds": 2.54,
+      "memory_delta_mb": 29.52,
+      "memory_peak_mb": 986.92,
+      "result_type": "dict",
+      "priority": "LOW",
+      "issue": null
+    },
+    "cut_videos": {
+      "status": "success",
+      "execution_time_seconds": 38.771,
+      "cpu_time_user_seconds": 40.27,
+      "cpu_time_system_seconds": 0.99,
+      "memory_delta_mb": 18.93,
+      "memory_peak_mb": 1005.85,
+      "result_type": "dict",
+      "priority": "HIGH",
+      "issue": "Task exceeds 30s threshold (38.8s)"
+    }
+  },
+  "summary": {
+    "total_pipeline_time_seconds": 269.12,
+    "successful_tasks": 6,
+    "failed_tasks": 0,
+    "slowest_tasks": [
+      {
+        "task": "transcribe_audio",
+        "time_seconds": 190.01
+      },
+      {
+        "task": "cut_videos",
+        "time_seconds": 38.77
+      },
+      {
+        "task": "detect_faces",
+        "time_seconds": 15.16
+      },
+      {
+        "task": "intelligent_crop",
+        "time_seconds": 9.94
+      },
+      {
+        "task": "detect_moments",
+        "time_seconds": 9.9
+      },
+      {
+        "task": "download_video",
+        "time_seconds": 2.74
+      }
+    ],
+    "memory_heavy_tasks": [
+      {
+        "task": "transcribe_audio",
+        "memory_delta_mb": 635.18
+      },
+      {
+        "task": "detect_faces",
+        "memory_delta_mb": 243.8
+      },
+      {
+        "task": "intelligent_crop",
+        "memory_delta_mb": 29.52
+      },
+      {
+        "task": "cut_videos",
+        "memory_delta_mb": 18.93
+      },
+      {
+        "task": "download_video",
+        "memory_delta_mb": 18.33
+      },
+      {
+        "task": "detect_moments",
+        "memory_delta_mb": 6.2
+      }
+    ],
+    "high_priority_issues_count": 2,
+    "high_priority_issues": [
+      {
+        "task": "transcribe_audio",
+        "issue": "Task exceeds 30s threshold (190.0s)"
+      },
+      {
+        "task": "cut_videos",
+        "issue": "Task exceeds 30s threshold (38.8s)"
+      }
+    ]
+  }
+}

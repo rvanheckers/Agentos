@@ -1,0 +1,271 @@
+{
+  "phase_metadata": {
+    "id": "phase_1",
+    "title": "KRITIEKE FIXES - Audio Chunking",
+    "priority": "critical",
+    "timeline": "Week 1",
+    "blocking": true,
+    "parent_roadmap": "../ROADMAP_VALIDATED.md"
+  },
+  "problem_definition": {
+    "core_issue": "Bestanden >25MB falen nu (vandaag bewezen met 61MB test)",
+    "business_impact": "3-hour podcasts kunnen niet verwerkt worden - significant marktvoordeel gemist",
+    "evidence": [
+      "61MB test bestand failed processing",
+      "OpenAI Whisper API heeft 25MB limiet",
+      "Concurrenten stoppen bij 1-2 uur content"
+    ],
+    "root_causes": [
+      "Missing _compress function in audio_transcriber.py",
+      "Missing _chunk function in audio_transcriber.py",
+      "Missing _file_size function in audio_transcriber.py",
+      "Missing _cleanup_temp_files function in audio_transcriber.py",
+      "Missing load_dotenv() import (moet module-level)",
+      "Missing python-dotenv dependency"
+    ]
+  },
+  "technical_requirements": {
+    "target_files": [
+      "agents2/audio_processing/audio_transcriber.py",
+      ".env"
+    ],
+    "dependencies": [
+      "ffmpeg",
+      "whisper",
+      "python-dotenv",
+      "openai",
+      "subprocess",
+      "tempfile",
+      "json",
+      "os"
+    ],
+    "environment_variables": {
+      "required_existing": [
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY"
+      ],
+      "new_additions": {
+        "audio_processing_flags": {
+          "USE_MOCK_AI": false,
+          "ENABLE_REAL_AI": true,
+          "AUDIO_V2_ENABLED": true
+        },
+        "audio_processing_limits": {
+          "OPENAI_AUDIO_MAX_MB": 25,
+          "OPENAI_AUDIO_BITRATE": "64k",
+          "OPENAI_AUDIO_SEGMENT_S": 600,
+          "AUDIO_MAX_RETRIES": 2,
+          "AUDIO_DEBUG_CONFIG": true
+        },
+        "timeout_configuration": {
+          "FFMPEG_TIMEOUT": 1800,
+          "WHISPER_TIMEOUT": 3600,
+          "AUDIO_TIMEOUT_S": 3600,
+          "PROCESSING_TIMEOUT": 7200
+        },
+        "extended_limits": {
+          "MAX_VIDEO_LENGTH": 10800,
+          "MAX_CLIP_LENGTH": 300,
+          "LONG_FORM_PROCESSING": true
+        },
+        "silence_detection": {
+          "SILENCE_DB": -30,
+          "SILENCE_D": 0.25
+        }
+      }
+    }
+  },
+  "implementation_tasks": [
+    {
+      "task_id": "1.0.1",
+      "title": "Pre-flight backups",
+      "blocking": true,
+      "location": "Create backup files before any modifications",
+      "code_changes": {
+        "backup_commands": [
+          "cp agents2/audio_processing/audio_transcriber.py agents2/audio_processing/audio_transcriber.py.backup",
+          "cp .env .env.backup",
+          "cp tasks/video_processing.py tasks/video_processing.py.backup",
+          "pg_dump agentos_production > backup_pre_audio_chunking_$(date +%Y%m%d_%H%M%S).sql"
+        ]
+      },
+      "validation": [
+        "ls -la agents2/audio_processing/audio_transcriber.py.backup",
+        "ls -la .env.backup",
+        "ls -la backup_pre_audio_chunking_*.sql"
+      ],
+      "success_criteria": [
+        "All backup files created successfully"
+      ]
+    },
+    {
+      "task_id": "1.1.1",
+      "title": "Add dotenv import module-level",
+      "file": "agents2/audio_processing/audio_transcriber.py",
+      "location": "Top of file, immediately after existing imports",
+      "code_changes": {
+        "add_at_top_after_imports": [
+          "from dotenv import load_dotenv",
+          "load_dotenv(override=False)  # Must be before Settings() instantiation"
+        ]
+      },
+      "critical_note": "This MUST happen before any Settings() instantiation or other code that reads env vars",
+      "validation": [
+        "python -c \"from dotenv import load_dotenv; print('Import success')\""
+      ]
+    },
+    {
+      "task_id": "1.1.2",
+      "title": "Implement missing helper functions",
+      "file": "agents2/audio_processing/audio_transcriber.py",
+      "location": "After def _detect_silences_ffmpeg method",
+      "code_changes": {
+        "functions_to_add": [
+          {
+            "name": "_file_size_mb",
+            "purpose": "Get file size in MB",
+            "code": "def _file_size_mb(self, path: str) -> float:\n    \"\"\"Get file size in MB\"\"\"\n    return os.path.getsize(path) / (1024 * 1024)"
+          },
+          {
+            "name": "_probe_duration",
+            "purpose": "Get audio duration using ffprobe",
+            "code": "def _probe_duration(self, path: str) -> float:\n    \"\"\"Get audio duration using ffprobe\"\"\"\n    cmd = ['ffprobe', '-v', 'quiet', '-print_format', 'json', '-show_format', path]\n    result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)\n    if result.returncode == 0:\n        data = json.loads(result.stdout)\n        return float(data['format']['duration'])\n    return 0.0"
+          },
+          {
+            "name": "_compress_for_openai",
+            "purpose": "Compress to 64k MP3 for OpenAI",
+            "code": "def _compress_for_openai(self, audio_path: str) -> str:\n    \"\"\"Compress to 64k MP3 for OpenAI\"\"\"\n    import tempfile\n    with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as tmp:\n        output = tmp.name\n    bitrate = os.getenv('OPENAI_AUDIO_BITRATE', '64k')\n    cmd = [\n        'ffmpeg', '-i', audio_path,\n        '-ar', '16000', '-ac', '1',\n        '-b:a', bitrate, '-f', 'mp3',\n        output\n    ]\n    subprocess.run(cmd, check=True, timeout=int(os.getenv('FFMPEG_TIMEOUT', '1800')))\n    return output"
+          },
+          {
+            "name": "_chunk_for_openai",
+            "purpose": "Split audio into 10-minute chunks for OpenAI (proven strategy)",
+            "code": "def _chunk_for_openai(self, audio_path: str, max_mb: int = None) -> List[str]:\n    \"\"\"Split audio into chunks for OpenAI (env-driven)\"\"\"\n    if max_mb is None:\n        max_mb = int(os.getenv('OPENAI_AUDIO_MAX_MB', '25')) - 1\n    duration = self._probe_duration(audio_path)\n    segment_s = float(os.getenv('OPENAI_AUDIO_SEGMENT_S', '600'))\n    ffmpeg_timeout = int(os.getenv('FFMPEG_TIMEOUT', '1800'))\n    chunks = []\n    \n    for i in range(0, int(duration), int(segment_s)):\n        with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as tmp:\n            output = tmp.name\n        cmd = [\n            'ffmpeg', '-i', audio_path,\n            '-ss', str(i), '-t', str(segment_s),\n            '-ar', '16000', '-ac', '1',\n            '-b:a', os.getenv('OPENAI_AUDIO_BITRATE', '64k'), output\n        ]\n        subprocess.run(cmd, check=True, timeout=ffmpeg_timeout)\n        chunks.append(output)\n        print(f\"Created chunk {len(chunks)}/{int(duration//segment_s)+1}\", file=sys.stderr)\n    \n    return chunks"
+          },
+          {
+            "name": "_offset_lines",
+            "purpose": "Adjust timestamps in transcript for chunked processing",
+            "code": "def _offset_lines(self, transcript: str, offset_seconds: float) -> str:\n    \"\"\"Adjust timestamps in transcript\"\"\"\n    lines = transcript.split('\\n')\n    adjusted = []\n    for line in lines:\n        if '[' in line and ']' in line:\n            # Parse [MM:SS|MM:SS] or [MM:SS] format and add offset\n            try:\n                timestamp_end = line.find(']')\n                timestamp_str = line[1:timestamp_end]\n                text = line[timestamp_end + 1:].strip()\n                \n                if '|' in timestamp_str:\n                    start_str, end_str = timestamp_str.split('|', 1)\n                    start_total = self._parse_timestamp(start_str) + offset_seconds\n                    end_total = self._parse_timestamp(end_str) + offset_seconds\n                    new_ts = f\"[{self._format_timestamp(start_total)}|{self._format_timestamp(end_total)}]\"\n                else:\n                    start_total = self._parse_timestamp(timestamp_str) + offset_seconds\n                    new_ts = f\"[{self._format_timestamp(start_total)}]\"\n                \n                adjusted.append(f\"{new_ts} {text}\")\n            except:\n                adjusted.append(line)\n        else:\n            adjusted.append(line)\n    return '\\n'.join(adjusted)"
+          },
+          {
+            "name": "_cleanup_temp_artifacts",
+            "purpose": "Clean up compressed and chunk files after processing",
+            "code": "def _cleanup_temp_artifacts(self, file_paths: List[str]) -> None:\n    \"\"\"Clean up compressed and chunk files after processing\"\"\"\n    for path in file_paths:\n        try:\n            if os.path.exists(path):\n                os.unlink(path)\n                print(f\"Cleaned up: {path}\", file=sys.stderr)\n        except Exception as e:\n            print(f\"Warning: Could not cleanup {path}: {e}\", file=sys.stderr)"
+          },
+          {
+            "name": "_parse_timestamp",
+            "purpose": "Convert 'MM:SS' timestamp to seconds (float)",
+            "code": "def _parse_timestamp(self, mmss: str) -> float:\n    \"\"\"'MM:SS' → seconden (float)\"\"\"\n    mm, ss = mmss.split(':')\n    return int(mm) * 60 + float(ss)"
+          },
+          {
+            "name": "_format_timestamp",
+            "purpose": "Convert seconds (float) to 'MM:SS' format",
+            "code": "def _format_timestamp(self, seconds: float) -> str:\n    \"\"\"seconden (float) → 'MM:SS'\"\"\"\n    s = max(0, int(seconds))\n    mm, ss = divmod(s, 60)\n    return f\"{mm:02d}:{ss:02d}\""
+          }
+        ]
+      }
+    },
+    {
+      "task_id": "1.1.3",
+      "title": "Update result schema with guard fields",
+      "file": "agents2/audio_processing/audio_transcriber.py",
+      "location": "transcribe_audio method result dict",
+      "code_changes": {
+        "add_guard_fields": [
+          "\"is_mock\": method_used == \"mock\",",
+          "\"quality_tier\": \"production\" if method_used in [\"openai\", \"local\"] else \"mock\",",
+          "\"allow_downstream\": method_used in [\"openai\", \"local\"],",
+          "\"user_message\": None if method_used in [\"openai\", \"local\"] else \"Transcriptie is niet gelukt via de cloud. Probeer opnieuw of gebruik een kleiner bestand.\""
+        ]
+      },
+      "validation": [
+        "python -c \"print('Guard fields schema updated')\""
+      ]
+    },
+    {
+      "task_id": "1.1.4",
+      "title": "Modify _transcribe_with_openai_whisper_timestamped for chunking",
+      "file": "agents2/audio_processing/audio_transcriber.py",
+      "location": "Line 475 - _transcribe_with_openai_whisper_timestamped function",
+      "code_changes": {
+        "logic_to_add": [
+          "1. Check file size using _file_size_mb()",
+          "2. If >25MB: compress using _compress_for_openai()",
+          "3. If compressed still >25MB: chunk using _chunk_for_openai()",
+          "4. Process each chunk with OpenAI API",
+          "5. Merge transcripts with _offset_lines()",
+          "6. Cleanup temp files with _cleanup_temp_files()"
+        ],
+        "pseudo_code": "# Check file size\nfile_size = self._file_size_mb(audio_path)\nmax_mb = int(os.getenv('OPENAI_AUDIO_MAX_MB', '25'))\n\ntemp_files = []\ntry:\n    if file_size > max_mb - 1:  # 24MB threshold\n        compressed = self._compress_for_openai(audio_path)\n        temp_files.append(compressed)\n        \n        if self._file_size_mb(compressed) >= max_mb:\n            # Chunk and process\n            chunks = self._chunk_for_openai(compressed, max_mb - 1)\n            temp_files.extend(chunks)\n            transcripts = []\n            offset = 0\n            \n            for chunk_path in chunks:\n                with open(chunk_path, 'rb') as f:\n                    resp = client.audio.transcriptions.create(\n                        model=\"whisper-1\",\n                        file=f,\n                        response_format=\"verbose_json\"\n                    )\n                chunk_text = self._parse_response(resp)\n                transcripts.append(self._offset_lines(chunk_text, offset))\n                offset += 600  # segment duration\n            \n            return '\\n'.join(transcripts)\nfinally:\n    self._cleanup_temp_files(temp_files)"
+      }
+    }
+  ],
+  "testing_specifications": {
+    "test_cases": [
+      {
+        "name": "Small file test (<25MB)",
+        "command": "python agents2/audio_processing/audio_transcriber.py '{\"video_path\":\"small_test.mp4\",\"method\":\"openai\"}'",
+        "expected": "method_used: openai, direct processing, no compression/chunking"
+      },
+      {
+        "name": "Medium file test (>25MB, <100MB)",
+        "command": "python agents2/audio_processing/audio_transcriber.py '{\"video_path\":\"medium_test.mp4\",\"method\":\"openai\"}'",
+        "expected": "method_used: openai, compression applied, single API call"
+      },
+      {
+        "name": "Large file test (>100MB, 3-hour podcast)",
+        "command": "python agents2/audio_processing/audio_transcriber.py '{\"video_path\":\"large_podcast.mp4\",\"method\":\"openai\"}'",
+        "expected": "method_used: openai, chunks based on duration (10-min segments), merged transcript with correct offsets"
+      },
+      {
+        "name": "Temp file cleanup verification",
+        "command": "ls -la /tmp/ | grep -c 'chunk_\\|compressed_' || echo '0'",
+        "expected": "0 (no temp files remaining after processing)"
+      },
+      {
+        "name": "Environment validation",
+        "command": "python -c \"import os; print('OPENAI_AUDIO_MAX_MB:', os.getenv('OPENAI_AUDIO_MAX_MB'))\"",
+        "expected": "OPENAI_AUDIO_MAX_MB: 25"
+      }
+    ]
+  },
+  "pipeline_guard_integration": {
+    "required_output_fields": {
+      "is_mock": "boolean - true if method_used == 'mock'",
+      "quality_tier": "string - 'production' | 'degraded' | 'mock'",
+      "allow_downstream": "boolean - true for openai/local, false for mock",
+      "user_message": "string|null - helpful message when transcription fails"
+    },
+    "output_logic": {
+      "openai_success": "is_mock=false, quality_tier='production', allow_downstream=true, user_message=null",
+      "local_success": "is_mock=false, quality_tier='production', allow_downstream=true, user_message=null",
+      "mock_fallback": "is_mock=true, quality_tier='mock', allow_downstream=false, user_message='Transcriptie is niet gelukt via de cloud...'"
+    }
+  },
+  "success_criteria": {
+    "must_achieve": [
+      "Large file (>25MB) processed via compression/chunking",
+      "For small file with valid API key: method_used == 'openai' and is_mock == false",
+      "Pipeline guard fields (is_mock, quality_tier, allow_downstream, user_message) present in output",
+      "Mock transcriptions return allow_downstream=false",
+      "Merged transcript timestamps align across chunk boundaries",
+      "No orphaned /tmp chunk files after run",
+      "3-hour podcast processing capability enabled"
+    ],
+    "verification_commands": [
+      "python agents2/audio_processing/audio_transcriber.py '{\"video_path\":\"test_61mb.mp4\"}'",
+      "find /tmp -name 'chunk_*' -o -name 'compressed_*' | wc -l",
+      "grep -c 'OPENAI_AUDIO_MAX_MB\\|FFMPEG_TIMEOUT\\|LONG_FORM_PROCESSING' .env"
+    ]
+  },
+  "rollback_procedures": {
+    "file_restoration": [
+      "cp agents2/audio_processing/audio_transcriber.py.backup agents2/audio_processing/audio_transcriber.py",
+      "cp .env.backup .env"
+    ],
+    "emergency_fallback": [
+      "Set USE_MOCK_AI=true in .env",
+      "Restart API services",
+      "Verify mock transcription pipeline works"
+    ]
+  }
+}

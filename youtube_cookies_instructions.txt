@@ -1,0 +1,15 @@
+YOUTUBE DOWNLOAD FIX - Cookie Export Instructies:
+
+1. Open Chrome/Edge browser
+2. Log in op YouTube.com
+3. Installeer browser extension: "Get cookies.txt LOCALLY"
+   - Chrome: https://chrome.google.com/webstore/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc
+   - Edge: Zelfde link werkt ook voor Edge
+
+4. Klik op de extension icon terwijl je op YouTube bent
+5. Download de cookies.txt file
+6. Plaats het bestand hier: /mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/AgentOS/youtube_cookies.txt
+
+7. Test met: yt-dlp --cookies youtube_cookies.txt "https://www.youtube.com/watch?v=VIDEO_ID"
+
+Dit lost het "Sign in to confirm you're not a bot" probleem op!

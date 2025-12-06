@@ -1,0 +1,218 @@
+{
+  "ai_handover_document": {
+    "metadata": {
+      "version": "2.0.0",
+      "generated_date": "2025-09-24",
+      "primary_source": "/mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/AgentOS/roadmap_validated.json",
+      "secondary_sources": [
+        "/mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/AgentOS/agents2/README.md",
+        "/mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/AgentOS/agents2/audio_processing/audio_transcriber.py"
+      ],
+      "language": "nl"
+    },
+    "project_context": {
+      "name": "AgentOS",
+      "type": "Distributed AI Agent Framework",
+      "version": "v2.7.0",
+      "status": "Production Ready",
+      "description": "Orchestratie platform voor gespecialiseerde AI agents en tools, met focus op video processing pipeline"
+    },
+    "critical_priorities": {
+      "phase_1_immediate": {
+        "title": "KRITIEKE FIXES - Week 1",
+        "status": "BLOCKER",
+        "tasks": [
+          {
+            "id": "1.1",
+            "title": "Audio Chunking Implementatie",
+            "urgency": "CRITICAL",
+            "reason": "Bestanden >25MB falen nu (bewezen met 61MB test)",
+            "target_file": "agents2/audio_processing/audio_transcriber.py",
+            "implementation_details": {
+              "missing_functions": [
+                "_file_size_mb",
+                "_probe_duration",
+                "_compress_for_openai",
+                "_chunk_for_openai",
+                "_offset_lines"
+              ],
+              "missing_imports": [
+                "from dotenv import load_dotenv",
+                "load_dotenv(override=False)"
+              ],
+              "env_additions": {
+                "OPENAI_AUDIO_MAX_MB": 25,
+                "OPENAI_AUDIO_BITRATE": "64k",
+                "OPENAI_AUDIO_SEGMENT_S": 600,
+                "FFMPEG_TIMEOUT": 1800,
+                "WHISPER_TIMEOUT": 3600,
+                "MAX_VIDEO_LENGTH": 10800
+              }
+            }
+          },
+          {
+            "id": "1.2",
+            "title": "Pipeline Guard Implementatie",
+            "urgency": "HIGH",
+            "reason": "Voorkom mock data downstream processing",
+            "target_file": "tasks/video_processing.py",
+            "location": "Na regel 256 (na transcribe_audio)"
+          }
+        ]
+      }
+    },
+    "architecture_overview": {
+      "pipeline_flow": {
+        "sequence": [
+          "📥 DOWNLOAD_VIDEO (video_downloader.py)",
+          "🎤 TRANSCRIBE_AUDIO (audio_transcriber.py)",
+          "🔥 DETECT_MOMENTS (unified_content_analyzer.py)",
+          "👤 DETECT_FACES (face_detector.py)",
+          "🎯 INTELLIGENT_CROP (intelligent_cropper.py)",
+          "✂️ CUT_VIDEOS (video_cutter.py)",
+          "✅ FINALIZE_WORKFLOW"
+        ],
+        "queue_routing": {
+          "file_operations": ["download_video"],
+          "transcription": ["transcribe_audio"],
+          "ai_analysis": ["detect_moments", "detect_faces"],
+          "video_processing": ["intelligent_crop", "cut_videos"]
+        }
+      },
+      "ai_intelligence_levels": {
+        "level_3_unified": {
+          "agents": ["unified_content_analyzer.py"],
+          "status": "PRODUCTION DEPLOYED",
+          "features": ["Single Claude API call", "Prompt injection protection", "Enterprise security"]
+        },
+        "level_2_smart": {
+          "agents": ["audio_transcriber.py", "face_detector.py", "intelligent_cropper.py"],
+          "status": "Ready for Upgrade",
+          "upgrade_potential": "Apply unified AI patterns"
+        },
+        "level_1_basic": {
+          "agents": ["video_downloader.py", "video_cutter.py", "thumbnail_generator.py"],
+          "status": "HIGH upgrade potential",
+          "upgrade_potential": "Prime candidates for AI enhancement"
+        }
+      }
+    },
+    "current_state_validation": {
+      "database_schema": {
+        "status": "CONFIRMED",
+        "validated_items": [
+          {
+            "name": "viral_score_column",
+            "location": "core/database_manager.py:263",
+            "status": "PRESENT"
+          },
+          {
+            "name": "keywords_array",
+            "location": "core/database_manager.py:261",
+            "status": "PRESENT"
+          },
+          {
+            "name": "content_type_analysis_mode",
+            "location": "core/database_manager.py:259-260",
+            "status": "PRESENT"
+          }
+        ]
+      },
+      "api_endpoints": {
+        "status": "CONFIRMED",
+        "validated_items": [
+          {
+            "name": "viral_score_exposure",
+            "location": "api/routes/job_refactored.py:107",
+            "status": "PRESENT"
+          },
+          {
+            "name": "fastapi_backend",
+            "port": 8000,
+            "status": "RUNNING"
+          }
+        ]
+      },
+      "audio_transcriber_gaps": {
+        "status": "PARTIAL - Needs Enhancement",
+        "present_features": [
+          "Robust fallbacks: OpenAI → Local → Mock",
+          "Retry logic (tested today)",
+          "Watchdog timeout protection"
+        ],
+        "missing_critical": [
+          "_compress function",
+          "_chunk function",
+          "_file_size function",
+          "dotenv import"
+        ],
+        "impact": "Files >25MB fail processing"
+      }
+    },
+    "technical_implementation_guide": {
+      "audio_chunking_strategy": {
+        "approach": "10-minute segments proven strategy",
+        "file_size_limits": {
+          "small": "<25MB - Direct OpenAI processing",
+          "medium": ">25MB, <100MB - Compressed processing",
+          "large": ">100MB (3-hour podcast) - 18 chunks × 10min each"
+        },
+        "fallback_chain": "OpenAI → Local (with chunks) → Mock",
+        "implementation_location": "agents2/audio_processing/audio_transcriber.py:475"
+      },
+      "pipeline_security": {
+        "mock_data_detection": {
+          "check": "transcription_result.get('is_mock', False)",
+          "action": "Stop pipeline, update job status to 'needs_real_transcript'",
+          "location": "tasks/video_processing.py after line 256"
+        }
+      }
+    },
+    "success_metrics_targets": {
+      "week_1": {
+        "max_audio_size": "Unlimited (currently 25MB)",
+        "mock_data_handling": "Full guard (currently partial)"
+      },
+      "week_2": {
+        "viral_score_ui": "Implemented (backend ready)",
+        "i18n_support": "Dutch + English viral score labels"
+      },
+      "week_3": {
+        "auto_captions": "New agent: agents2/content_generation/auto_captions.py"
+      },
+      "week_4": {
+        "social_export": "New module: api/routes/export.py with TikTok/Instagram/YouTube specs"
+      }
+    },
+    "unique_selling_points": {
+      "market_advantage": "3-hour podcast processing capability",
+      "competitive_edge": "Significant advantage over competitors limited to 1-2 hours",
+      "technical_foundation": "Unified AI architecture with enterprise security"
+    },
+    "validation_status": {
+      "codebase_accuracy": "Validated December 2024",
+      "file_locations_verified": true,
+      "api_endpoints_confirmed": true,
+      "database_schema_confirmed": true
+    }
+  },
+  "handover_instructions": {
+    "immediate_actions": [
+      "1. Implement audio chunking functions in audio_transcriber.py",
+      "2. Add pipeline guard after transcribe_audio step",
+      "3. Update .env with extended timeout configurations",
+      "4. Test with >25MB audio files"
+    ],
+    "validation_required": [
+      "Verify all file paths still exist",
+      "Check line numbers are current",
+      "Confirm API endpoints are accessible",
+      "Test mock data detection logic"
+    ],
+    "risk_mitigations": [
+      "Memory management for large file processing",
+      "FFmpeg version consistency across environments",
+      "UI framework alignment (focus on ui-v2)"
+    ]
+  }
+}

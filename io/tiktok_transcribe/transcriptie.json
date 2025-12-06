@@ -1,0 +1,267 @@
+{
+  "text": "When you're building AI that real people actually use,  you can't just send a prompt and hope for the best.  You need reasoning systems, because let's be honest.  Most AIs will say something that sounds right,  smile confidently, and then fail the test in front of your boss.  Most AIs just answer.  They don't verify.  They don't reflect.  They just autocomplete sentences that sound smart,  even when they're making stuff up.  That's why we design reasoning layers  to make the model think before it speaks.  First, LLM as a judge.  One model answers, another one sits there  like a grumpy professor grading papers.  Hmm, weak logic.  Missing source.  Try again if it flunks the review.  It has to redo the reasoning until it makes sense.  Second, confidence scoring.  Every model should know how sure it is  before opening its mouth.  If the score is too low, it's not allowed to wing it.  It has to go fact check itself like,  hold up, I'm only 63% confident.  Let me double check that.  Third, self-reflection.  After giving an answer, the model reads its own work like,  wait, did I just hallucinate that?  It literally reviews its own logic  and edits itself before sending it back.  It's like an AI having an existential crisis, but productive.  Fourth, multi-agent debate.  Two or more AIs argue until one wins.  One's like, I'm 92% sure this is right.  The other fires back, bro, you forgot to check the source again.  They go back and forth until one finally says,  fine, you win, and that's the version that ships.  Fifth, smart routing.  Not every question needs the same brain.  Simple math goes to the calculator agent,  document lookups go to the retrieval agent,  and the reasoning layer handles policy or logic.  It's like running a company of AIs.  One does the math, one does the research,  one just keeps everyone on deadline.  Put these five together and your model stops guessing.  It reasons, verifies, and adapts.  Ready for production.  That's how we build AI that actually thinks twice before answering.  I broke down the full reasoning guide step by step.  You can find it in my bio.",
+  "segments": [
+    {
+      "start": 0.0,
+      "end": 3.12,
+      "text": " When you're building AI that real people actually use,"
+    },
+    {
+      "start": 3.12,
+      "end": 5.68,
+      "text": " you can't just send a prompt and hope for the best."
+    },
+    {
+      "start": 5.68,
+      "end": 8.8,
+      "text": " You need reasoning systems, because let's be honest."
+    },
+    {
+      "start": 8.8,
+      "end": 11.36,
+      "text": " Most AIs will say something that sounds right,"
+    },
+    {
+      "start": 11.36,
+      "end": 15.040000000000001,
+      "text": " smile confidently, and then fail the test in front of your boss."
+    },
+    {
+      "start": 15.040000000000001,
+      "end": 16.72,
+      "text": " Most AIs just answer."
+    },
+    {
+      "start": 16.72,
+      "end": 18.080000000000002,
+      "text": " They don't verify."
+    },
+    {
+      "start": 18.080000000000002,
+      "end": 19.28,
+      "text": " They don't reflect."
+    },
+    {
+      "start": 19.28,
+      "end": 22.240000000000002,
+      "text": " They just autocomplete sentences that sound smart,"
+    },
+    {
+      "start": 22.240000000000002,
+      "end": 24.16,
+      "text": " even when they're making stuff up."
+    },
+    {
+      "start": 24.16,
+      "end": 26.32,
+      "text": " That's why we design reasoning layers"
+    },
+    {
+      "start": 26.32,
+      "end": 28.64,
+      "text": " to make the model think before it speaks."
+    },
+    {
+      "start": 28.64,
+      "end": 30.96,
+      "text": " First, LLM as a judge."
+    },
+    {
+      "start": 30.96,
+      "end": 33.52,
+      "text": " One model answers, another one sits there"
+    },
+    {
+      "start": 33.52,
+      "end": 35.84,
+      "text": " like a grumpy professor grading papers."
+    },
+    {
+      "start": 35.84,
+      "end": 37.68,
+      "text": " Hmm, weak logic."
+    },
+    {
+      "start": 37.68,
+      "end": 38.96,
+      "text": " Missing source."
+    },
+    {
+      "start": 38.96,
+      "end": 40.88,
+      "text": " Try again if it flunks the review."
+    },
+    {
+      "start": 40.88,
+      "end": 43.28,
+      "text": " It has to redo the reasoning until it makes sense."
+    },
+    {
+      "start": 43.84,
+      "end": 45.36,
+      "text": " Second, confidence scoring."
+    },
+    {
+      "start": 46.0,
+      "end": 47.68,
+      "text": " Every model should know how sure it is"
+    },
+    {
+      "start": 47.68,
+      "end": 49.120000000000005,
+      "text": " before opening its mouth."
+    },
+    {
+      "start": 49.120000000000005,
+      "end": 51.84,
+      "text": " If the score is too low, it's not allowed to wing it."
+    },
+    {
+      "start": 51.84,
+      "end": 54.0,
+      "text": " It has to go fact check itself like,"
+    },
+    {
+      "start": 54.0,
+      "end": 56.72,
+      "text": " hold up, I'm only 63% confident."
+    },
+    {
+      "start": 56.72,
+      "end": 57.760000000000005,
+      "text": " Let me double check that."
+    },
+    {
+      "start": 58.64,
+      "end": 59.92,
+      "text": " Third, self-reflection."
+    },
+    {
+      "start": 60.64,
+      "end": 63.52,
+      "text": " After giving an answer, the model reads its own work like,"
+    },
+    {
+      "start": 63.52,
+      "end": 65.52,
+      "text": " wait, did I just hallucinate that?"
+    },
+    {
+      "start": 66.08,
+      "end": 67.92,
+      "text": " It literally reviews its own logic"
+    },
+    {
+      "start": 67.92,
+      "end": 70.16,
+      "text": " and edits itself before sending it back."
+    },
+    {
+      "start": 70.16,
+      "end": 73.84,
+      "text": " It's like an AI having an existential crisis, but productive."
+    },
+    {
+      "start": 74.56,
+      "end": 76.64,
+      "text": " Fourth, multi-agent debate."
+    },
+    {
+      "start": 76.64,
+      "end": 79.04,
+      "text": " Two or more AIs argue until one wins."
+    },
+    {
+      "start": 79.04,
+      "end": 82.08,
+      "text": " One's like, I'm 92% sure this is right."
+    },
+    {
+      "start": 82.08,
+      "end": 85.36,
+      "text": " The other fires back, bro, you forgot to check the source again."
+    },
+    {
+      "start": 85.36,
+      "end": 87.84,
+      "text": " They go back and forth until one finally says,"
+    },
+    {
+      "start": 87.84,
+      "end": 90.88000000000001,
+      "text": " fine, you win, and that's the version that ships."
+    },
+    {
+      "start": 91.76,
+      "end": 93.44,
+      "text": " Fifth, smart routing."
+    },
+    {
+      "start": 93.44,
+      "end": 95.60000000000001,
+      "text": " Not every question needs the same brain."
+    },
+    {
+      "start": 95.60000000000001,
+      "end": 97.76,
+      "text": " Simple math goes to the calculator agent,"
+    },
+    {
+      "start": 97.76,
+      "end": 100.0,
+      "text": " document lookups go to the retrieval agent,"
+    },
+    {
+      "start": 100.0,
+      "end": 102.72,
+      "text": " and the reasoning layer handles policy or logic."
+    },
+    {
+      "start": 102.72,
+      "end": 104.4,
+      "text": " It's like running a company of AIs."
+    },
+    {
+      "start": 104.96000000000001,
+      "end": 107.44,
+      "text": " One does the math, one does the research,"
+    },
+    {
+      "start": 107.44,
+      "end": 109.44,
+      "text": " one just keeps everyone on deadline."
+    },
+    {
+      "start": 109.44,
+      "end": 112.08000000000001,
+      "text": " Put these five together and your model stops guessing."
+    },
+    {
+      "start": 112.08000000000001,
+      "end": 114.0,
+      "text": " It reasons, verifies, and adapts."
+    },
+    {
+      "start": 114.64,
+      "end": 115.92,
+      "text": " Ready for production."
+    },
+    {
+      "start": 115.92,
+      "end": 118.96000000000001,
+      "text": " That's how we build AI that actually thinks twice before answering."
+    },
+    {
+      "start": 119.60000000000001,
+      "end": 122.64,
+      "text": " I broke down the full reasoning guide step by step."
+    },
+    {
+      "start": 122.64,
+      "end": 124.24000000000001,
+      "text": " You can find it in my bio."
+    }
+  ],
+  "language": "en",
+  "duration": 124.4835625
+}

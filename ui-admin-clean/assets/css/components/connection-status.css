@@ -1,0 +1,176 @@
+/**
+ * Unified System Status Indicator
+ * Combines connection status + system health in one clear indicator
+ */
+
+.system-status {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.system-status:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.system-status__indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.system-status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+/* Real-time mode - bright green with pulse */
+.system-status__dot--realtime {
+  background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: realtime-pulse 2s infinite;
+}
+
+@keyframes realtime-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+/* Polling mode - stable green (no pulse) */
+.system-status__dot--polling {
+  background: #22c55e;
+  box-shadow: 0 0 4px rgba(34, 197, 94, 0.3);
+}
+
+/* Starting/Connecting mode - blue with blink */
+.system-status__dot--connecting {
+  background: #3b82f6;
+  animation: connecting-blink 1.5s infinite alternate;
+}
+
+@keyframes connecting-blink {
+  0% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+/* Degraded mode - orange */
+.system-status__dot--degraded {
+  background: #f59e0b;
+  box-shadow: 0 0 4px rgba(245, 158, 11, 0.4);
+}
+
+/* Unknown mode - gray */
+.system-status__dot--unknown {
+  background: #6b7280;
+}
+
+.system-status__text {
+  font-size: 0.8rem;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.system-status__help {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+  padding: 0.25rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.system-status__help:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Enhanced visual feedback */
+.system-status__dot--realtime::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: 12px;
+  height: 12px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 50%;
+  animation: realtime-ring 2s infinite;
+}
+
+@keyframes realtime-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .system-status__text {
+    display: none;
+  }
+  
+  .system-status {
+    padding: 0.5rem;
+  }
+  
+  .system-status__dot {
+    width: 10px;
+    height: 10px;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .system-status {
+    border: 2px solid rgba(255, 255, 255, 0.3);
+  }
+  
+  .system-status__dot {
+    border: 1px solid rgba(255, 255, 255, 0.5);
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .system-status__dot--realtime {
+    animation: none;
+  }
+  
+  .system-status__dot--connecting {
+    animation: none;
+  }
+  
+  .system-status__dot--realtime::after {
+    animation: none;
+  }
+}

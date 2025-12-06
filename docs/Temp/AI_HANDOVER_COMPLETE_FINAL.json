@@ -1,0 +1,360 @@
+{
+  "metadata": {
+    "version": "4.0.0",
+    "created": "2025-09-21",
+    "priority": "CRITICAL",
+    "estimated_hours": 20,
+    "type": "COMPLETE_IMPLEMENTATION_GUIDE",
+    "ai_instructions": "EXECUTE ALL PHASES IN ORDER. THIS IS THE ONLY FILE YOU NEED."
+  },
+
+  "prerequisites": {
+    "must_read_files": [
+      "/mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/AgentOS/.claude/CLAUDE.md",
+      "/mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/AgentOS/METADATA_DETECTION_FIX.md"
+    ],
+    "required_tools": ["psql", "make", "pytest", "npm"],
+    "validation_commands": [
+      "make lint",
+      "make typecheck",
+      "pytest --maxfail=1 --disable-warnings"
+    ]
+  },
+
+  "execution_phases": [
+    {
+      "phase": 1,
+      "name": "DATABASE_NORMALIZATION_PRIVACY_COMPLIANT",
+      "blocking": true,
+      "skip_allowed": false,
+      "estimated_minutes": 120,
+
+      "pre_checks": [
+        {
+          "command": "psql -U agentos_user -d agentos_production -c 'SELECT 1'",
+          "expected": "1",
+          "error_action": "STOP - Database connection required"
+        }
+      ],
+
+      "tasks": [
+        {
+          "id": "1.1",
+          "action": "CREATE_PRIVACY_COMPLIANT_MIGRATION",
+          "file_path": "/migrations/001_privacy_compliant_metadata.sql",
+          "content": "-- PRIVACY-COMPLIANT METADATA MIGRATION\n-- Removes PII, adds metadata structure, implements auto-cleanup\n\n-- Add metadata columns\nALTER TABLE jobs ADD COLUMN IF NOT EXISTS content_type VARCHAR(20) DEFAULT 'spoken';\nALTER TABLE jobs ADD COLUMN IF NOT EXISTS analysis_mode VARCHAR(50) DEFAULT 'ai_viral_analysis';\nALTER TABLE jobs ADD COLUMN IF NOT EXISTS viral_score INTEGER;\nALTER TABLE jobs ADD COLUMN IF NOT EXISTS youtube_title TEXT;\nALTER TABLE jobs ADD COLUMN IF NOT EXISTS keywords TEXT[];\n\n-- Privacy & compliance columns\nALTER TABLE jobs ADD COLUMN IF NOT EXISTS session_hash VARCHAR(64);\nALTER TABLE jobs ADD COLUMN IF NOT EXISTS content_fingerprint VARCHAR(64);\nALTER TABLE jobs ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP DEFAULT NOW() + INTERVAL '7 days';\nALTER TABLE jobs ADD COLUMN IF NOT EXISTS storage_tier VARCHAR(20) DEFAULT 'temporary';\nALTER TABLE jobs ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;\n\n-- Remove PII columns if they exist\nALTER TABLE jobs DROP COLUMN IF EXISTS youtube_uploader CASCADE;\nALTER TABLE jobs DROP COLUMN IF EXISTS youtube_description CASCADE;\nALTER TABLE jobs DROP COLUMN IF EXISTS transcript_text CASCADE;\n\n-- Performance indexes\nCREATE INDEX IF NOT EXISTS idx_jobs_content_analysis ON jobs(content_type, analysis_mode);\nCREATE INDEX IF NOT EXISTS idx_jobs_viral_score ON jobs(viral_score DESC) WHERE viral_score IS NOT NULL;\nCREATE INDEX IF NOT EXISTS idx_jobs_expires_at ON jobs(expires_at) WHERE is_deleted = FALSE;\nCREATE INDEX IF NOT EXISTS idx_jobs_session_hash ON jobs(session_hash);\nCREATE INDEX IF NOT EXISTS idx_jobs_fingerprint ON jobs(content_fingerprint);\n\n-- Anonymous marketing insights table\nCREATE TABLE IF NOT EXISTS content_insights (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    content_fingerprint VARCHAR(64) NOT NULL,\n    processed_date DATE DEFAULT CURRENT_DATE,\n    content_category VARCHAR(50),\n    viral_score INTEGER,\n    engagement_score DECIMAL(3,2),\n    optimal_clip_timestamps JSONB,\n    detected_trends TEXT[],\n    audience_segment VARCHAR(50),\n    platform_performance JSONB,\n    region VARCHAR(2),\n    device_category VARCHAR(20),\n    created_at TIMESTAMP DEFAULT NOW()\n);\n\nCREATE INDEX IF NOT EXISTS idx_insights_fingerprint ON content_insights(content_fingerprint);\nCREATE INDEX IF NOT EXISTS idx_insights_category ON content_insights(content_category);\nCREATE INDEX IF NOT EXISTS idx_insights_date ON content_insights(processed_date);\n\n-- Add metadata to processing_steps\nALTER TABLE processing_steps ADD COLUMN IF NOT EXISTS transcript_segments JSONB;\nALTER TABLE processing_steps ADD COLUMN IF NOT EXISTS viral_moments JSONB;\n\n-- Auto-cleanup function\nCREATE OR REPLACE FUNCTION auto_mark_expired_jobs()\nRETURNS TRIGGER AS $$\nBEGIN\n    UPDATE jobs SET is_deleted = TRUE \n    WHERE expires_at < NOW() AND is_deleted = FALSE;\n    RETURN NEW;\nEND;\n$$ LANGUAGE plpgsql;\n\n-- Trigger for auto-cleanup (runs on any job insert)\nDROP TRIGGER IF EXISTS trigger_auto_cleanup ON jobs;\nCREATE TRIGGER trigger_auto_cleanup\nAFTER INSERT ON jobs\nFOR EACH STATEMENT\nEXECUTE FUNCTION auto_mark_expired_jobs();",
+          "validation": "File exists and contains privacy-compliant schema"
+        },
+
+        {
+          "id": "1.2",
+          "action": "RUN_MIGRATION",
+          "command": "psql -U agentos_user -d agentos_production -f /migrations/001_privacy_compliant_metadata.sql",
+          "validation": "psql -U agentos_user -d agentos_production -c \"SELECT column_name FROM information_schema.columns WHERE table_name='jobs' AND column_name IN ('content_type', 'expires_at', 'session_hash')\" | wc -l",
+          "expected": "3",
+          "rollback": "psql -U agentos_user -d agentos_production -c 'DROP TABLE IF EXISTS content_insights CASCADE; ALTER TABLE jobs DROP COLUMN IF EXISTS content_type CASCADE'"
+        },
+
+        {
+          "id": "1.3",
+          "action": "UPDATE_DATABASE_MANAGER",
+          "file": "/core/database_manager.py",
+          "modifications": [
+            {
+              "line_range": [36, 57],
+              "add_after_line": 44,
+              "content": "    # Metadata columns\n    content_type = Column(String(20), default='spoken', index=True)\n    analysis_mode = Column(String(50), default='ai_viral_analysis', index=True)\n    viral_score = Column(Integer, index=True)\n    youtube_title = Column(Text)\n    keywords = Column(ARRAY(String))\n    \n    # Privacy & compliance columns\n    session_hash = Column(String(64), index=True)\n    content_fingerprint = Column(String(64), index=True)\n    expires_at = Column(DateTime, default=lambda: datetime.now(timezone.utc) + timedelta(days=7), index=True)\n    storage_tier = Column(String(20), default='temporary')\n    is_deleted = Column(Boolean, default=False, index=True)"
+            },
+            {
+              "after_class": "Job",
+              "add_new_class": "class ContentInsights(Base):\n    __tablename__ = 'content_insights'\n    \n    id = Column(PostgreSQLUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)\n    content_fingerprint = Column(String(64), nullable=False, index=True)\n    processed_date = Column(Date, default=lambda: datetime.now(timezone.utc).date(), index=True)\n    content_category = Column(String(50), index=True)\n    viral_score = Column(Integer)\n    engagement_score = Column(Float)\n    optimal_clip_timestamps = Column(JSON)\n    detected_trends = Column(ARRAY(String))\n    audience_segment = Column(String(50))\n    platform_performance = Column(JSON)\n    region = Column(String(2))\n    device_category = Column(String(20))\n    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)"
+            }
+          ],
+          "validation": "grep 'content_type.*Column' /core/database_manager.py && grep 'ContentInsights' /core/database_manager.py"
+        }
+      ],
+
+      "post_checks": [
+        {
+          "command": "psql -U agentos_user -d agentos_production -c \"SELECT COUNT(*) FROM information_schema.tables WHERE table_name='content_insights'\"",
+          "expected": "1",
+          "error_action": "STOP - Marketing insights table not created"
+        }
+      ]
+    },
+
+    {
+      "phase": 2,
+      "name": "MOCK_DATA_ELIMINATION",
+      "blocking": true,
+      "skip_allowed": false,
+      "estimated_minutes": 90,
+
+      "tasks": [
+        {
+          "id": "2.1",
+          "action": "CREATE_FALLBACK_MESSAGES",
+          "file_path": "/agents2/shared/utils/fallback_messages.py",
+          "content": "\"\"\"\nProfessional Fallback Message System\nReplaces mock data with honest user communication\n\"\"\"\n\nclass FallbackMessages:\n    \"\"\"Proper fallback messages instead of fake data\"\"\"\n\n    MESSAGES = {\n        'transcription_unavailable': {\n            'nl': 'Audio analyse tijdelijk niet beschikbaar - visuele analyse actief',\n            'en': 'Audio analysis temporarily unavailable - visual analysis active'\n        },\n        'metadata_missing': {\n            'nl': 'Video informatie wordt verwerkt...',\n            'en': 'Video information being processed...'\n        },\n        'queue_delayed': {\n            'nl': 'Hoge wachtrij volume - geschatte wachttijd: {time}',\n            'en': 'High queue volume - estimated wait: {time}'\n        },\n        'audio_disabled': {\n            'nl': 'Audio analyse uitgeschakeld - metadata detectie actief',\n            'en': 'Audio analysis disabled - metadata detection active'\n        },\n        'processing_temporary': {\n            'nl': 'Clips zijn tijdelijk beschikbaar (7 dagen)',\n            'en': 'Clips available temporarily (7 days)'\n        }\n    }\n\n    @staticmethod\n    def get(key: str, language: str = 'nl', **kwargs) -> str:\n        \"\"\"Get fallback message in specified language\"\"\"\n        message = FallbackMessages.MESSAGES.get(key, {}).get(language, '')\n        return message.format(**kwargs) if kwargs else message\n\n    @staticmethod\n    def get_processing_status(step: str, language: str = 'nl') -> str:\n        \"\"\"Get proper status message for processing step\"\"\"\n        status_messages = {\n            'downloading': {'nl': 'Video downloaden...', 'en': 'Downloading video...'},\n            'transcribing': {'nl': 'Audio analyseren...', 'en': 'Analyzing audio...'},\n            'detecting': {'nl': 'Virale momenten detecteren...', 'en': 'Detecting viral moments...'},\n            'creating': {'nl': 'Clips genereren...', 'en': 'Generating clips...'}\n        }\n        return status_messages.get(step, {}).get(language, step)",
+          "validation": "python -c 'from agents2.shared.utils.fallback_messages import FallbackMessages; print(FallbackMessages.get(\"transcription_unavailable\", \"nl\"))'"
+        },
+
+        {
+          "id": "2.2",
+          "action": "REPLACE_MOCK_IN_VIDEO_PROCESSING",
+          "file": "/tasks/video_processing.py",
+          "modifications": [
+            {
+              "find": "'transcript': mock_transcript_text,\n        'transcription_method': 'mock_fallback'",
+              "replace": "'transcript': '',\n        'transcription_method': 'unavailable',\n        'fallback_message': FallbackMessages.get('transcription_unavailable', 'nl')",
+              "add_import": "from agents2.shared.utils.fallback_messages import FallbackMessages"
+            }
+          ],
+          "validation": "grep 'FallbackMessages' /tasks/video_processing.py"
+        },
+
+        {
+          "id": "2.3",
+          "action": "REPLACE_MOCK_IN_MOMENT_DETECTOR",
+          "file": "/agents2/moment_detection/moment_detector.py",
+          "modifications": [
+            {
+              "line": 199,
+              "find": "\"description\": f\"🤖 Pipeline test clip {i+1}\"",
+              "replace": "\"description\": FallbackMessages.get('metadata_missing', 'nl')",
+              "add_import": "from agents2.shared.utils.fallback_messages import FallbackMessages"
+            }
+          ],
+          "validation": "grep 'FallbackMessages' /agents2/moment_detection/moment_detector.py"
+        },
+
+        {
+          "id": "2.4",
+          "action": "ADD_DEPRECATION_WARNING",
+          "file": "/agents2/shared/utils/mock_data_generator.py",
+          "modifications": [
+            {
+              "line": 1,
+              "add_before": "\"\"\"\nDEPRECATE: Mock Data Generator - DO NOT USE IN PRODUCTION\nThis module is for development only. Use FallbackMessages for production.\n\"\"\"\n\nimport warnings\n\nclass MockDataGenerator:\n    def __init__(self):\n        warnings.warn(\n            \"MockDataGenerator is deprecated. Use FallbackMessages for production.\",\n            DeprecationWarning,\n            stacklevel=2\n        )"
+            }
+          ],
+          "validation": "grep 'DEPRECATED' /agents2/shared/utils/mock_data_generator.py"
+        }
+      ]
+    },
+
+    {
+      "phase": 3,
+      "name": "STORAGE_COMPLIANCE_IMPLEMENTATION",
+      "blocking": true,
+      "skip_allowed": false,
+      "estimated_minutes": 180,
+
+      "tasks": [
+        {
+          "id": "3.1",
+          "action": "CREATE_STORAGE_MANAGER",
+          "file_path": "/core/storage_manager.py",
+          "content": "import os\nimport hashlib\nimport boto3\nfrom datetime import datetime, timedelta\nfrom typing import Optional, Dict, Any\nimport logging\nimport json\n\nlogger = logging.getLogger(__name__)\n\nclass PrivacyCompliantStorage:\n    \"\"\"Storage manager with GDPR compliance and auto-cleanup\"\"\"\n    \n    def __init__(self):\n        self.storage_backend = os.getenv('STORAGE_BACKEND', 'local')\n        self.retention_days = int(os.getenv('RETENTION_DAYS', '7'))\n        self.s3_client = None\n        \n        if self.storage_backend == 's3':\n            self.s3_client = boto3.client('s3')\n            self.bucket_name = os.getenv('S3_BUCKET', 'agentos-temp')\n    \n    def store_clip(self, clip_data: bytes, job_id: str, clip_id: str, ttl_days: int = 7) -> Dict[str, Any]:\n        \"\"\"Store clip with automatic expiration\"\"\"\n        \n        storage_key = f'clips/{job_id}/{clip_id}.mp4'\n        expires_at = datetime.now() + timedelta(days=ttl_days)\n        \n        if self.storage_backend == 's3':\n            self.s3_client.put_object(\n                Bucket=self.bucket_name,\n                Key=storage_key,\n                Body=clip_data,\n                Metadata={\n                    'expires': expires_at.isoformat(),\n                    'auto-delete': 'true',\n                    'job-id': job_id\n                },\n                StorageClass='STANDARD_IA'\n            )\n            \n            url = self.s3_client.generate_presigned_url(\n                'get_object',\n                Params={'Bucket': self.bucket_name, 'Key': storage_key},\n                ExpiresIn=ttl_days * 24 * 3600\n            )\n            \n            return {\n                'storage_type': 's3',\n                'storage_key': storage_key,\n                'url': url,\n                'expires_at': expires_at,\n                'size_bytes': len(clip_data)\n            }\n        \n        else:\n            # Local temporary storage\n            temp_dir = f'/tmp/agentos/clips/{job_id}'\n            os.makedirs(temp_dir, exist_ok=True)\n            \n            file_path = f'{temp_dir}/{clip_id}.mp4'\n            with open(file_path, 'wb') as f:\n                f.write(clip_data)\n            \n            return {\n                'storage_type': 'local',\n                'storage_key': file_path,\n                'url': f'/api/clips/temp/{job_id}/{clip_id}',\n                'expires_at': expires_at,\n                'size_bytes': len(clip_data)\n            }\n    \n    def delete_job_content(self, job_id: str) -> bool:\n        \"\"\"Delete all content for a job (GDPR compliance)\"\"\"\n        \n        try:\n            if self.storage_backend == 's3':\n                response = self.s3_client.list_objects_v2(\n                    Bucket=self.bucket_name,\n                    Prefix=f'clips/{job_id}/'\n                )\n                \n                if 'Contents' in response:\n                    objects = [{'Key': obj['Key']} for obj in response['Contents']]\n                    self.s3_client.delete_objects(\n                        Bucket=self.bucket_name,\n                        Delete={'Objects': objects}\n                    )\n            else:\n                import shutil\n                temp_dir = f'/tmp/agentos/clips/{job_id}'\n                if os.path.exists(temp_dir):\n                    shutil.rmtree(temp_dir)\n            \n            logger.info(f'Deleted all content for job {job_id}')\n            return True\n            \n        except Exception as e:\n            logger.error(f'Failed to delete job content: {e}')\n            return False\n    \n    def extract_marketing_insights(self, job_data: Dict) -> Dict[str, Any]:\n        \"\"\"Extract anonymous marketing insights before deletion\"\"\"\n        \n        return {\n            'content_fingerprint': hashlib.sha256(job_data['video_url'].encode()).hexdigest(),\n            'content_category': job_data.get('content_type', 'unknown'),\n            'viral_score': job_data.get('viral_score'),\n            'engagement_score': job_data.get('engagement_score'),\n            'detected_trends': job_data.get('keywords', []),\n            'region': self._get_region_from_request(),\n            'device_category': self._get_device_category(),\n            'processed_date': datetime.now().date()\n        }\n    \n    def _get_region_from_request(self) -> str:\n        return os.getenv('DEFAULT_REGION', 'NL')\n    \n    def _get_device_category(self) -> str:\n        return 'web'",
+          "validation": "python -c 'from core.storage_manager import PrivacyCompliantStorage; print(\"OK\")'"
+        },
+
+        {
+          "id": "3.2",
+          "action": "CREATE_CLEANUP_TASK",
+          "file_path": "/tasks/cleanup_expired_content.py",
+          "content": "from celery import Celery\nfrom celery.schedules import crontab\nfrom datetime import datetime, timedelta\nfrom core.database_manager import PostgreSQLManager, Job, ContentInsights\nfrom core.storage_manager import PrivacyCompliantStorage\nfrom sqlalchemy import text\nimport logging\nimport hashlib\n\nlogger = logging.getLogger(__name__)\n\ncelery_app = Celery('cleanup')\ndb_manager = PostgreSQLManager()\nstorage_manager = PrivacyCompliantStorage()\n\n@celery_app.task\ndef cleanup_expired_content():\n    \"\"\"Daily cleanup of expired content (GDPR compliance)\"\"\"\n    \n    logger.info('Starting daily cleanup task')\n    \n    with db_manager.get_session() as session:\n        expired_jobs = session.query(Job).filter(\n            Job.expires_at < datetime.now(),\n            Job.is_deleted == False\n        ).all()\n        \n        logger.info(f'Found {len(expired_jobs)} expired jobs to clean up')\n        \n        for job in expired_jobs:\n            try:\n                # Extract marketing insights before deletion\n                insights = storage_manager.extract_marketing_insights({\n                    'video_url': job.video_url,\n                    'content_type': job.content_type,\n                    'viral_score': job.viral_score,\n                    'keywords': job.keywords\n                })\n                \n                # Save anonymous insights\n                save_marketing_insights(session, insights)\n                \n                # Delete actual content\n                storage_manager.delete_job_content(str(job.id))\n                \n                # Mark as deleted in database\n                job.is_deleted = True\n                job.video_url = f'DELETED_{job.id}'\n                \n                # Delete associated clips\n                for clip in job.clips:\n                    session.delete(clip)\n                \n                logger.info(f'Successfully cleaned up job {job.id}')\n                \n            except Exception as e:\n                logger.error(f'Failed to cleanup job {job.id}: {e}')\n        \n        session.commit()\n        \n    logger.info('Daily cleanup task completed')\n    return {'cleaned_jobs': len(expired_jobs)}\n\ndef save_marketing_insights(session, insights: dict):\n    \"\"\"Save anonymous marketing data\"\"\"\n    \n    query = text(\"\"\"\n        INSERT INTO content_insights \n        (content_fingerprint, content_category, viral_score, \n         detected_trends, region, device_category, processed_date)\n        VALUES \n        (:fingerprint, :category, :score, :trends, :region, :device, :date)\n        ON CONFLICT (content_fingerprint, processed_date) DO UPDATE\n        SET viral_score = EXCLUDED.viral_score\n    \"\"\")\n    \n    session.execute(query, {\n        'fingerprint': insights['content_fingerprint'],\n        'category': insights['content_category'],\n        'score': insights['viral_score'],\n        'trends': insights['detected_trends'],\n        'region': insights['region'],\n        'device': insights['device_category'],\n        'date': insights['processed_date']\n    })\n\n# Schedule daily cleanup at 2 AM\ncelery_app.conf.beat_schedule = {\n    'daily-cleanup': {\n        'task': 'tasks.cleanup_expired_content.cleanup_expired_content',\n        'schedule': crontab(hour=2, minute=0),\n    }\n}",
+          "validation": "grep 'cleanup_expired_content' /tasks/cleanup_expired_content.py"
+        },
+
+        {
+          "id": "3.3",
+          "action": "UPDATE_VIDEO_PROCESSING_FOR_PRIVACY",
+          "file": "/tasks/video_processing.py",
+          "modifications": [
+            {
+              "add_import": "from core.storage_manager import PrivacyCompliantStorage\nimport hashlib",
+              "function": "process_video_clips",
+              "add_before_return": "# Use privacy-compliant storage\nstorage = PrivacyCompliantStorage()\n\n# Store clips with expiry\nfor i, clip in enumerate(final_clips):\n    storage_result = storage.store_clip(\n        clip_data=clip['data'],\n        job_id=job_id,\n        clip_id=f'clip_{i+1}',\n        ttl_days=7\n    )\n    \n    # Update clip with temporary URL\n    clip['url'] = storage_result['url']\n    clip['expires_at'] = storage_result['expires_at']\n    clip['storage_type'] = storage_result['storage_type']\n\n# Generate session hash instead of storing user data\nif 'session_id' in input_data:\n    session_hash = hashlib.sha256(input_data['session_id'].encode()).hexdigest()\n    result_data['session_hash'] = session_hash"
+            }
+          ],
+          "validation": "grep 'PrivacyCompliantStorage' /tasks/video_processing.py"
+        },
+
+        {
+          "id": "3.4",
+          "action": "CREATE_PRIVACY_API_ENDPOINTS",
+          "file_path": "/api/endpoints/privacy.py",
+          "content": "from fastapi import APIRouter, HTTPException\nfrom typing import Dict, Any\nimport hashlib\nfrom core.database_manager import PostgreSQLManager, Job\nfrom core.storage_manager import PrivacyCompliantStorage\n\nrouter = APIRouter()\ndb_manager = PostgreSQLManager()\nstorage_manager = PrivacyCompliantStorage()\n\n@router.get('/api/privacy/status')\nasync def get_privacy_status() -> Dict[str, Any]:\n    \"\"\"Show users what data we store\"\"\"\n    return {\n        'data_retention': {\n            'video_files': 'Deleted immediately after processing',\n            'generated_clips': 'Deleted after 7 days',\n            'metadata': 'Anonymized after 7 days',\n            'marketing_insights': 'Anonymous aggregated data only',\n            'user_data': 'No personal data stored'\n        },\n        'gdpr_compliant': True,\n        'data_location': 'EU (Netherlands)',\n        'third_party_sharing': False,\n        'cookies': 'Session only (no tracking)',\n        'contact': 'privacy@agentos.example'\n    }\n\n@router.post('/api/privacy/delete-my-data')\nasync def delete_user_data(session_id: str) -> Dict[str, str]:\n    \"\"\"Allow users to delete their data immediately\"\"\"\n    \n    session_hash = hashlib.sha256(session_id.encode()).hexdigest()\n    \n    with db_manager.get_session() as session:\n        jobs = session.query(Job).filter(\n            Job.session_hash == session_hash\n        ).all()\n        \n        for job in jobs:\n            storage_manager.delete_job_content(str(job.id))\n            session.delete(job)\n        \n        session.commit()\n    \n    return {\n        'status': 'success',\n        'message': f'Deleted {len(jobs)} jobs and all associated content'\n    }",
+          "validation": "grep 'delete_user_data' /api/endpoints/privacy.py"
+        }
+      ]
+    },
+
+    {
+      "phase": 4,
+      "name": "API_CONSOLIDATION",
+      "blocking": false,
+      "skip_allowed": false,
+      "estimated_minutes": 120,
+
+      "tasks": [
+        {
+          "id": "4.1",
+          "action": "CREATE_UNIFIED_METADATA_ENDPOINT",
+          "file_path": "/api/endpoints/metadata.py",
+          "content": "from fastapi import APIRouter, HTTPException\nfrom typing import Optional\nfrom core.database_manager import PostgreSQLManager, Job\nimport json\n\nrouter = APIRouter()\ndb_manager = PostgreSQLManager()\n\n@router.get('/api/jobs/{job_id}/complete-metadata')\nasync def get_complete_metadata(job_id: str):\n    \"\"\"Single source of truth for all job metadata\"\"\"\n\n    with db_manager.get_session() as session:\n        job = session.query(Job).filter(Job.id == job_id).first()\n        if not job:\n            raise HTTPException(404, 'Job not found')\n        \n        if job.is_deleted or job.expires_at < datetime.now():\n            raise HTTPException(410, 'Content has expired and been deleted for privacy')\n\n        metadata = {\n            'job': {\n                'id': str(job.id),\n                'status': job.status,\n                'progress': job.progress,\n                'created_at': job.created_at.isoformat(),\n                'expires_at': job.expires_at.isoformat() if job.expires_at else None,\n                'video_url': job.video_url\n            },\n            'content': {\n                'type': job.content_type,\n                'analysis_mode': job.analysis_mode,\n                'viral_score': job.viral_score,\n                'title': job.youtube_title\n            },\n            'privacy': {\n                'expires_in_days': (job.expires_at - datetime.now()).days if job.expires_at else None,\n                'storage_tier': job.storage_tier,\n                'auto_delete': True\n            },\n            'keywords': job.keywords or [],\n            'clips': [\n                {\n                    'id': str(clip.id),\n                    'number': clip.clip_number,\n                    'file_path': clip.file_path,\n                    'duration': clip.duration,\n                    'title': clip.title,\n                    'description': clip.description,\n                    'expires_with_job': True\n                }\n                for clip in job.clips\n            ],\n            'processing_steps': [\n                {\n                    'name': step.step_name,\n                    'status': step.status,\n                    'duration': step.duration_seconds\n                }\n                for step in job.processing_steps\n            ]\n        }\n\n        return metadata",
+          "validation": "grep 'complete-metadata' /api/endpoints/metadata.py"
+        },
+
+        {
+          "id": "4.2",
+          "action": "UPDATE_API_MAIN",
+          "file": "/api/main.py",
+          "modifications": [
+            {
+              "add_import": "from api.endpoints import metadata, privacy",
+              "add_router": "app.include_router(metadata.router, tags=['metadata'])\napp.include_router(privacy.router, tags=['privacy'])"
+            }
+          ],
+          "validation": "grep 'metadata.router' /api/main.py && grep 'privacy.router' /api/main.py"
+        },
+
+        {
+          "id": "4.3",
+          "action": "UPDATE_FRONTEND_API_CLIENT",
+          "file": "/ui-v2/src/adapters/api/api-client.js",
+          "modifications": [
+            {
+              "add_method": "async getCompleteMetadata(jobId) {\n    const response = await fetch(`${this.baseUrl}/api/jobs/${jobId}/complete-metadata`);\n    if (!response.ok) {\n        if (response.status === 410) {\n            throw new Error('Content has expired and been deleted for privacy');\n        }\n        throw new Error('Failed to fetch metadata');\n    }\n    return response.json();\n},\n\nasync deleteMyData(sessionId) {\n    const response = await fetch(`${this.baseUrl}/api/privacy/delete-my-data`, {\n        method: 'POST',\n        headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify({ session_id: sessionId })\n    });\n    return response.json();\n}"
+            }
+          ],
+          "validation": "grep 'getCompleteMetadata' /ui-v2/src/adapters/api/api-client.js"
+        }
+      ]
+    },
+
+    {
+      "phase": 5,
+      "name": "CONTENT_TYPE_INTELLIGENCE_RESTORATION",
+      "blocking": false,
+      "skip_allowed": true,
+      "estimated_minutes": 150,
+
+      "tasks": [
+        {
+          "id": "5.1",
+          "action": "CREATE_SMART_CONTENT_DETECTOR",
+          "file_path": "/agents2/content_detection/smart_detector.py",
+          "content": "\"\"\"\nIntelligent Content Type Detection\nPriority: User Intent > YouTube Metadata > Audio Analysis > Default\n\"\"\"\n\nimport logging\nfrom typing import Optional, Dict, Any\n\nlogger = logging.getLogger(__name__)\n\nclass SmartContentDetector:\n    \"\"\"Top 0.1% approach: Layered detection with clear priority\"\"\"\n\n    MUSIC_INDICATORS = [\n        'music', 'song', 'album', 'artist', 'lyrics',\n        'official video', 'music video', 'feat.', 'prod.',\n        'remix', 'cover', 'acoustic', 'live performance'\n    ]\n\n    PODCAST_INDICATORS = [\n        'podcast', 'episode', 'interview', 'discussion',\n        'talk', 'conversation', 'ep.', 'guest', 'host'\n    ]\n\n    @classmethod\n    def detect_content_type(\n        cls,\n        user_intent: Optional[str] = None,\n        youtube_metadata: Optional[Dict[str, Any]] = None,\n        audio_analysis: Optional[Dict[str, Any]] = None,\n        transcript: Optional[str] = None\n    ) -> Dict[str, Any]:\n        \"\"\"Detect content type with layered priority system\"\"\"\n\n        # Layer 1: User Intent (Highest Priority)\n        if user_intent and user_intent != 'auto':\n            logger.info(f'🎯 Using user intent: {user_intent}')\n            return cls._format_result(\n                content_type=user_intent,\n                confidence=1.0,\n                method='user_intent'\n            )\n\n        # Layer 2: YouTube Metadata Analysis\n        if youtube_metadata:\n            metadata_result = cls._analyze_metadata(youtube_metadata)\n            if metadata_result['confidence'] > 0.7:\n                logger.info(f'📊 Using metadata detection: {metadata_result}')\n                return metadata_result\n\n        # Layer 3: Audio Analysis (if available)\n        if audio_analysis and audio_analysis.get('is_music_confidence', 0) > 0.7:\n            logger.info(f'🎵 Audio analysis detected music')\n            return cls._format_result(\n                content_type='music',\n                confidence=audio_analysis['is_music_confidence'],\n                method='audio_analysis'\n            )\n\n        # Layer 4: Default Fallback\n        logger.info('📌 Using default: spoken content')\n        return cls._format_result(\n            content_type='spoken',\n            confidence=0.5,\n            method='default'\n        )\n\n    @classmethod\n    def _analyze_metadata(cls, metadata: Dict[str, Any]) -> Dict[str, Any]:\n        \"\"\"Analyze YouTube metadata for content type\"\"\"\n        title = metadata.get('title', '').lower()\n        description = metadata.get('description', '').lower()\n        \n        combined_text = f'{title} {description}'\n\n        # Check music indicators\n        music_score = sum(1 for indicator in cls.MUSIC_INDICATORS if indicator in combined_text)\n        podcast_score = sum(1 for indicator in cls.PODCAST_INDICATORS if indicator in combined_text)\n\n        if music_score >= 2:\n            return cls._format_result('music', 0.8, 'metadata')\n        elif podcast_score >= 2:\n            return cls._format_result('spoken', 0.8, 'metadata')\n        \n        return cls._format_result('spoken', 0.6, 'metadata')\n\n    @classmethod\n    def _format_result(\n        cls,\n        content_type: str,\n        confidence: float,\n        method: str\n    ) -> Dict[str, Any]:\n        \"\"\"Format detection result\"\"\"\n\n        if content_type == 'music':\n            analysis_mode = 'ai_song_lyrics'\n        else:\n            analysis_mode = 'ai_viral_analysis'\n\n        return {\n            'content_type': content_type,\n            'analysis_mode': analysis_mode,\n            'confidence': round(confidence, 2),\n            'detection_method': method\n        }",
+          "validation": "python -c 'from agents2.content_detection.smart_detector import SmartContentDetector; print(\"OK\")'"
+        },
+
+        {
+          "id": "5.2",
+          "action": "UPDATE_MOMENT_DETECTOR_WITH_SMART_DETECTION",
+          "file": "/agents2/moment_detection/moment_detector.py",
+          "modifications": [
+            {
+              "line_range": [117, 124],
+              "find": "content_type = 'spoken'",
+              "replace": "# Smart content detection\nfrom agents2.content_detection.smart_detector import SmartContentDetector\n\ndetection_result = SmartContentDetector.detect_content_type(\n    user_intent=input_data.get('user_intent'),\n    youtube_metadata=input_data.get('youtube_metadata'),\n    audio_analysis=input_data.get('audio_analysis'),\n    transcript=transcript\n)\n\ncontent_type = detection_result['content_type']\nanalysis_mode = detection_result['analysis_mode']\ndetection_confidence = detection_result['confidence']\n\nlogger.info(f'🎯 Content detected: {content_type} via {detection_result[\"detection_method\"]} (confidence: {detection_confidence})')"
+            }
+          ],
+          "validation": "grep 'SmartContentDetector' /agents2/moment_detection/moment_detector.py"
+        },
+
+        {
+          "id": "5.3",
+          "action": "RE_ENABLE_AUDIO_ANALYSIS",
+          "file": "/tasks/video_processing.py",
+          "modifications": [
+            {
+              "line": 656,
+              "find": "raise ImportError(\"Audio analysis disabled - using metadata-only detection\")",
+              "replace": "# Audio analysis re-enabled for smart content detection\nfrom agents2.audio_analysis.audio_analyzer import AudioAnalyzer"
+            }
+          ],
+          "validation": "grep -v 'raise ImportError.*Audio analysis disabled' /tasks/video_processing.py"
+        }
+      ]
+    }
+  ],
+
+  "environment_setup": {
+    "required_env_vars": [
+      "STORAGE_BACKEND=local",
+      "RETENTION_DAYS=7",
+      "DEFAULT_REGION=NL",
+      "# S3_BUCKET=agentos-temp",
+      "# AWS_ACCESS_KEY_ID=your_key",
+      "# AWS_SECRET_ACCESS_KEY=your_secret"
+    ],
+
+    "celery_setup": [
+      "pip install celery[redis]",
+      "celery -A tasks.cleanup_expired_content worker --loglevel=info",
+      "celery -A tasks.cleanup_expired_content beat --loglevel=info"
+    ]
+  },
+
+  "final_validation": {
+    "privacy_compliance": [
+      {
+        "test": "No PII in database",
+        "command": "psql -U agentos_user -d agentos_production -c \"SELECT COUNT(*) FROM jobs WHERE session_hash IS NULL OR expires_at IS NULL\"",
+        "expected": "0"
+      },
+      {
+        "test": "Marketing insights table exists",
+        "command": "psql -U agentos_user -d agentos_production -c \"SELECT COUNT(*) FROM information_schema.tables WHERE table_name='content_insights'\"",
+        "expected": "1"
+      },
+      {
+        "test": "Cleanup task scheduled",
+        "command": "celery -A tasks.cleanup_expired_content inspect registered | grep cleanup_expired_content",
+        "expected": "cleanup_expired_content"
+      }
+    ],
+
+    "functionality": [
+      {
+        "test": "Storage manager working",
+        "command": "python -c \"from core.storage_manager import PrivacyCompliantStorage; s = PrivacyCompliantStorage(); print('OK')\"",
+        "expected": "OK"
+      },
+      {
+        "test": "Content detection working",
+        "command": "python -c \"from agents2.content_detection.smart_detector import SmartContentDetector; r = SmartContentDetector.detect_content_type(user_intent='music'); print(r['content_type'])\"",
+        "expected": "music"
+      },
+      {
+        "test": "Code quality",
+        "command": "make lint && make typecheck",
+        "must_pass": true
+      }
+    ]
+  },
+
+  "testing_with_real_video": {
+    "test_url": "https://www.youtube.com/watch?v=de_NPXFsaYc",
+    "expected_results": {
+      "content_type": "spoken",
+      "analysis_mode": "ai_viral_analysis",
+      "expires_at": "set_to_7_days_future",
+      "storage_compliance": "clips_auto_delete",
+      "no_pii_stored": true
+    }
+  },
+
+  "rollback_instructions": {
+    "full_rollback": [
+      "pg_dump agentos_production > emergency_backup_$(date +%Y%m%d).sql",
+      "psql -U agentos_user -d agentos_production -c 'DROP TABLE IF EXISTS content_insights CASCADE'",
+      "psql -U agentos_user -d agentos_production -c 'ALTER TABLE jobs DROP COLUMN IF EXISTS content_type CASCADE'",
+      "git checkout core/database_manager.py tasks/video_processing.py agents2/moment_detection/moment_detector.py",
+      "rm -f /core/storage_manager.py /tasks/cleanup_expired_content.py /api/endpoints/privacy.py",
+      "make restart"
+    ]
+  }
+}

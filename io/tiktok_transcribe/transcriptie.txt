@@ -1,0 +1,66 @@
+================================================================================
+TIKTOK VIDEO TRANSCRIPTIE
+================================================================================
+
+VOLLEDIGE TRANSCRIPTIE:
+--------------------------------------------------------------------------------
+When you're building AI that real people actually use,  you can't just send a prompt and hope for the best.  You need reasoning systems, because let's be honest.  Most AIs will say something that sounds right,  smile confidently, and then fail the test in front of your boss.  Most AIs just answer.  They don't verify.  They don't reflect.  They just autocomplete sentences that sound smart,  even when they're making stuff up.  That's why we design reasoning layers  to make the model think before it speaks.  First, LLM as a judge.  One model answers, another one sits there  like a grumpy professor grading papers.  Hmm, weak logic.  Missing source.  Try again if it flunks the review.  It has to redo the reasoning until it makes sense.  Second, confidence scoring.  Every model should know how sure it is  before opening its mouth.  If the score is too low, it's not allowed to wing it.  It has to go fact check itself like,  hold up, I'm only 63% confident.  Let me double check that.  Third, self-reflection.  After giving an answer, the model reads its own work like,  wait, did I just hallucinate that?  It literally reviews its own logic  and edits itself before sending it back.  It's like an AI having an existential crisis, but productive.  Fourth, multi-agent debate.  Two or more AIs argue until one wins.  One's like, I'm 92% sure this is right.  The other fires back, bro, you forgot to check the source again.  They go back and forth until one finally says,  fine, you win, and that's the version that ships.  Fifth, smart routing.  Not every question needs the same brain.  Simple math goes to the calculator agent,  document lookups go to the retrieval agent,  and the reasoning layer handles policy or logic.  It's like running a company of AIs.  One does the math, one does the research,  one just keeps everyone on deadline.  Put these five together and your model stops guessing.  It reasons, verifies, and adapts.  Ready for production.  That's how we build AI that actually thinks twice before answering.  I broke down the full reasoning guide step by step.  You can find it in my bio.
+
+================================================================================
+
+TRANSCRIPTIE MET TIMESTAMPS:
+--------------------------------------------------------------------------------
+[0.00s - 3.12s]  When you're building AI that real people actually use,
+[3.12s - 5.68s]  you can't just send a prompt and hope for the best.
+[5.68s - 8.80s]  You need reasoning systems, because let's be honest.
+[8.80s - 11.36s]  Most AIs will say something that sounds right,
+[11.36s - 15.04s]  smile confidently, and then fail the test in front of your boss.
+[15.04s - 16.72s]  Most AIs just answer.
+[16.72s - 18.08s]  They don't verify.
+[18.08s - 19.28s]  They don't reflect.
+[19.28s - 22.24s]  They just autocomplete sentences that sound smart,
+[22.24s - 24.16s]  even when they're making stuff up.
+[24.16s - 26.32s]  That's why we design reasoning layers
+[26.32s - 28.64s]  to make the model think before it speaks.
+[28.64s - 30.96s]  First, LLM as a judge.
+[30.96s - 33.52s]  One model answers, another one sits there
+[33.52s - 35.84s]  like a grumpy professor grading papers.
+[35.84s - 37.68s]  Hmm, weak logic.
+[37.68s - 38.96s]  Missing source.
+[38.96s - 40.88s]  Try again if it flunks the review.
+[40.88s - 43.28s]  It has to redo the reasoning until it makes sense.
+[43.84s - 45.36s]  Second, confidence scoring.
+[46.00s - 47.68s]  Every model should know how sure it is
+[47.68s - 49.12s]  before opening its mouth.
+[49.12s - 51.84s]  If the score is too low, it's not allowed to wing it.
+[51.84s - 54.00s]  It has to go fact check itself like,
+[54.00s - 56.72s]  hold up, I'm only 63% confident.
+[56.72s - 57.76s]  Let me double check that.
+[58.64s - 59.92s]  Third, self-reflection.
+[60.64s - 63.52s]  After giving an answer, the model reads its own work like,
+[63.52s - 65.52s]  wait, did I just hallucinate that?
+[66.08s - 67.92s]  It literally reviews its own logic
+[67.92s - 70.16s]  and edits itself before sending it back.
+[70.16s - 73.84s]  It's like an AI having an existential crisis, but productive.
+[74.56s - 76.64s]  Fourth, multi-agent debate.
+[76.64s - 79.04s]  Two or more AIs argue until one wins.
+[79.04s - 82.08s]  One's like, I'm 92% sure this is right.
+[82.08s - 85.36s]  The other fires back, bro, you forgot to check the source again.
+[85.36s - 87.84s]  They go back and forth until one finally says,
+[87.84s - 90.88s]  fine, you win, and that's the version that ships.
+[91.76s - 93.44s]  Fifth, smart routing.
+[93.44s - 95.60s]  Not every question needs the same brain.
+[95.60s - 97.76s]  Simple math goes to the calculator agent,
+[97.76s - 100.00s]  document lookups go to the retrieval agent,
+[100.00s - 102.72s]  and the reasoning layer handles policy or logic.
+[102.72s - 104.40s]  It's like running a company of AIs.
+[104.96s - 107.44s]  One does the math, one does the research,
+[107.44s - 109.44s]  one just keeps everyone on deadline.
+[109.44s - 112.08s]  Put these five together and your model stops guessing.
+[112.08s - 114.00s]  It reasons, verifies, and adapts.
+[114.64s - 115.92s]  Ready for production.
+[115.92s - 118.96s]  That's how we build AI that actually thinks twice before answering.
+[119.60s - 122.64s]  I broke down the full reasoning guide step by step.
+[122.64s - 124.24s]  You can find it in my bio.
+
+================================================================================

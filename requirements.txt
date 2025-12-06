@@ -1,0 +1,77 @@
+# AgentOS Requirements - Complete & Tested (10 augustus 2025)
+# All dependencies needed for production deployment
+
+# Core API Framework
+fastapi==0.117.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.0.3
+
+# Database & Storage
+sqlalchemy==2.0.43
+psycopg2-binary==2.9.9
+
+# Background Tasks & Queue System
+celery==5.5.3
+redis==5.0.1
+kombu==5.3.4
+flower==2.0.1
+
+# WebSocket Support (CRITICAL - needed for real-time admin updates)
+websockets>=12.0
+
+# System Monitoring (CRITICAL - needed for worker status)
+psutil==5.9.8
+
+# AI Services
+anthropic>=0.25.0
+openai==1.108.1
+
+# HTTP & Networking
+requests==2.31.0
+
+# File Handling & Authentication
+python-multipart==0.0.6
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# Environment & Configuration
+python-dotenv==1.0.0
+
+# Video Processing (Production Ready)
+yt-dlp==2023.12.30
+opencv-python==4.8.1.78
+opencv-contrib-python==4.11.0.86  # Extended OpenCV features (advanced CV algorithms)
+mediapipe==0.10.9
+numpy>=1.21.0
+torch>=2.8.0  # PyTorch for ML models (CPU version recommended for production)
+
+# Security & File Validation
+python-magic==0.4.27
+pywin32>=306; sys_platform == 'win32'
+
+# Audio Analysis & Transcription
+librosa==0.10.1
+soundfile==0.12.1
+
+# Fast Local Transcription (optional - faster-whisper for cost-efficient transcription)
+faster-whisper>=1.0.0,<2.0.0
+whisper  # fallback for older OpenAI whisper
+
+# Development & Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+
+# Code Quality
+black==23.10.1
+flake8==6.1.0
+
+# DEPRECATED: RQ replaced by Celery
+# rq==1.15.1
+
+# Production Deployment Notes:
+# - WebSockets v10.4 required (v15+ breaks compatibility)
+# - psutil required for Celery worker monitoring
+# - Redis required for cache + queue + WebSocket messaging
+# - PostgreSQL required for persistent data storage

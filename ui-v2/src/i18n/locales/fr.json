@@ -1,0 +1,219 @@
+{
+  "common": {
+    "app_title": "AgentOS VideoProcessor - Édition Vidéo Intelligente",
+    "app_description": "Créer des clips vidéo professionnels avec la technologie IA",
+    "app_name": "AgentOS VideoProcessor",
+    "upload": "Télécharger",
+    "download": "Télécharger",
+    "cancel": "Annuler",
+    "continue": "Continuer",
+    "back": "Retour",
+    "next": "Suivant",
+    "done": "Terminé",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "warning": "Avertissement",
+    "info": "Info",
+    "close": "Fermer",
+    "save": "Sauvegarder",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "share": "Partager",
+    "copy": "Copier",
+    "paste": "Coller",
+    "clear": "Effacer",
+    "reset": "Réinitialiser",
+    "settings": "Paramètres",
+    "help": "Aide",
+    "about": "À propos",
+    "contact": "Contact",
+    "privacy": "Confidentialité",
+    "terms": "Conditions"
+  },
+  "intent": {
+    "title": "Que veux-tu faire avec ta vidéo ?",
+    "subtitle": "Choisis ce que tu veux créer à partir de ta vidéo",
+    "short_clips": {
+      "title": "Clips Courts",
+      "description": "Faire des vidéos courtes pour TikTok et Instagram",
+      "features": ["15-60 secondes", "Meilleures parties", "Moments amusants"]
+    },
+    "key_moments": {
+      "title": "Moments Forts",
+      "description": "Récupérer les meilleurs et plus excitants moments",
+      "features": ["1-3 minutes", "Parties excitantes", "Top moments"]
+    },
+    "smart_summary": {
+      "title": "Raccourcir la Vidéo",
+      "description": "Rendre ta longue vidéo beaucoup plus courte",
+      "features": ["2-5 minutes", "Parties importantes", "Histoire claire"]
+    },
+    "tips": {
+      "short_clips": "💡 Astuce: Les vidéos plus longues (5+ minutes) sont meilleures",
+      "key_moments": "💡 Astuce: Les vidéos avec beaucoup d'action fonctionnent le mieux",
+      "smart_summary": "💡 Astuce: Les longues vidéos donnent les meilleurs résumés"
+    }
+  },
+  "upload": {
+    "title_prefix": "Télécharger ta vidéo",
+    "drop_zone": "Glisse ta vidéo ici",
+    "click_to_select": "Ou clique pour choisir un fichier",
+    "url_placeholder": "Colle un lien YouTube ou autre vidéo ici...",
+    "or": "ou",
+    "validation": {
+      "file_too_large": "Fichier trop volumineux (max {maxSize})",
+      "invalid_format": "Format de fichier non supporté",
+      "invalid_url": "URL invalide",
+      "upload_failed": "Échec du téléchargement, veuillez réessayer",
+      "url_not_accessible": "URL non accessible"
+    },
+    "progress": {
+      "uploading": "Téléchargement... {progress}%",
+      "processing": "Traitement...",
+      "analyzing": "Analyse...",
+      "extracting": "Extraction audio...",
+      "transcribing": "Création de la transcription..."
+    },
+    "feedback": {
+      "upload_success": "{fileName} téléchargé avec succès ! Traitement démarré...",
+      "upload_failed": "Échec du téléchargement",
+      "upload_started": "Téléchargement {fileName}...",
+      "upload_retry": "Réessayer ou choisir un autre fichier"
+    }
+  },
+  "clip_settings": {
+    "title": "Durée des clips",
+    "legend": "📏 Durée des clips",
+    "options": {
+      "30s": "30 secondes",
+      "45s": "45 secondes",
+      "60s": "60 secondes"
+    },
+    "recommended": "Recommandé",
+    "advanced": {
+      "toggle": "Paramètres avancés",
+      "max_moments": {
+        "label": "Maximum de clips",
+        "helper": "Nombre de clips à générer"
+      },
+      "min_gap": {
+        "label": "Écart minimum (sec)",
+        "helper": "Temps entre les clips"
+      },
+      "topk": {
+        "label": "Candidats Top-K",
+        "helper": "Profondeur d'analyse IA"
+      }
+    },
+    "feedback": {
+      "job_started": "Job démarré avec {clipLength}s clips!",
+      "validation_error": "Vérifiez vos paramètres",
+      "settings_saved": "Paramètres sauvegardés"
+    }
+  },
+  "processing": {
+    "title_prefix": "Travail sur ta vidéo :",
+    "subtitle": "Notre IA trouve les meilleures parties",
+    "activity_log": "Activité du Processus",
+    "detecting_moment": "Trouver bonnes parties",
+    "emotional_peak": "Vérifier le son",
+    "action_moment": "Regarder vidéo",
+    "time_estimate": "Ça va prendre environ 4-6 secondes",
+    "insights_title": "Analyse Vidéo IA",
+    "insights_subtitle": "Aperçus de traitement en temps réel",
+    "metric_moments": "Moments Clés",
+    "metric_audio": "Qualité Audio",
+    "metric_engagement": "Engagement",
+    "analyzing_video": "Analyser le contenu vidéo...",
+    "steps": {
+      "analyzing": {
+        "title": "Regarder la Vidéo",
+        "description": "Vérifier vidéo et son"
+      },
+      "extracting": {
+        "title": "Trouver Meilleures Parties",
+        "description": "Choisir les bons moments"
+      },
+      "creating": {
+        "title": "Créer Tes Vidéos",
+        "description": "Créer les clips finaux"
+      }
+    },
+    "time_estimate": "Veuillez patienter, nous traitons votre vidéo",
+    "time_remaining": "Veuillez patienter, nous traitons votre vidéo",
+    "time_units": {
+      "second": "seconde",
+      "seconds": "secondes",
+      "minute": "minute", 
+      "minutes": "minutes",
+      "hours": "heures"
+    },
+    "confirm_cancel": "Voulez-vous vraiment arrêter le traitement ?",
+    "cancelled_by_user": "Traitement annulé par l'utilisateur",
+    "cancel_error": "Erreur lors de l'annulation du traitement",
+    "interesting_moment": "Moment intéressant"
+  },
+  "results": {
+    "title_prefix": "Tes vidéos sont prêtes !",
+    "title_suffix": "🎉",
+    "subtitle_prefix": "On a trouvé",
+    "subtitle_suffix": "super clips pour toi",
+    "clip_title": "Clip",
+    "ai_score": "Score IA",
+    "optimized_segment": "Segment optimisé",
+    "download_segment": "Télécharger",
+    "share_clip": "Partager",
+    "play_video": "Lire",
+    "pause_video": "Pause",
+    "video_not_supported": "Vidéo non supportée",
+    "video_error": "Vidéo ne peut pas être chargée",
+    "download_started": "Téléchargement démarré",
+    "download_failed": "Téléchargement échoué",
+    "all_downloads_started": "Tous les téléchargements démarrés",
+    "no_clips_to_download": "Aucun clip à télécharger",
+    "share_title": "Regarde ce clip",
+    "share_text": "Regarde ce clip incroyable!",
+    "link_copied": "Lien copié dans le presse-papiers",
+    "share_failed": "Partage échoué",
+    "download_selected": "Télécharger {count} sélectionnés",
+    "try_again": "Réessayer",
+    "actions": {
+      "download_all": "Tout télécharger",
+      "new_video": "Essayer autre vidéo"
+    }
+  },
+  "clip_settings": {
+    "title": "Durée des clips",
+    "legend": "📏 Durée des clips",
+    "options": {
+      "30s": "30 secondes",
+      "45s": "45 secondes",
+      "60s": "60 secondes"
+    },
+    "recommended": "Recommandé",
+    "advanced": {
+      "toggle": "Paramètres avancés",
+      "max_moments": {
+        "label": "Maximum de clips",
+        "helper": "Nombre de clips à générer",
+        "tooltip": "Recommandé: 6 clips. Plus de clips = plus de choix, moins de clips = meilleure qualité par clip"
+      },
+      "min_gap": {
+        "label": "Écart minimum (sec)",
+        "helper": "Temps entre les clips",
+        "tooltip": "Recommandé: 1.0s. Distance minimale entre clips pour éviter le chevauchement"
+      },
+      "quality": {
+        "label": "Priorité qualité",
+        "helper": "Équilibre rapidité vs qualité",
+        "tooltip": "Détermine avec quelle attention l'IA sélectionne les clips. Précis prend plus de temps mais donne de meilleurs résultats",
+        "options": {
+          "fast": "Rapide (moins précis)",
+          "balanced": "Équilibré (recommandé)",
+          "precise": "Précis (plus lent)"
+        }
+      }
+    }
+  }
+}

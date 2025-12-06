@@ -1,0 +1,21 @@
+{
+  "name": "agentos-ui-v2",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "dompurify": "^3.0.5"
+  },
+  "devDependencies": {
+    "vite": "^4.4.0",
+    "terser": "^5.19.0",
+    "eslint": "^8.0.0",
+    "vitest": "^0.34.0"
+  }
+}

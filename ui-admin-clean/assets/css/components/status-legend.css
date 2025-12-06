@@ -1,0 +1,254 @@
+/**
+ * Status Legend Modal
+ * Shows system status color meanings on demand
+ */
+
+.status-legend-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.status-legend-content {
+  background: white;
+  border-radius: 12px;
+  max-width: 480px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 
+    0 20px 25px rgba(0, 0, 0, 0.1),
+    0 10px 10px rgba(0, 0, 0, 0.04);
+  animation: legend-slide-in 0.3s ease;
+}
+
+@keyframes legend-slide-in {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.status-legend-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.status-legend-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.status-legend-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-legend-close:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.status-legend-body {
+  padding: 1rem 1.5rem;
+}
+
+.status-legend-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.status-legend-item:last-child {
+  border-bottom: none;
+}
+
+.status-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-top: 0.25rem;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* Legend dot styles (match main status dots) */
+.status-legend-dot--realtime {
+  background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: legend-realtime-pulse 2s infinite;
+}
+
+.status-legend-dot--realtime::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: 16px;
+  height: 16px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 50%;
+  animation: legend-realtime-ring 2s infinite;
+}
+
+@keyframes legend-realtime-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+@keyframes legend-realtime-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+}
+
+.status-legend-dot--polling {
+  background: #22c55e;
+  box-shadow: 0 0 4px rgba(34, 197, 94, 0.3);
+}
+
+.status-legend-dot--connecting {
+  background: #3b82f6;
+  animation: legend-connecting-blink 1.5s infinite alternate;
+}
+
+@keyframes legend-connecting-blink {
+  0% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+.status-legend-dot--degraded {
+  background: #f59e0b;
+  box-shadow: 0 0 4px rgba(245, 158, 11, 0.4);
+}
+
+.status-legend-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.status-legend-info strong {
+  display: block;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.status-legend-info span {
+  color: #6b7280;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.status-legend-footer {
+  padding: 1rem 1.5rem;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  border-radius: 0 0 12px 12px;
+}
+
+.status-legend-footer small {
+  color: #6b7280;
+  font-size: 0.8rem;
+  text-align: center;
+  display: block;
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+  .status-legend-content {
+    width: 95%;
+    margin: 1rem;
+  }
+  
+  .status-legend-header {
+    padding: 1rem;
+  }
+  
+  .status-legend-body {
+    padding: 0.75rem 1rem;
+  }
+  
+  .status-legend-item {
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+  }
+  
+  .status-legend-footer {
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .status-legend-content {
+    animation: none;
+  }
+  
+  .status-legend-dot--realtime {
+    animation: none;
+  }
+  
+  .status-legend-dot--realtime::after {
+    animation: none;
+  }
+  
+  .status-legend-dot--connecting {
+    animation: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .status-legend-content {
+    border: 2px solid #374151;
+  }
+  
+  .status-legend-dot {
+    border: 1px solid #374151;
+  }
+}

@@ -1,0 +1,2632 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Debug Viewer - AgentOS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            margin-bottom: 10px;
+            font-size: 32px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .job-info {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .job-info p {
+            margin: 8px 0;
+            color: #4a5568;
+            font-size: 15px;
+        }
+
+        .job-info strong {
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        .step-card {
+            background: white;
+            border-left: 4px solid #cbd5e0;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+
+        .step-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .step-card.success {
+            border-left-color: #48bb78;
+        }
+
+        .step-card.failed {
+            border-left-color: #f56565;
+            background: #fff5f5;
+        }
+
+        .step-card.in_progress {
+            border-left-color: #ed8936;
+            background: #fffaf0;
+        }
+
+        .step-card.pending {
+            opacity: 0.5;
+        }
+
+        .step-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .step-header h3 {
+            color: #2d3748;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .step-status {
+            font-weight: 600;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-success {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-failed {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .status-in_progress {
+            background: #feebc8;
+            color: #7c2d12;
+        }
+
+        .status-pending {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .timestamp {
+            color: #718096;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+
+        .output-content {
+            margin-top: 16px;
+        }
+
+        .thumbnail {
+            max-width: 500px;
+            width: 100%;
+            border-radius: 8px;
+            margin: 12px 0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+        }
+
+        .error-message {
+            background: #fed7d7;
+            border: 1px solid #fc8181;
+            color: #742a2a;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .transcript-preview {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #f7fafc;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            font-family: Georgia, serif;
+            line-height: 1.8;
+            color: #2d3748;
+        }
+
+        .metadata-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-top: 12px;
+        }
+
+        .metadata-item {
+            background: #edf2f7;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e0;
+        }
+
+        .metadata-label {
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 6px;
+        }
+
+        .metadata-value {
+            color: #1a202c;
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .moments-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .moment-item {
+            background: #edf2f7;
+            padding: 16px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #4299e1;
+        }
+
+        .moment-item strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #2d3748;
+        }
+
+        .moment-item small {
+            color: #718096;
+        }
+
+        .face-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .face-img {
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .clips-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+            margin-top: 12px;
+        }
+
+        .clip-item {
+            background: #edf2f7;
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .clip-video {
+            width: 100%;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: white;
+            font-size: 18px;
+        }
+
+        .loading-spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .refresh-indicator {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            background: #48bb78;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        .back-button {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            margin-bottom: 20px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .back-button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateX(-4px);
+        }
+
+        /* AI Transparency Panel (DEBUG_VIEWER_V2) */
+        .ai-transparency-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .ai-transparency-panel h2 {
+            color: #2d3748;
+            font-size: 24px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ai-moment-card {
+            background: #f7fafc;
+            border-left: 4px solid #667eea;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .ai-moment-card:hover {
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+            transform: translateX(4px);
+        }
+
+        .ai-moment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .ai-moment-title {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 16px;
+        }
+
+        .viral-score-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .reasoning-text {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 12px 0;
+            font-size: 15px;
+            line-height: 1.6;
+            color: #4a5568;
+            font-style: italic;
+        }
+
+        .engagement-drivers {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .driver-tag {
+            background: #edf2f7;
+            color: #2d3748;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 500;
+            border: 1px solid #cbd5e0;
+        }
+
+        /* Settings Panel (DEBUG_VIEWER_V2) */
+        .settings-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .settings-panel h2 {
+            color: #2d3748;
+            font-size: 24px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .setting-item {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .setting-label {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 14px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .setting-description {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 12px;
+        }
+
+        .setting-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .setting-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .current-value {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .no-data-message {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+            font-size: 16px;
+        }
+
+        /* Priority 3: Apply Settings Button */
+        .btn-apply-settings {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-apply-settings:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-apply-settings:active {
+            transform: translateY(0);
+        }
+
+        .btn-apply-settings:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Visual Crop Editor Styles */
+        .crop-editor-container {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 24px;
+        }
+
+        .crop-editor-header {
+            margin-bottom: 16px;
+        }
+
+        .crop-editor-header h3 {
+            color: #2d3748;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .help-text {
+            color: #718096;
+            font-size: 14px;
+        }
+
+        .crop-canvas-wrapper {
+            position: relative;
+            background: #1a202c;
+            border-radius: 8px;
+            margin: 16px 0;
+            display: inline-block;
+        }
+
+        #crop-editor-canvas {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 8px;
+            cursor: move;
+        }
+
+        .crop-coordinates {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(0, 0, 0, 0.75);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 10;
+        }
+
+        .crop-editor-controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 16px;
+        }
+
+        .btn-reset-crop {
+            background: #e2e8f0;
+            color: #2d3748;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-reset-crop:hover {
+            background: #cbd5e0;
+        }
+
+        .btn-apply-crop {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-apply-crop:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-apply-crop:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Quick Presets Panel */
+        .quick-presets-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .quick-presets-panel h2 {
+            color: #2d3748;
+            font-size: 24px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .presets-subtitle {
+            color: #718096;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .presets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .preset-card {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            text-align: left;
+        }
+
+        .preset-card:hover {
+            border-color: #667eea;
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .preset-card.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        }
+
+        .preset-card.active .preset-check {
+            display: flex;
+        }
+
+        .preset-icon {
+            flex-shrink: 0;
+        }
+
+        .preset-content {
+            flex: 1;
+        }
+
+        .preset-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 4px;
+        }
+
+        .preset-description {
+            font-size: 13px;
+            color: #718096;
+            margin-bottom: 8px;
+        }
+
+        .preset-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .feature-tag {
+            background: #edf2f7;
+            color: #2d3748;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px solid #cbd5e0;
+        }
+
+        .preset-check {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: #667eea;
+            border-radius: 50%;
+            color: white;
+        }
+
+        .presets-footer {
+            display: flex;
+            justify-content: center;
+            padding-top: 16px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .btn-custom-settings {
+            background: white;
+            border: 2px solid #e2e8f0;
+            color: #4a5568;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-custom-settings:hover {
+            border-color: #667eea;
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        /* Essential Settings Panel Updates */
+        .settings-subtitle {
+            color: #718096;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .setting-help {
+            color: #718096;
+            font-size: 13px;
+            margin: 8px 0 12px 0;
+            font-style: italic;
+        }
+
+        .setting-options {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .option-btn {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #2d3748;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .option-btn small {
+            display: block;
+            font-size: 11px;
+            font-weight: 400;
+            color: #718096;
+            margin-top: 4px;
+        }
+
+        .option-btn:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .option-btn.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            color: #667eea;
+        }
+
+        .setting-slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e2e8f0;
+            outline: none;
+            -webkit-appearance: none;
+            margin: 16px 0 8px 0;
+        }
+
+        .setting-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .setting-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 0 8px rgba(102, 126, 234, 0.1);
+        }
+
+        .setting-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+        }
+
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #718096;
+            margin-top: 8px;
+        }
+
+        .slider-labels span {
+            text-align: center;
+            flex: 1;
+        }
+
+        .slider-labels small {
+            display: block;
+            font-size: 10px;
+            color: #a0aec0;
+        }
+
+        .expert-mode-toggle {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+        }
+
+        .btn-expert-toggle {
+            background: white;
+            border: 2px dashed #cbd5e0;
+            color: #718096;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-expert-toggle:hover {
+            border-color: #667eea;
+            border-style: solid;
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .toggle-hint {
+            font-size: 12px;
+            color: #a0aec0;
+        }
+
+        /* Expert Mode Panel */
+        .expert-mode-panel {
+            background: #1a202c;
+            border: 2px solid #2d3748;
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 24px;
+            color: #e2e8f0;
+        }
+
+        .expert-mode-panel h2 {
+            color: #f7fafc;
+            font-size: 22px;
+            margin-bottom: 8px;
+        }
+
+        .expert-subtitle {
+            color: #a0aec0;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .expert-warning {
+            background: rgba(237, 137, 54, 0.1);
+            border-left: 4px solid #ed8936;
+            padding: 12px 16px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            color: #fbd38d;
+            font-size: 14px;
+        }
+
+        .expert-warning svg {
+            color: #ed8936;
+            flex-shrink: 0;
+        }
+
+        .expert-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .expert-item {
+            background: #2d3748;
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        .expert-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #f7fafc;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .tech-badge {
+            background: #4a5568;
+            color: #cbd5e0;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .expert-help {
+            color: #a0aec0;
+            font-size: 12px;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        .expert-input {
+            width: 100%;
+            background: #1a202c;
+            border: 1px solid #4a5568;
+            color: #f7fafc;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .expert-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .param-hint {
+            display: block;
+            margin-top: 8px;
+            font-size: 11px;
+            color: #718096;
+            font-family: 'Courier New', monospace;
+            background: #1a202c;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border-left: 2px solid #4a5568;
+        }
+
+        .expert-footer {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #4a5568;
+            text-align: center;
+        }
+
+        .btn-reset-expert {
+            background: #4a5568;
+            border: none;
+            color: #e2e8f0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-reset-expert:hover {
+            background: #667eea;
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 24px;
+            }
+
+            .metadata-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .clips-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .crop-editor-controls {
+                flex-direction: column;
+            }
+
+            .presets-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .preset-card {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .setting-options {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .slider-labels {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+
+        /* Notification Toast Animations */
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-button">← Terug naar Dashboard</a>
+        <h1>🔍 Job Debug Viewer</h1>
+
+        <div id="job-info" class="job-info">
+            <p><strong>Job ID:</strong> <span id="job-id">Laden...</span></p>
+            <p><strong>Status:</strong> <span id="job-status">Laden...</span></p>
+            <p><strong>Phase:</strong> <span id="job-phase">Laden...</span></p>
+            <p><strong>Progress:</strong> <span id="job-progress">0</span>%</p>
+            <p><strong>Current Step:</strong> <span id="job-current-step">-</span></p>
+        </div>
+
+        <!-- 🎯 NEW: Quick Presets Section (BEFORE existing Pipeline Settings panel) -->
+        <div class="quick-presets-panel">
+            <h2>🎯 Snelkeuze Presets</h2>
+            <p class="presets-subtitle">Kies een preset die past bij je video type - perfecte settings in één klik</p>
+
+            <div class="presets-grid">
+                <!-- Talk Show Preset -->
+                <button class="preset-card" data-preset="talk-show" onclick="applyPreset('talk-show')">
+                    <div class="preset-icon">
+                        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                            <circle cx="24" cy="24" r="20" fill="#667eea" opacity="0.1"/>
+                            <path d="M24 8C15.163 8 8 15.163 8 24s7.163 16 16 16 16-7.163 16-16S32.837 8 24 8zm-6 20c-1.105 0-2-.895-2-2s.895-2 2-2 2 .895 2 2-.895 2-2 2zm6 0c-1.105 0-2-.895-2-2s.895-2 2-2 2 .895 2 2-.895 2-2 2zm6 0c-1.105 0-2-.895-2-2s.895-2 2-2 2 .895 2 2-.895 2-2 2z" fill="#667eea"/>
+                        </svg>
+                    </div>
+                    <div class="preset-content">
+                        <h3 class="preset-title">Talk Show</h3>
+                        <p class="preset-description">Gesprekken met meerdere personen</p>
+                        <div class="preset-features">
+                            <span class="feature-tag">5 clips</span>
+                            <span class="feature-tag">30s</span>
+                            <span class="feature-tag">Focus op gezichten</span>
+                        </div>
+                    </div>
+                    <div class="preset-check">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                </button>
+
+                <!-- Podcast Preset -->
+                <button class="preset-card" data-preset="podcast" onclick="applyPreset('podcast')">
+                    <div class="preset-icon">
+                        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                            <circle cx="24" cy="24" r="20" fill="#10b981" opacity="0.1"/>
+                            <path d="M24 10c-7.732 0-14 6.268-14 14v8c0 1.105.895 2 2 2h4c1.105 0 2-.895 2-2v-6c0-1.105-.895-2-2-2h-2c0-5.514 4.486-10 10-10s10 4.486 10 10h-2c-1.105 0-2 .895-2 2v6c0 1.105.895 2 2 2h4c1.105 0 2-.895 2-2v-8c0-7.732-6.268-14-14-14z" fill="#10b981"/>
+                        </svg>
+                    </div>
+                    <div class="preset-content">
+                        <h3 class="preset-title">Podcast</h3>
+                        <p class="preset-description">Langere diepgang momenten</p>
+                        <div class="preset-features">
+                            <span class="feature-tag">3 clips</span>
+                            <span class="feature-tag">60s</span>
+                            <span class="feature-tag">Relaxed detectie</span>
+                        </div>
+                    </div>
+                    <div class="preset-check">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                </button>
+
+                <!-- Interview Preset -->
+                <button class="preset-card" data-preset="interview" onclick="applyPreset('interview')">
+                    <div class="preset-icon">
+                        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                            <circle cx="24" cy="24" r="20" fill="#f59e0b" opacity="0.1"/>
+                            <path d="M24 4C12.954 4 4 12.954 4 24s8.954 20 20 20 20-8.954 20-20S35.046 4 24 4zm-4 30v-4h8v4h-8zm10-8H18v-2c0-3.314 2.686-6 6-6s6 2.686 6 6v2z" fill="#f59e0b"/>
+                        </svg>
+                    </div>
+                    <div class="preset-content">
+                        <h3 class="preset-title">Interview</h3>
+                        <p class="preset-description">Balanced & professioneel</p>
+                        <div class="preset-features">
+                            <span class="feature-tag">4 clips</span>
+                            <span class="feature-tag">45s</span>
+                            <span class="feature-tag">Hoge kwaliteit</span>
+                        </div>
+                    </div>
+                    <div class="preset-check">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                </button>
+
+                <!-- Viral Shorts Preset -->
+                <button class="preset-card" data-preset="viral-shorts" onclick="applyPreset('viral-shorts')">
+                    <div class="preset-icon">
+                        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                            <circle cx="24" cy="24" r="20" fill="#ef4444" opacity="0.1"/>
+                            <path d="M24 4L29.09 14.26L40 15.27L32 23.54L34.18 34.41L24 29.1L13.82 34.41L16 23.54L8 15.27L18.91 14.26L24 4Z" fill="#ef4444"/>
+                        </svg>
+                    </div>
+                    <div class="preset-content">
+                        <h3 class="preset-title">Viral Shorts</h3>
+                        <p class="preset-description">Maximaal engagement</p>
+                        <div class="preset-features">
+                            <span class="feature-tag">8 clips</span>
+                            <span class="feature-tag">15s</span>
+                            <span class="feature-tag">Agressief</span>
+                        </div>
+                    </div>
+                    <div class="preset-check">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                </button>
+            </div>
+
+            <div class="presets-footer">
+                <button class="btn-custom-settings" onclick="toggleEssentialSettings()">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M13.5 2h-11C1.675 2 1 2.675 1 3.5v9c0 .825.675 1.5 1.5 1.5h11c.825 0 1.5-.675 1.5-1.5v-9c0-.825-.675-1.5-1.5-1.5zM4 7h8v2H4V7z"/>
+                    </svg>
+                    <span>Custom Settings...</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Essential Settings Panel (UPDATED with John Sugarman copywriting) -->
+        <div class="settings-panel" id="essential-settings-panel" style="display: none;">
+            <h2>⚙️ Verfijn Je Settings</h2>
+            <p class="settings-subtitle">Pas de details aan - of gebruik een preset hierboven</p>
+
+            <div class="settings-grid">
+                <!-- Clip Length -->
+                <div class="setting-item">
+                    <label class="setting-label">
+                        Hoe lang moet elke clip zijn?
+                        <span class="current-value" id="current-clip-length">30s</span>
+                    </label>
+                    <p class="setting-help">
+                        💡 30s werkt perfect voor TikTok/Reels. 60s voor YouTube Shorts.
+                    </p>
+                    <div class="setting-options">
+                        <button class="option-btn" data-value="15" onclick="setClipLength(15)">15s<br><small>Kort & krachtig</small></button>
+                        <button class="option-btn active" data-value="30" onclick="setClipLength(30)">30s<br><small>Aanbevolen</small></button>
+                        <button class="option-btn" data-value="45" onclick="setClipLength(45)">45s<br><small>Uitgebreid</small></button>
+                        <button class="option-btn" data-value="60" onclick="setClipLength(60)">60s<br><small>Diepgaand</small></button>
+                    </div>
+                </div>
+
+                <!-- Max Moments -->
+                <div class="setting-item">
+                    <label class="setting-label">
+                        Hoeveel clips wil je?
+                        <span class="current-value" id="current-max-moments">5</span>
+                    </label>
+                    <p class="setting-help">
+                        💡 Meer clips = meer keuze, maar lagere gemiddelde kwaliteit per clip.
+                    </p>
+                    <input type="range" class="setting-slider" id="setting-max-moments"
+                           min="3" max="10" value="5" step="1"
+                           oninput="updateSliderValue('max-moments', this.value)">
+                    <div class="slider-labels">
+                        <span>3 clips<br><small>Alleen de beste</small></span>
+                        <span>5 clips<br><small>Sweet spot</small></span>
+                        <span>10 clips<br><small>Maximale keuze</small></span>
+                    </div>
+                </div>
+
+                <!-- Cluster Gap -->
+                <div class="setting-item">
+                    <label class="setting-label">
+                        Hoe ver uit elkaar moeten clips zitten?
+                        <span class="current-value" id="current-cluster-gap">8.0s</span>
+                    </label>
+                    <p class="setting-help">
+                        💡 Voorkomt dubbele content. 8s is optimaal voor de meeste video's.
+                    </p>
+                    <input type="range" class="setting-slider" id="setting-cluster-gap"
+                           min="2" max="20" value="8" step="1"
+                           oninput="updateSliderValue('cluster-gap', this.value)">
+                    <div class="slider-labels">
+                        <span>2s<br><small>Dicht bij elkaar</small></span>
+                        <span>8s<br><small>Balanced</small></span>
+                        <span>20s<br><small>Ver uit elkaar</small></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expert Mode Toggle -->
+            <div class="expert-mode-toggle">
+                <button class="btn-expert-toggle" onclick="toggleExpertMode()">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 4c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zM7 8v6h2V8H7zM8 1C4.13 1 1 4.13 1 8s3.13 7 7 7 7-3.13 7-7-3.13-7-7-7zm0 12c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/>
+                    </svg>
+                    <span>Expert Mode</span>
+                    <span class="toggle-hint">(voor techies)</span>
+                </button>
+            </div>
+
+            <!-- Apply Settings Button -->
+            <div style="margin-top: 24px; text-align: center;">
+                <button id="apply-settings-btn" class="btn-apply-settings" onclick="applySettingsAndRerun()">
+                    🔄 Apply Settings & Re-run Pipeline
+                </button>
+                <p id="rerun-info" style="margin-top: 12px; font-size: 14px; color: #718096;"></p>
+            </div>
+        </div>
+
+        <!-- Expert Mode Panel (hidden by default) -->
+        <div class="expert-mode-panel" id="expert-mode-panel" style="display: none;">
+            <h2>🔧 Expert Mode</h2>
+            <p class="expert-subtitle">Volledige controle over alle parameters - voor techies</p>
+
+            <div class="expert-warning">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <span>Let op: Alleen aanpassen als je precies weet wat je doet</span>
+            </div>
+
+            <div class="expert-grid">
+                <div class="expert-item">
+                    <label class="expert-label">
+                        Face Detection Confidence
+                        <span class="tech-badge">Technical</span>
+                    </label>
+                    <p class="expert-help">Float tussen 0.0-1.0. Hogere waarde = striktere gezichtsdetectie.</p>
+                    <input type="number" class="expert-input" id="expert-face-confidence"
+                           value="0.6" min="0.1" max="1.0" step="0.05">
+                    <code class="param-hint">Parameter: face_confidence</code>
+                </div>
+
+                <div class="expert-item">
+                    <label class="expert-label">
+                        Sample Interval (frames)
+                        <span class="tech-badge">Technical</span>
+                    </label>
+                    <p class="expert-help">Frames tussen gezichtsdetectie samples. Lager = nauwkeuriger maar langzamer.</p>
+                    <input type="number" class="expert-input" id="expert-sample-interval"
+                           value="2.0" min="0.5" max="10" step="0.5">
+                    <code class="param-hint">Parameter: sample_interval</code>
+                </div>
+
+                <div class="expert-item">
+                    <label class="expert-label">
+                        Minimum Viral Score
+                        <span class="tech-badge">Technical</span>
+                    </label>
+                    <p class="expert-help">AI viral score threshold (0-100). Alleen momenten boven deze score worden gedetecteerd.</p>
+                    <input type="number" class="expert-input" id="expert-min-viral-score"
+                           value="70" min="0" max="100" step="5">
+                    <code class="param-hint">Parameter: min_viral_score</code>
+                </div>
+
+                <div class="expert-item">
+                    <label class="expert-label">
+                        Crop Method
+                        <span class="tech-badge">Technical</span>
+                    </label>
+                    <p class="expert-help">Algoritme voor intelligent croppen: auto (center), manual, of face-focused.</p>
+                    <select class="expert-input" id="expert-crop-method">
+                        <option value="auto">Auto (Center Crop)</option>
+                        <option value="face-focused">Face-Focused Crop</option>
+                        <option value="manual">Manual (Visual Crop Editor)</option>
+                    </select>
+                    <code class="param-hint">Parameter: crop_method</code>
+                </div>
+            </div>
+
+            <div class="expert-footer">
+                <button class="btn-reset-expert" onclick="resetToDefaults()">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8 3a5 5 0 104.546 2.914.5.5 0 01.908-.417A6 6 0 118 2v1z"/>
+                        <path d="M8 4.466V.534a.25.25 0 01.41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 018 4.466z"/>
+                    </svg>
+                    Reset naar Defaults
+                </button>
+            </div>
+        </div>
+
+        <!-- AI Transparency Panel (DEBUG_VIEWER_V2) -->
+        <div id="ai-transparency-panel" class="ai-transparency-panel" style="display: none;">
+            <h2>🧠 AI Transparency: Claude's Reasoning</h2>
+            <p style="color: #718096; margin-bottom: 20px;">
+                See why Claude AI detected each moment as viral-worthy. Transparency builds trust.
+            </p>
+            <div id="ai-moments-container"></div>
+        </div>
+
+        <div id="steps-container">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>Debug data laden...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="refresh-indicator" class="refresh-indicator" style="display: none;">
+        <span class="pulse">🔄 Auto-refresh...</span>
+    </div>
+
+    <script type="module">
+        const API_BASE = 'http://localhost:8001';
+        const params = new URLSearchParams(window.location.search);
+        const jobId = params.get('job');
+
+        if (!jobId) {
+            document.body.innerHTML = '<div class="container" style="color: white; text-align: center; padding: 100px 20px;"><h1>❌ Fout: Geen job ID opgegeven</h1><p style="margin-top: 20px;">Gebruik: job-debug.html?job={id}</p></div>';
+        }
+
+        // Step configuration
+        const STEPS_CONFIG = [
+            { key: 'download_video', label: 'Stap 1: Video Downloaden', icon: '📥' },
+            { key: 'transcribe_audio', label: 'Stap 2: Audio Transcriberen', icon: '🎤' },
+            { key: 'detect_moments', label: 'Stap 3: Virale Momenten Detecteren', icon: '✨' },
+            { key: 'detect_faces', label: 'Stap 4: Gezichten Detecteren', icon: '👤' },
+            { key: 'intelligent_crop', label: 'Stap 5: Intelligent Croppen', icon: '✂️' },
+            { key: 'cut_videos', label: 'Stap 6: Clips Genereren', icon: '🎬' }
+        ];
+
+        // 🔥 FIX: Track last rendered state to prevent unnecessary re-renders
+        let lastRenderedState = null;
+
+        async function loadDebugData() {
+            try {
+                const token = localStorage.getItem('token');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
+                const response = await fetch(`${API_BASE}/api/jobs/${jobId}/debug`, { headers });
+
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error('Job niet gevonden');
+                    } else if (response.status === 403) {
+                        throw new Error('Geen toegang tot deze job');
+                    }
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Update job info
+                document.getElementById('job-id').textContent = data.job_id;
+                document.getElementById('job-status').textContent = data.status;
+                document.getElementById('job-phase').textContent = data.phase;
+                document.getElementById('job-progress').textContent = data.progress;
+                document.getElementById('job-current-step').textContent = data.current_step || '-';
+
+                // Render steps
+                renderSteps(data.steps);
+
+                // Show refresh indicator if still processing
+                const refreshIndicator = document.getElementById('refresh-indicator');
+                if (data.status === 'processing' || data.status === 'queued' || data.status === 'pending') {
+                    refreshIndicator.style.display = 'block';
+                } else {
+                    refreshIndicator.style.display = 'none';
+                }
+
+            } catch (error) {
+                console.error('Failed to load debug data:', error);
+                document.getElementById('steps-container').innerHTML = `
+                    <div class="error-message" style="max-width: 600px; margin: 40px auto;">
+                        <strong>❌ Fout bij laden debug data</strong><br><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function renderSteps(stepsData) {
+            // 🔥 FIX: Only re-render if data actually changed!
+            const currentStateHash = JSON.stringify(stepsData);
+            if (lastRenderedState === currentStateHash) {
+                console.log('⏩ Debug data unchanged, skipping re-render (prevents flicker)');
+                return; // No changes, skip re-render
+            }
+
+            console.log('🔄 Debug data changed, updating UI');
+            lastRenderedState = currentStateHash;
+
+            const container = document.getElementById('steps-container');
+
+            // 🔥 FIX: Remove initial loading div on first render
+            const loadingDiv = container.querySelector('.loading');
+            if (loadingDiv) {
+                loadingDiv.remove();
+                console.log('✅ Removed initial loading spinner');
+            }
+
+            // 🔥 FIX: Smart update - only update changed steps, don't wipe everything
+            STEPS_CONFIG.forEach(stepConfig => {
+                const stepData = stepsData[stepConfig.key];
+                const existingCard = container.querySelector(`[data-step-key="${stepConfig.key}"]`);
+
+                if (existingCard) {
+                    // Check if this specific step changed
+                    const currentStepHash = JSON.stringify(stepData);
+                    const lastStepHash = existingCard.getAttribute('data-step-hash');
+
+                    if (currentStepHash !== lastStepHash) {
+                        // Step changed - update it
+                        const newCard = createStepCard(stepConfig, stepData);
+                        existingCard.replaceWith(newCard);
+                    } else {
+                        // Step unchanged - keep existing DOM
+                    }
+                } else {
+                    // New step - append it
+                    const card = createStepCard(stepConfig, stepData);
+                    container.appendChild(card);
+                }
+            });
+        }
+
+        function createStepCard(config, data) {
+            const div = document.createElement('div');
+            const status = data?.status || 'pending';
+            div.className = `step-card ${status}`;
+
+            // 🔥 FIX: Add tracking attributes for smart updates
+            div.setAttribute('data-step-key', config.key);
+            div.setAttribute('data-step-hash', JSON.stringify(data));
+
+            // Header
+            const header = document.createElement('div');
+            header.className = 'step-header';
+            header.innerHTML = `
+                <h3>${config.icon} ${config.label}</h3>
+                <span class="step-status status-${status}">${getStatusText(status)}</span>
+            `;
+            div.appendChild(header);
+
+            // Timestamp
+            if (data?.timestamp) {
+                const timestamp = document.createElement('div');
+                timestamp.className = 'timestamp';
+                timestamp.textContent = `Voltooid: ${new Date(data.timestamp).toLocaleString('nl-NL')}`;
+                div.appendChild(timestamp);
+            }
+
+            // Content based on status
+            if (status === 'pending') {
+                div.innerHTML += '<p style="color: #718096; margin-top: 12px;">⏳ Nog niet gestart</p>';
+            } else if (status === 'in_progress') {
+                div.innerHTML += '<p style="color: #c05621; margin-top: 12px; font-weight: 500;">🔄 Bezig met verwerken...</p>';
+            } else if (status === 'failed') {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.innerHTML = `<strong>Fout:</strong><br>${data.error || 'Onbekende fout'}`;
+                div.appendChild(errorDiv);
+            } else if (status === 'success') {
+                const outputDiv = createOutputContent(config.key, data.output);
+                div.appendChild(outputDiv);
+            }
+
+            return div;
+        }
+
+        function createOutputContent(stepKey, output) {
+            const div = document.createElement('div');
+            div.className = 'output-content';
+
+            if (!output) {
+                div.innerHTML = '<p style="color: #718096;">Geen output data beschikbaar</p>';
+                return div;
+            }
+
+            if (stepKey === 'download_video') {
+                // 🔥 FIX: Correct thumbnail path - remove leading slash if it's relative
+                const thumbnailUrl = output.thumbnail ? fixImagePath(output.thumbnail) : null;
+
+                div.innerHTML = `
+                    ${thumbnailUrl ? `<img src="${thumbnailUrl}" class="thumbnail" alt="Video thumbnail">` : ''}
+                    <div class="metadata-grid">
+                        ${output.duration ? `<div class="metadata-item"><div class="metadata-label">Duur</div><div class="metadata-value">${formatDuration(output.duration)}</div></div>` : ''}
+                        ${output.resolution ? `<div class="metadata-item"><div class="metadata-label">Resolutie</div><div class="metadata-value">${output.resolution}</div></div>` : ''}
+                        ${output.file_size ? `<div class="metadata-item"><div class="metadata-label">Bestandsgrootte</div><div class="metadata-value">${formatFileSize(output.file_size)}</div></div>` : ''}
+                    </div>
+                `;
+            } else if (stepKey === 'transcribe_audio') {
+                div.innerHTML = `
+                    ${output.transcript ? `<div class="transcript-preview">${output.transcript}</div>` : ''}
+                    <div class="metadata-grid">
+                        ${output.full_text_length ? `<div class="metadata-item"><div class="metadata-label">Tekst Lengte</div><div class="metadata-value">${output.full_text_length.toLocaleString('nl-NL')} tekens</div></div>` : ''}
+                        ${output.segments_count ? `<div class="metadata-item"><div class="metadata-label">Segmenten</div><div class="metadata-value">${output.segments_count}</div></div>` : ''}
+                        ${output.language ? `<div class="metadata-item"><div class="metadata-label">Taal</div><div class="metadata-value">${output.language}</div></div>` : ''}
+                    </div>
+                `;
+            } else if (stepKey === 'detect_moments') {
+                const momentsHtml = output.top_moments?.map(m => `
+                    <li class="moment-item">
+                        <strong>${m.description}</strong>
+                        <small>Tijd: ${formatTime(m.start_time)} - ${formatTime(m.end_time)} (${formatDuration(m.end_time - m.start_time)})</small><br>
+                        <small>Viral Score: ${m.viral_score}/100</small>
+                    </li>
+                `).join('') || '';
+
+                div.innerHTML = `
+                    <p><strong>Totaal Momenten Gevonden:</strong> ${output.moments_count || 0}</p>
+                    ${momentsHtml ? `<p style="margin-top: 12px;"><strong>Top Momenten:</strong></p><ul class="moments-list">${momentsHtml}</ul>` : ''}
+                `;
+            } else if (stepKey === 'detect_faces') {
+                // 🔥 FIX: Correct face screenshot paths
+                const facesHtml = output.face_screenshots?.map(img =>
+                    `<img src="${fixImagePath(img)}" class="face-img" alt="Gedetecteerd gezicht">`
+                ).join('') || '';
+
+                div.innerHTML = `
+                    <p><strong>Gezichten Gedetecteerd:</strong> ${output.faces_detected || output.face_count || 0}</p>
+                    ${facesHtml ? `<div class="face-grid">${facesHtml}</div>` : ''}
+                `;
+            } else if (stepKey === 'intelligent_crop') {
+                // 🔥 FIX: Correct comparison image path
+                const comparisonUrl = output.comparison_image ? fixImagePath(output.comparison_image) : null;
+
+                div.innerHTML = `
+                    <p><strong>Doelformaat:</strong> ${output.target_aspect_ratio || '9:16'}</p>
+                    <p><strong>Crop Methode:</strong> ${output.crop_method || 'center'}</p>
+                    <p><strong>Momenten Verwerkt:</strong> ${output.moments_processed || 0}</p>
+                    ${comparisonUrl ? `<img src="${comparisonUrl}" class="thumbnail" alt="Crop vergelijking">` : ''}
+
+                    <!-- Visual Crop Editor -->
+                    <div class="crop-editor-container" id="crop-editor-panel" style="display: none;">
+                        <div class="crop-editor-header">
+                            <h3>🎨 Visual Crop Editor</h3>
+                            <span class="help-text">Sleep de crop box om de positie aan te passen</span>
+                        </div>
+
+                        <div class="crop-canvas-wrapper">
+                            <canvas id="crop-editor-canvas" width="800" height="450"></canvas>
+                            <div class="crop-coordinates">
+                                X: <span id="crop-x">0</span>px | Y: <span id="crop-y">0</span>px | Size: <span id="crop-size">607x1080</span>
+                            </div>
+                        </div>
+
+                        <div class="crop-editor-controls">
+                            <button class="btn-reset-crop" onclick="resetCropToCenter()">Reset naar Center</button>
+                            <button id="btn-apply-crop" class="btn-apply-crop" onclick="applyCropAndRerun()">
+                                🔄 Crop Toepassen & Re-run
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 16px; text-align: center;">
+                        <button class="btn-reset-crop" onclick="toggleCropEditor()">
+                            📐 Open Crop Editor
+                        </button>
+                    </div>
+                `;
+            } else if (stepKey === 'cut_videos') {
+                // 🔥 FIX: Correct clip video paths
+                const clipsHtml = output.clips?.map(clip => `
+                    <div class="clip-item">
+                        <video controls class="clip-video">
+                            <source src="${fixImagePath(clip.path)}" type="video/mp4">
+                        </video>
+                        <p><strong>${clip.moment_description}</strong></p>
+                        <p><small>Duur: ${formatDuration(clip.duration)}</small></p>
+                    </div>
+                `).join('') || '';
+
+                div.innerHTML = `
+                    <p><strong>Clips Gegenereerd:</strong> ${output.clips_produced || 0}</p>
+                    ${clipsHtml ? `<div class="clips-grid">${clipsHtml}</div>` : ''}
+                `;
+            }
+
+            return div;
+        }
+
+        // 🔥 FIX: Helper function to correct image/video paths
+        function fixImagePath(path) {
+            if (!path) return '';
+
+            // If path already starts with http, return as-is (external URL)
+            if (path.startsWith('http://') || path.startsWith('https://')) {
+                return path;
+            }
+
+            // If path starts with /io/, it's correct - just prepend API_BASE
+            if (path.startsWith('/io/')) {
+                return `${API_BASE}${path}`;
+            }
+
+            // If path starts with io/ (no leading slash), add leading slash
+            if (path.startsWith('io/')) {
+                return `${API_BASE}/${path}`;
+            }
+
+            // Otherwise, assume it's a relative path and prepend API_BASE
+            return `${API_BASE}/${path}`;
+        }
+
+        function getStatusText(status) {
+            const texts = {
+                'success': '✅ Geslaagd',
+                'failed': '❌ Mislukt',
+                'in_progress': '🔄 Bezig',
+                'pending': '⏳ Wachtend'
+            };
+            return texts[status] || status;
+        }
+
+        function formatDuration(seconds) {
+            if (!seconds) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function formatTime(seconds) {
+            return `${Math.floor(seconds)}s`;
+        }
+
+        function formatFileSize(bytes) {
+            if (!bytes) return '0 MB';
+            const mb = bytes / (1024 * 1024);
+            return `${mb.toFixed(2)} MB`;
+        }
+
+        // Load AI Transparency Panel (DEBUG_VIEWER_V2)
+        async function loadAITransparencyData() {
+            try {
+                const token = localStorage.getItem('token');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
+                const response = await fetch(`${API_BASE}/api/jobs/${jobId}/moments`, { headers });
+
+                if (!response.ok) {
+                    if (response.status === 404 || response.status === 400) {
+                        // Moments not available yet (404) or job not ready (400)
+                        document.getElementById('ai-transparency-panel').style.display = 'none';
+                        return;  // Silently ignore - this is expected during early pipeline steps
+                    }
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Show panel if we have moments with reasoning
+                if (data.moments && data.moments.length > 0) {
+                    document.getElementById('ai-transparency-panel').style.display = 'block';
+                    renderAIMoments(data.moments);
+                } else {
+                    document.getElementById('ai-transparency-panel').style.display = 'none';
+                }
+
+            } catch (error) {
+                console.error('Failed to load AI transparency data:', error);
+                // Hide panel on error
+                document.getElementById('ai-transparency-panel').style.display = 'none';
+            }
+        }
+
+        function renderAIMoments(moments) {
+            const container = document.getElementById('ai-moments-container');
+
+            if (!moments || moments.length === 0) {
+                container.innerHTML = '<p class="no-data-message">Geen moments beschikbaar met AI reasoning</p>';
+                return;
+            }
+
+            const html = moments.map(moment => {
+                const hasReasoning = moment.reasoning && moment.reasoning.trim().length > 0;
+                const engagementDrivers = moment.engagement_drivers || [];
+
+                return `
+                    <div class="ai-moment-card">
+                        <div class="ai-moment-header">
+                            <div class="ai-moment-title">
+                                Moment ${moment.moment_index + 1}: ${formatTime(moment.start_time)} - ${formatTime(moment.end_time)}
+                            </div>
+                            <div class="viral-score-badge">
+                                🔥 ${moment.viral_score || 0}/100
+                            </div>
+                        </div>
+
+                        <p style="color: #4a5568; margin-bottom: 12px; font-size: 14px;">
+                            <strong>Description:</strong> ${moment.description || 'No description'}
+                        </p>
+
+                        ${hasReasoning ? `
+                            <div style="margin-top: 16px;">
+                                <strong style="color: #2d3748; display: block; margin-bottom: 8px;">🧠 Claude's Reasoning:</strong>
+                                <div class="reasoning-text">
+                                    "${moment.reasoning}"
+                                </div>
+                            </div>
+                        ` : `
+                            <p style="color: #a0aec0; font-style: italic; margin-top: 12px;">
+                                ℹ️ No AI reasoning available for this moment
+                            </p>
+                        `}
+
+                        ${engagementDrivers.length > 0 ? `
+                            <div style="margin-top: 16px;">
+                                <strong style="color: #2d3748; display: block; margin-bottom: 8px;">
+                                    🎯 Engagement Drivers:
+                                </strong>
+                                <div class="engagement-drivers">
+                                    ${engagementDrivers.map(driver =>
+                                        `<span class="driver-tag">${driver}</span>`
+                                    ).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+        }
+
+        // Settings Panel: Update labels when inputs change
+        function initializeSettingsPanel() {
+            const settings = [
+                { input: 'setting-clip-length', label: 'current-clip-length' },
+                { input: 'setting-max-moments', label: 'current-max-moments' },
+                { input: 'setting-cluster-gap', label: 'current-cluster-gap' },
+                { input: 'setting-face-confidence', label: 'current-face-confidence' },
+                { input: 'setting-sample-interval', label: 'current-sample-interval' }
+            ];
+
+            settings.forEach(({ input, label }) => {
+                const inputEl = document.getElementById(input);
+                const labelEl = document.getElementById(label);
+
+                inputEl.addEventListener('input', () => {
+                    labelEl.textContent = inputEl.value;
+                });
+            });
+
+            console.log('✅ Settings panel initialized');
+        }
+
+        // Priority 3: Apply Settings and Re-run Pipeline
+        let originalSettings = {
+            clip_length: 30,
+            max_moments: 5,
+            cluster_gap: 8.0,
+            face_confidence: 0.6,
+            sample_interval: 2.0
+        };
+
+        async function applySettingsAndRerun() {
+            try {
+                // Get new settings from inputs
+                const newSettings = {
+                    clip_length: parseInt(document.getElementById('setting-clip-length').value),
+                    max_moments: parseInt(document.getElementById('setting-max-moments').value),
+                    cluster_gap: parseFloat(document.getElementById('setting-cluster-gap').value),
+                    face_confidence: parseFloat(document.getElementById('setting-face-confidence').value),
+                    sample_interval: parseFloat(document.getElementById('setting-sample-interval').value)
+                };
+
+                console.log('🔄 New settings:', newSettings);
+                console.log('📋 Original settings:', originalSettings);
+
+                // Determine which step to start from based on changed settings
+                const startStep = determineStartStep(originalSettings, newSettings);
+
+                console.log(`🎯 Determined start step: ${startStep}`);
+
+                // Show confirmation
+                const stepDependencies = {
+                    'detect_moments': ['detect_moments', 'detect_faces', 'intelligent_crop', 'cut_videos'],
+                    'detect_faces': ['detect_faces', 'intelligent_crop', 'cut_videos'],
+                    'intelligent_crop': ['intelligent_crop', 'cut_videos'],
+                    'cut_videos': ['cut_videos']
+                };
+
+                const stepsToRun = stepDependencies[startStep];
+                const confirmMsg = `This will re-run: ${stepsToRun.join(' → ')}\n\nEstimated time: ${stepsToRun.length * 30}s\n\nContinue?`;
+
+                if (!confirm(confirmMsg)) {
+                    return;
+                }
+
+                // Disable button
+                const btn = document.getElementById('apply-settings-btn');
+                btn.disabled = true;
+                btn.textContent = '⏳ Re-running pipeline...';
+
+                // Build config override
+                const configOverride = {
+                    user_preferences: {
+                        target_len: newSettings.clip_length,
+                        max_moments: newSettings.max_moments,
+                        cluster_gap_s: newSettings.cluster_gap,
+                        face_confidence: newSettings.face_confidence,
+                        sample_interval: newSettings.sample_interval
+                    },
+                    constraints_override: {
+                        max_moments: newSettings.max_moments,
+                        cluster_gap_s: newSettings.cluster_gap
+                    }
+                };
+
+                // Call API to re-run
+                const response = await fetch(`${API_BASE}/api/jobs/${jobId}/rerun-step`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        step_name: startStep,
+                        config: configOverride
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || `Re-run failed: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                console.log('✅ Re-run started:', result);
+
+                // Update UI
+                document.getElementById('rerun-info').innerHTML = `
+                    ✅ Re-running: ${result.rerun_steps.join(' → ')}<br>
+                    Estimated time: ${result.estimated_time}s
+                `;
+
+                // Update original settings
+                originalSettings = {...newSettings};
+
+                // Start progress polling
+                startRerunProgressPolling();
+
+            } catch (error) {
+                console.error('❌ Failed to apply settings:', error);
+                alert(`Failed to apply settings: ${error.message}`);
+
+                // Re-enable button
+                const btn = document.getElementById('apply-settings-btn');
+                btn.disabled = false;
+                btn.textContent = '🔄 Apply Settings & Re-run Pipeline';
+            }
+        }
+
+        // Determine which step to start from based on changed settings
+        function determineStartStep(original, updated) {
+            // Settings that affect moment detection
+            const momentSettings = ['clip_length', 'max_moments', 'cluster_gap'];
+            for (const key of momentSettings) {
+                if (original[key] !== updated[key]) {
+                    console.log(`⚡ ${key} changed: ${original[key]} → ${updated[key]}`);
+                    return 'detect_moments';
+                }
+            }
+
+            // Settings that affect face detection
+            const faceSettings = ['face_confidence', 'sample_interval'];
+            for (const key of faceSettings) {
+                if (original[key] !== updated[key]) {
+                    console.log(`⚡ ${key} changed: ${original[key]} → ${updated[key]}`);
+                    return 'detect_faces';
+                }
+            }
+
+            // No changes detected - default to cut_videos (regenerate clips with same settings)
+            console.log('ℹ️ No settings changed, defaulting to cut_videos');
+            return 'cut_videos';
+        }
+
+        // Visual Crop Editor Class
+        class CropEditor {
+            constructor(canvasId, videoFramePath, videoResolution, faces = []) {
+                this.canvas = document.getElementById(canvasId);
+                if (!this.canvas) return;
+
+                this.ctx = this.canvas.getContext('2d');
+                this.image = new Image();
+                this.image.crossOrigin = "anonymous";
+                this.videoResolution = videoResolution || { width: 1920, height: 1080 };
+                this.faces = faces || [];  // Store face detection data
+
+                // Calculate 9:16 crop dimensions
+                const targetAspectRatio = 9 / 16;
+                this.cropBox = {
+                    width: Math.round(this.videoResolution.height * targetAspectRatio),
+                    height: this.videoResolution.height,
+                    x: Math.round((this.videoResolution.width - Math.round(this.videoResolution.height * targetAspectRatio)) / 2),
+                    y: 0,
+                    isDragging: false,
+                    dragOffsetX: 0,
+                    dragOffsetY: 0
+                };
+
+                this.image.onload = () => {
+                    this.render();
+                    this.updateCoordinateDisplay();
+                };
+                this.image.src = videoFramePath;
+
+                this.initEventListeners();
+                console.log(`✅ Crop editor initialized with ${this.faces.length} faces`);
+            }
+
+            initEventListeners() {
+                this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this));
+                this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
+                this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this));
+                this.canvas.addEventListener('mouseleave', this.onMouseUp.bind(this));
+            }
+
+            onMouseDown(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const scaleX = this.videoResolution.width / rect.width;
+                const scaleY = this.videoResolution.height / rect.height;
+                const mouseX = (e.clientX - rect.left) * scaleX;
+                const mouseY = (e.clientY - rect.top) * scaleY;
+
+                // Check if click is inside crop box
+                if (this.isInsideCropBox(mouseX, mouseY)) {
+                    this.cropBox.isDragging = true;
+                    this.cropBox.dragOffsetX = mouseX - this.cropBox.x;
+                    this.cropBox.dragOffsetY = mouseY - this.cropBox.y;
+                    this.canvas.style.cursor = 'grabbing';
+                }
+            }
+
+            onMouseMove(e) {
+                if (!this.cropBox.isDragging) {
+                    // Check if hovering over crop box
+                    const rect = this.canvas.getBoundingClientRect();
+                    const scaleX = this.videoResolution.width / rect.width;
+                    const scaleY = this.videoResolution.height / rect.height;
+                    const mouseX = (e.clientX - rect.left) * scaleX;
+                    const mouseY = (e.clientY - rect.top) * scaleY;
+
+                    this.canvas.style.cursor = this.isInsideCropBox(mouseX, mouseY) ? 'grab' : 'default';
+                    return;
+                }
+
+                const rect = this.canvas.getBoundingClientRect();
+                const scaleX = this.videoResolution.width / rect.width;
+                const scaleY = this.videoResolution.height / rect.height;
+                const mouseX = (e.clientX - rect.left) * scaleX;
+                const mouseY = (e.clientY - rect.top) * scaleY;
+
+                // Calculate new position
+                let newX = mouseX - this.cropBox.dragOffsetX;
+                let newY = mouseY - this.cropBox.dragOffsetY;
+
+                // Constrain to video boundaries
+                newX = Math.max(0, Math.min(newX, this.videoResolution.width - this.cropBox.width));
+                newY = Math.max(0, Math.min(newY, this.videoResolution.height - this.cropBox.height));
+
+                this.cropBox.x = newX;
+                this.cropBox.y = newY;
+
+                // Update coordinate display
+                this.updateCoordinateDisplay();
+
+                // Re-render
+                this.render();
+            }
+
+            onMouseUp(e) {
+                this.cropBox.isDragging = false;
+                this.canvas.style.cursor = 'grab';
+            }
+
+            isInsideCropBox(mouseX, mouseY) {
+                return mouseX >= this.cropBox.x &&
+                       mouseX <= this.cropBox.x + this.cropBox.width &&
+                       mouseY >= this.cropBox.y &&
+                       mouseY <= this.cropBox.y + this.cropBox.height;
+            }
+
+            render() {
+                // Clear canvas
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Draw original frame (scaled to canvas size)
+                const scale = Math.min(
+                    this.canvas.width / this.videoResolution.width,
+                    this.canvas.height / this.videoResolution.height
+                );
+                const scaledWidth = this.videoResolution.width * scale;
+                const scaledHeight = this.videoResolution.height * scale;
+                const offsetX = (this.canvas.width - scaledWidth) / 2;
+                const offsetY = (this.canvas.height - scaledHeight) / 2;
+
+                this.ctx.drawImage(this.image, offsetX, offsetY, scaledWidth, scaledHeight);
+
+                // Draw crop box overlay (scaled)
+                const scaledCropX = this.cropBox.x * scale + offsetX;
+                const scaledCropY = this.cropBox.y * scale + offsetY;
+                const scaledCropWidth = this.cropBox.width * scale;
+                const scaledCropHeight = this.cropBox.height * scale;
+
+                // Semi-transparent overlay outside crop area
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                this.ctx.fillRect(offsetX, offsetY, scaledWidth, scaledHeight);
+
+                // Clear crop area
+                this.ctx.clearRect(scaledCropX, scaledCropY, scaledCropWidth, scaledCropHeight);
+
+                // Redraw image in crop area
+                this.ctx.save();
+                this.ctx.beginPath();
+                this.ctx.rect(scaledCropX, scaledCropY, scaledCropWidth, scaledCropHeight);
+                this.ctx.clip();
+                this.ctx.drawImage(this.image, offsetX, offsetY, scaledWidth, scaledHeight);
+                this.ctx.restore();
+
+                // Draw crop box border
+                this.ctx.strokeStyle = '#667eea';
+                this.ctx.lineWidth = 3;
+                this.ctx.strokeRect(scaledCropX, scaledCropY, scaledCropWidth, scaledCropHeight);
+
+                // Draw corner handles
+                const handleSize = 10;
+                this.ctx.fillStyle = '#667eea';
+                const corners = [
+                    [scaledCropX, scaledCropY],
+                    [scaledCropX + scaledCropWidth, scaledCropY],
+                    [scaledCropX, scaledCropY + scaledCropHeight],
+                    [scaledCropX + scaledCropWidth, scaledCropY + scaledCropHeight]
+                ];
+                corners.forEach(([x, y]) => {
+                    this.ctx.fillRect(x - handleSize / 2, y - handleSize / 2, handleSize, handleSize);
+                });
+
+                // Draw face detection boxes
+                this.drawFaceBoxes(scale, offsetX, offsetY);
+            }
+
+            drawFaceBoxes(scale, offsetX, offsetY) {
+                if (!this.faces || this.faces.length === 0) return;
+
+                this.faces.forEach((face, index) => {
+                    // Get face bounding box (assuming face has bbox or position data)
+                    const bbox = face.bbox || face.box || face.bounding_box;
+                    if (!bbox) return;
+
+                    // Face box coordinates (x, y, width, height)
+                    const faceX = bbox.x || bbox[0] || 0;
+                    const faceY = bbox.y || bbox[1] || 0;
+                    const faceWidth = bbox.width || bbox[2] || 100;
+                    const faceHeight = bbox.height || bbox[3] || 100;
+
+                    // Scale face box to canvas
+                    const scaledFaceX = faceX * scale + offsetX;
+                    const scaledFaceY = faceY * scale + offsetY;
+                    const scaledFaceWidth = faceWidth * scale;
+                    const scaledFaceHeight = faceHeight * scale;
+
+                    // Check if face is inside crop box
+                    const isInCrop = this.isFaceInCrop(faceX, faceY, faceWidth, faceHeight);
+
+                    // Draw face box
+                    this.ctx.strokeStyle = isInCrop ? '#48bb78' : '#f56565';  // Green if in crop, red if outside
+                    this.ctx.lineWidth = 2;
+                    this.ctx.strokeRect(scaledFaceX, scaledFaceY, scaledFaceWidth, scaledFaceHeight);
+
+                    // Draw label
+                    const label = `Face ${index + 1}${face.confidence ? ` (${Math.round(face.confidence * 100)}%)` : ''}`;
+                    this.ctx.fillStyle = isInCrop ? '#48bb78' : '#f56565';
+                    this.ctx.font = 'bold 12px sans-serif';
+
+                    // Background for label
+                    const textMetrics = this.ctx.measureText(label);
+                    this.ctx.fillRect(scaledFaceX, scaledFaceY - 18, textMetrics.width + 8, 18);
+
+                    // Label text
+                    this.ctx.fillStyle = 'white';
+                    this.ctx.fillText(label, scaledFaceX + 4, scaledFaceY - 5);
+                });
+            }
+
+            isFaceInCrop(faceX, faceY, faceWidth, faceHeight) {
+                // Check if face center is inside crop box
+                const faceCenterX = faceX + faceWidth / 2;
+                const faceCenterY = faceY + faceHeight / 2;
+
+                return faceCenterX >= this.cropBox.x &&
+                       faceCenterX <= this.cropBox.x + this.cropBox.width &&
+                       faceCenterY >= this.cropBox.y &&
+                       faceCenterY <= this.cropBox.y + this.cropBox.height;
+            }
+
+            updateCoordinateDisplay() {
+                document.getElementById('crop-x').textContent = Math.round(this.cropBox.x);
+                document.getElementById('crop-y').textContent = Math.round(this.cropBox.y);
+
+                // Count faces in crop
+                let facesInCrop = 0;
+                if (this.faces) {
+                    this.faces.forEach(face => {
+                        const bbox = face.bbox || face.box || face.bounding_box;
+                        if (bbox) {
+                            const faceX = bbox.x || bbox[0] || 0;
+                            const faceY = bbox.y || bbox[1] || 0;
+                            const faceWidth = bbox.width || bbox[2] || 100;
+                            const faceHeight = bbox.height || bbox[3] || 100;
+                            if (this.isFaceInCrop(faceX, faceY, faceWidth, faceHeight)) {
+                                facesInCrop++;
+                            }
+                        }
+                    });
+                }
+
+                document.getElementById('crop-size').textContent = `${this.cropBox.width}x${this.cropBox.height} (${facesInCrop} faces)`;
+            }
+
+            resetToCenter() {
+                this.cropBox.x = Math.round((this.videoResolution.width - this.cropBox.width) / 2);
+                this.cropBox.y = 0;
+                this.render();
+                this.updateCoordinateDisplay();
+            }
+
+            getCropCoordinates() {
+                return {
+                    x: Math.round(this.cropBox.x),
+                    y: Math.round(this.cropBox.y),
+                    width: this.cropBox.width,
+                    height: this.cropBox.height
+                };
+            }
+        }
+
+        // Global crop editor instance
+        let cropEditor = null;
+        let jobDebugData = null;  // Store job debug data for face info
+
+        // Toggle crop editor visibility
+        window.toggleCropEditor = async function() {
+            const panel = document.getElementById('crop-editor-panel');
+            if (!panel) return;
+
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+
+                // Initialize crop editor if not already done
+                if (!cropEditor) {
+                    try {
+                        // Load job debug data to get face info
+                        const token = localStorage.getItem('token');
+                        const headers = { 'Content-Type': 'application/json' };
+                        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+                        const response = await fetch(`${API_BASE}/api/jobs/${jobId}/debug`, { headers });
+                        if (response.ok) {
+                            jobDebugData = await response.json();
+
+                            // Extract face data from detect_faces step
+                            const detectFacesStep = jobDebugData.steps?.detect_faces;
+                            const faces = detectFacesStep?.output?.faces || [];
+
+                            // Get video resolution from download_video step
+                            const downloadStep = jobDebugData.steps?.download_video;
+                            const resolutionStr = downloadStep?.output?.resolution || '1920x1080';
+                            const [width, height] = resolutionStr.split('x').map(Number);
+                            const videoResolution = { width, height };
+
+                            console.log(`📐 Initializing crop editor: ${faces.length} faces, ${width}x${height}`);
+
+                            // Initialize crop editor with face data
+                            const videoFramePath = `${API_BASE}/io/input/${jobId}/frame_5s.jpg`;
+                            cropEditor = new CropEditor('crop-editor-canvas', videoFramePath, videoResolution, faces);
+                        } else {
+                            console.error('Failed to load job debug data for crop editor');
+                            alert('Could not load face data for crop editor');
+                        }
+                    } catch (error) {
+                        console.error('Error initializing crop editor:', error);
+                        alert(`Error: ${error.message}`);
+                    }
+                }
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+
+        // Reset crop to center
+        window.resetCropToCenter = function() {
+            if (cropEditor) {
+                cropEditor.resetToCenter();
+            }
+        }
+
+        // Apply crop and re-run
+        window.applyCropAndRerun = async function() {
+            if (!cropEditor) {
+                alert('Crop editor niet geïnitialiseerd');
+                return;
+            }
+
+            try {
+                const coords = cropEditor.getCropCoordinates();
+
+                console.log('🎨 Applying manual crop:', coords);
+
+                const config = {
+                    user_preferences: {
+                        crop_x: coords.x,
+                        crop_y: coords.y,
+                        crop_width: coords.width,
+                        crop_height: coords.height,
+                        crop_method: 'manual'
+                    }
+                };
+
+                // Disable button
+                const btn = document.getElementById('btn-apply-crop');
+                btn.disabled = true;
+                btn.textContent = '⏳ Re-running...';
+
+                const response = await fetch(`${API_BASE}/api/jobs/${jobId}/rerun-step`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        step_name: 'intelligent_crop',
+                        config: config
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || `Re-run failed: ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log('✅ Crop re-run started:', result);
+
+                alert(`✅ Re-running met manual crop (x:${coords.x}, y:${coords.y})\n\nEstimated time: ${result.estimated_time || 60}s`);
+
+                // Start progress polling
+                startRerunProgressPolling();
+
+            } catch (error) {
+                console.error('❌ Failed to apply crop:', error);
+                alert(`Failed to apply crop: ${error.message}`);
+
+                // Re-enable button
+                const btn = document.getElementById('btn-apply-crop');
+                btn.disabled = false;
+                btn.textContent = '🔄 Crop Toepassen & Re-run';
+            }
+        }
+
+        // Progress polling during re-run
+        let rerunPollingInterval = null;
+
+        function startRerunProgressPolling() {
+            console.log('🔄 Starting progress polling...');
+
+            // Clear any existing polling
+            if (rerunPollingInterval) {
+                clearInterval(rerunPollingInterval);
+            }
+
+            // Poll every 3 seconds
+            rerunPollingInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`${API_BASE}/api/jobs/${jobId}/debug`);
+                    const data = await response.json();
+
+                    // Update progress
+                    document.getElementById('job-progress').textContent = data.progress;
+                    document.getElementById('job-phase').textContent = data.phase;
+                    document.getElementById('job-current-step').textContent = data.current_step || '-';
+
+                    console.log(`📊 Progress: ${data.progress}% | Phase: ${data.phase}`);
+
+                    // Check if complete
+                    if (data.status === 'completed') {
+                        clearInterval(rerunPollingInterval);
+                        rerunPollingInterval = null;
+
+                        console.log('✅ Re-run completed!');
+
+                        document.getElementById('rerun-info').innerHTML = '✅ Re-run completed! Reloading...';
+
+                        // Re-enable button
+                        const btn = document.getElementById('apply-settings-btn');
+                        btn.disabled = false;
+                        btn.textContent = '🔄 Apply Settings & Re-run Pipeline';
+
+                        // Reload page to show new results
+                        setTimeout(() => location.reload(), 2000);
+
+                    } else if (data.status === 'failed') {
+                        clearInterval(rerunPollingInterval);
+                        rerunPollingInterval = null;
+
+                        console.error('❌ Re-run failed!');
+
+                        document.getElementById('rerun-info').innerHTML = '❌ Re-run failed. Check error logs.';
+
+                        // Re-enable button
+                        const btn = document.getElementById('apply-settings-btn');
+                        btn.disabled = false;
+                        btn.textContent = '🔄 Apply Settings & Re-run Pipeline';
+                    }
+                } catch (error) {
+                    console.error('❌ Progress polling error:', error);
+                }
+            }, 3000);
+        }
+
+        // ========================================
+        // 🎯 PRESET SETTINGS LOGIC
+        // ========================================
+
+        // Preset definitions
+        const PRESETS = {
+            'talk-show': {
+                name: 'Talk Show',
+                icon: '🎤',
+                settings: {
+                    clip_length: 30,
+                    max_moments: 5,
+                    min_viral_score: 80,
+                    face_confidence: 0.6,
+                    sample_interval: 30,
+                    cluster_gap: 15,
+                    crop_method: 'face_focused'
+                }
+            },
+            'podcast': {
+                name: 'Podcast',
+                icon: '🎙️',
+                settings: {
+                    clip_length: 45,
+                    max_moments: 8,
+                    min_viral_score: 70,
+                    face_confidence: 0.5,
+                    sample_interval: 45,
+                    cluster_gap: 20,
+                    crop_method: 'face_focused'
+                }
+            },
+            'interview': {
+                name: 'Interview',
+                icon: '💼',
+                settings: {
+                    clip_length: 60,
+                    max_moments: 6,
+                    min_viral_score: 75,
+                    face_confidence: 0.6,
+                    sample_interval: 30,
+                    cluster_gap: 20,
+                    crop_method: 'face_focused'
+                }
+            },
+            'viral-shorts': {
+                name: 'Viral Shorts',
+                icon: '🚀',
+                settings: {
+                    clip_length: 15,
+                    max_moments: 10,
+                    min_viral_score: 85,
+                    face_confidence: 0.7,
+                    sample_interval: 15,
+                    cluster_gap: 10,
+                    crop_method: 'face_focused'
+                }
+            }
+        };
+
+        // Apply preset to all settings
+        window.applyPreset = function(presetKey) {
+            const preset = PRESETS[presetKey];
+            if (!preset) {
+                console.error(`❌ Unknown preset: ${presetKey}`);
+                return;
+            }
+
+            console.log(`🎯 Applying preset: ${preset.name}`);
+
+            // Update all settings
+            const settings = preset.settings;
+
+            // Update Essential Settings UI
+            setClipLength(settings.clip_length);
+            updateSliderValue('max-moments', settings.max_moments);
+            updateSliderValue('min-viral-score', settings.min_viral_score);
+
+            // Update Expert Mode UI
+            document.getElementById('expert-face-confidence').value = settings.face_confidence;
+            document.getElementById('expert-sample-interval').value = settings.sample_interval;
+            document.getElementById('expert-min-viral-score').value = settings.min_viral_score;
+            document.getElementById('expert-crop-method').value = settings.crop_method;
+
+            // Update active preset card
+            document.querySelectorAll('.preset-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            const activeCard = document.querySelector(`[data-preset="${presetKey}"]`);
+            if (activeCard) {
+                activeCard.classList.add('active');
+            }
+
+            // Show notification
+            showNotification(`✅ ${preset.name} preset toegepast!`, 'success');
+        };
+
+        // Toggle Essential Settings panel
+        window.toggleEssentialSettings = function() {
+            const panel = document.getElementById('essential-settings-panel');
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                // Scroll to panel
+                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                panel.style.display = 'none';
+            }
+        };
+
+        // Toggle Expert Mode panel
+        window.toggleExpertMode = function() {
+            const panel = document.getElementById('expert-mode-panel');
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                // Scroll to panel
+                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                panel.style.display = 'none';
+            }
+        };
+
+        // Set clip length from option buttons
+        window.setClipLength = function(length) {
+            console.log(`⏱️ Setting clip length: ${length}s`);
+
+            // Update UI
+            document.getElementById('current-clip-length').textContent = `${length}s`;
+
+            // Update all option buttons
+            document.querySelectorAll('.setting-options .option-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (parseInt(btn.dataset.value) === length) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Update the actual settings form if it exists
+            const clipLengthInput = document.getElementById('setting-clip-length');
+            if (clipLengthInput) {
+                clipLengthInput.value = length;
+            }
+        };
+
+        // Update slider value displays
+        window.updateSliderValue = function(settingKey, value) {
+            console.log(`📊 Updating ${settingKey}: ${value}`);
+
+            // Update display
+            const displayId = `current-${settingKey}`;
+            const display = document.getElementById(displayId);
+            if (display) {
+                if (settingKey === 'max-moments') {
+                    display.textContent = value;
+                } else if (settingKey === 'min-viral-score') {
+                    display.textContent = value;
+                }
+            }
+
+            // Update slider if it exists
+            const sliderId = `setting-${settingKey}`;
+            const slider = document.getElementById(sliderId);
+            if (slider) {
+                slider.value = value;
+            }
+        };
+
+        // Reset expert settings to defaults
+        window.resetToDefaults = function() {
+            console.log('🔄 Resetting to default settings');
+
+            // Apply Talk Show preset as default
+            applyPreset('talk-show');
+
+            showNotification('✅ Settings gereset naar defaults', 'success');
+        };
+
+        // Show notification toast
+        window.showNotification = function(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.style.cssText = `
+                position: fixed;
+                top: 24px;
+                right: 24px;
+                background: ${type === 'success' ? '#48bb78' : type === 'error' ? '#f56565' : '#4299e1'};
+                color: white;
+                padding: 16px 24px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10000;
+                font-weight: 500;
+                animation: slideIn 0.3s ease;
+            `;
+            notification.textContent = message;
+
+            document.body.appendChild(notification);
+
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        };
+
+        // Initialize with default preset on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🎯 Initializing Preset Settings UI');
+
+            // Apply default preset (Talk Show)
+            const defaultPreset = 'talk-show';
+            const activeCard = document.querySelector(`[data-preset="${defaultPreset}"]`);
+            if (activeCard) {
+                activeCard.classList.add('active');
+            }
+
+            // Set initial values in UI
+            const preset = PRESETS[defaultPreset];
+            if (preset) {
+                setClipLength(preset.settings.clip_length);
+                updateSliderValue('max-moments', preset.settings.max_moments);
+            }
+        });
+
+        // ========================================
+        // END PRESET SETTINGS LOGIC
+        // ========================================
+
+        // Initial load
+        loadDebugData();
+        loadAITransparencyData();
+        initializeSettingsPanel();
+
+        // Auto-refresh every 5 seconds
+        setInterval(() => {
+            loadDebugData();
+            loadAITransparencyData();
+        }, 5000);
+    </script>
+</body>
+</html>

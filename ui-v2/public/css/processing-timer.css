@@ -1,0 +1,467 @@
+/* Processing Timer - Expert Level Styling */
+.processing-timer-expert {
+  --timer-primary: #4f46e5;
+  --timer-secondary: #6366f1;
+  --timer-success: #16a34a;
+  --timer-warning: #f59e0b;
+  --timer-danger: #dc2626;
+  --timer-bg: #ffffff;
+  --timer-border: #e5e7eb;
+  --timer-text: #111827;
+  --timer-text-muted: #6b7280;
+  --timer-radius: 12px;
+  --timer-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --timer-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+  background: var(--timer-bg);
+  border: 1px solid var(--timer-border);
+  border-radius: var(--timer-radius);
+  padding: 1.5rem;
+  box-shadow: var(--timer-shadow);
+  max-width: 400px;
+  margin: 0 auto;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Primary Timer Display */
+.timer-primary {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.timer-circle-container {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
+.progress-ring {
+  filter: drop-shadow(0 2px 4px rgba(79, 70, 229, 0.1));
+}
+
+.progress-track {
+  opacity: 0.2;
+}
+
+.progress-fill {
+  transition: stroke-dashoffset 0.3s cubic-bezier(0.4, 0.0, 0.2, 1),
+              stroke 0.2s ease;
+}
+
+.timer-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.elapsed-time {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--timer-text);
+  line-height: 1;
+  margin-bottom: 0.25rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.current-phase {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--timer-text-muted);
+  text-transform: lowercase;
+  letter-spacing: 0.025em;
+}
+
+/* Pulse Animation Overlay */
+.pulse-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 120px;
+  height: 120px;
+  border: 2px solid var(--timer-primary);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes pulse-ring {
+  0% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  50% {
+    opacity: 0.3;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.3);
+  }
+}
+
+@keyframes completion-burst {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    border-color: var(--timer-success);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translate(-50%, -50%) scale(1.5);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2);
+  }
+}
+
+/* Smart Estimation Panel */
+.timer-estimation {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid var(--timer-border);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.timer-estimation:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.estimation-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.clock-icon {
+  color: var(--timer-primary);
+  flex-shrink: 0;
+}
+
+.estimation-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--timer-text-muted);
+}
+
+.estimation-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.remaining-time {
+  font-size: 1.125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--timer-primary);
+}
+
+.confidence-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.confidence-bar {
+  width: 60px;
+  height: 4px;
+  background: rgba(79, 70, 229, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.confidence-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--timer-warning) 0%, var(--timer-primary) 50%, var(--timer-success) 100%);
+  border-radius: 2px;
+  transition: width 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.confidence-text {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--timer-text-muted);
+}
+
+/* Phase Progress Breakdown */
+.timer-phases {
+  margin-bottom: 1rem;
+}
+
+.phases-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  cursor: pointer;
+  padding: 0.25rem 0;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+
+.phases-header:hover {
+  background-color: rgba(79, 70, 229, 0.05);
+}
+
+.phases-header span {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--timer-text-muted);
+}
+
+.phases-toggle {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  border-radius: 4px;
+  color: var(--timer-text-muted);
+  transition: all 0.15s ease;
+}
+
+.phases-toggle:hover {
+  background-color: var(--timer-border);
+  color: var(--timer-text);
+}
+
+.toggle-icon {
+  transition: transform 0.2s ease;
+}
+
+.phases-toggle[aria-expanded="true"] .toggle-icon {
+  transform: rotate(180deg);
+}
+
+.phases-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--timer-border);
+}
+
+.phase-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  transition: opacity 0.2s ease;
+}
+
+.phase-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.phase-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+}
+
+.phase-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--timer-text);
+}
+
+.phase-time {
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--timer-text-muted);
+}
+
+/* Phase States */
+.phase-pending {
+  opacity: 0.6;
+}
+
+.phase-pending .phase-indicator {
+  background-color: var(--timer-border);
+}
+
+.phase-active .phase-indicator {
+  background-color: var(--timer-primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+  animation: phase-pulse 2s ease-in-out infinite;
+}
+
+.phase-completed .phase-indicator {
+  background-color: var(--timer-success);
+}
+
+.phase-completed .phase-name {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+@keyframes phase-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Performance Indicator */
+.timer-performance {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.performance-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.performance-status.normal {
+  background-color: rgba(34, 197, 94, 0.1);
+  color: var(--timer-success);
+}
+
+.performance-status.delayed {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: var(--timer-warning);
+}
+
+.performance-status.slow {
+  background-color: rgba(220, 38, 38, 0.1);
+  color: var(--timer-danger);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  animation: status-blink 2s ease-in-out infinite;
+}
+
+@keyframes status-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Celebration Effects */
+.processing-timer-expert.celebration {
+  animation: celebration-shake 0.5s ease-in-out;
+}
+
+@keyframes celebration-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px) rotate(-0.5deg); }
+  75% { transform: translateX(2px) rotate(0.5deg); }
+}
+
+.processing-timer-expert.celebration::before {
+  content: '🎉';
+  position: absolute;
+  top: -1rem;
+  right: -0.5rem;
+  font-size: 2rem;
+  animation: confetti-fall 1s ease-out forwards;
+}
+
+@keyframes confetti-fall {
+  0% {
+    opacity: 1;
+    transform: translateY(-20px) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(20px) rotate(360deg);
+  }
+}
+
+/* Accessibility & Reduced Motion */
+.processing-timer-expert.reduce-motion * {
+  animation: none !important;
+  transition: none !important;
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Dark Theme Support */
+@media (prefers-color-scheme: dark) {
+  .processing-timer-expert {
+    --timer-bg: #1f2937;
+    --timer-border: #374151;
+    --timer-text: #f9fafb;
+    --timer-text-muted: #9ca3af;
+    --timer-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  }
+
+  .timer-estimation {
+    background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+  }
+
+  .phases-header:hover {
+    background-color: rgba(99, 102, 241, 0.1);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .processing-timer-expert {
+    padding: 1rem;
+    margin: 0 1rem;
+  }
+
+  .estimation-display {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .confidence-indicator {
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .confidence-bar {
+    width: 100%;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .processing-timer-expert {
+    border: 2px solid currentColor;
+  }
+
+  .progress-fill {
+    stroke-width: 10;
+  }
+
+  .confidence-fill {
+    background: currentColor;
+  }
+}

@@ -1,0 +1,725 @@
+{
+  "metadata": {
+    "title": "🚀 AgentOS Complete Roadmap - GEVALIDEERD",
+    "last_validated": "December 2024",
+    "version": "1.0.1",
+    "schema_version": "roadmap-json/1",
+    "language": "nl"
+  },
+  "disclaimer": {
+    "important": true,
+    "warnings": [
+      "VALIDEER EERST",
+      "CONTROLEER",
+      "VERIFIEER",
+      "TEST"
+    ],
+    "note": "Deze AI-analyse kan zaken over het hoofd hebben gezien. Behandel dit document als een startpunt, NIET als absolute waarheid.",
+    "action": "Bij twijfel: Check de actuele code!"
+  },
+  "current_status": {
+    "database_schema": {
+      "status": "confirmed",
+      "items": [
+        {
+          "name": "viral_score",
+          "status": "aanwezig",
+          "location": "core/database_manager.py",
+          "line": 263
+        },
+        {
+          "name": "keywords",
+          "status": "aanwezig",
+          "location": "core/database_manager.py",
+          "line": 261
+        },
+        {
+          "name": "content_type",
+          "status": "aanwezig",
+          "location": "core/database_manager.py",
+          "line": 259
+        }
+      ]
+    },
+    "api_endpoints": {
+      "status": "confirmed",
+      "items": [
+        {
+          "name": "viral_score_exposure",
+          "status": "aanwezig",
+          "location": "api/routes/job_refactored.py",
+          "line": 107
+        },
+        {
+          "name": "metadata_bundling",
+          "status": "werkt",
+          "location": "api/routes/job_refactored.py",
+          "line": 104
+        },
+        {
+          "name": "fastapi_backend",
+          "status": "running",
+          "port": 8000
+        }
+      ]
+    },
+    "audio_transcriber": {
+      "status": "partial",
+      "present": [
+        {
+          "name": "robust_fallbacks",
+          "description": "OpenAI → Local → Mock"
+        },
+        {
+          "name": "retry_logic",
+          "status": "implemented",
+          "tested": "today"
+        }
+      ],
+      "missing": [
+        "_compress_for_openai",
+        "_chunk_for_openai",
+        "_file_size_mb",
+        "_cleanup_temp_artifacts",
+        "load_dotenv() import",
+        "python-dotenv dependency"
+      ]
+    },
+    "pipeline_flow": {
+      "status": "confirmed",
+      "workflow": "download → transcribe → detect_moments → cut_videos",
+      "location": "tasks/video_processing.py",
+      "anchor": "after transcribe_audio call"
+    }
+  },
+  "phases": [
+    {
+      "phase": "1",
+      "title": "KRITIEKE FIXES",
+      "timeline": "Week 1",
+      "priority": "critical",
+      "color": "red",
+      "tasks": [
+        {
+          "id": "1.1",
+          "title": "Audio Chunking Implementatie",
+          "reason": "Bestanden >25MB falen nu (vandaag bewezen met 61MB test)",
+          "files_to_modify": [
+            "agents2/audio_processing/audio_transcriber.py",
+            ".env"
+          ],
+          "changes": {
+            "audio_transcriber_py": {
+              "add_near_imports": [
+                "from dotenv import load_dotenv"
+              ],
+              "add_after_imports": [
+                "load_dotenv(override=False)"
+              ],
+              "add_after_anchor": {
+                "anchor": "def _detect_silences_ffmpeg(",
+                "functions": [
+                  {
+                    "name": "_file_size_mb",
+                    "purpose": "Get file size in MB",
+                    "code": "def _file_size_mb(self, path: str) -> float:\n    return os.path.getsize(path) / (1024 * 1024)"
+                  },
+                  {
+                    "name": "_probe_duration",
+                    "purpose": "Get audio duration using ffprobe",
+                    "dependencies": [
+                      "ffprobe",
+                      "subprocess",
+                      "json"
+                    ]
+                  },
+                  {
+                    "name": "_compress_for_openai",
+                    "purpose": "Compress to 64k MP3 for OpenAI",
+                    "dependencies": [
+                      "ffmpeg",
+                      "tempfile"
+                    ]
+                  },
+                  {
+                    "name": "_chunk_for_openai",
+                    "purpose": "Split audio into 10-minute chunks for OpenAI (proven strategy)",
+                    "max_mb": 24,
+                    "segment_duration": 600,
+                    "strategy": "10-minute chunks"
+                  },
+                  {
+                    "name": "_offset_lines",
+                    "purpose": "Adjust timestamps in transcript"
+                  },
+                  {
+                    "name": "_cleanup_temp_artifacts",
+                    "purpose": "Clean up compressed and chunk files after processing",
+                    "implementation": "try/finally block to ensure cleanup"
+                  }
+                ]
+              },
+              "modify_at_anchor": {
+                "function": "_transcribe_with_openai_whisper_timestamped",
+                "changes": "Add file size checking and chunking logic"
+              }
+            },
+            "env_file": {
+              "new_variables": {
+                "audio_processing": {
+                  "USE_MOCK_AI": false,
+                  "ENABLE_REAL_AI": true,
+                  "AUDIO_V2_ENABLED": true,
+                  "OPENAI_AUDIO_MAX_MB": 25,
+                  "OPENAI_AUDIO_BITRATE": "64k",
+                  "OPENAI_AUDIO_SEGMENT_S": 600,
+                  "AUDIO_MAX_RETRIES": 2,
+                  "AUDIO_DEBUG_CONFIG": true
+                },
+                "long_content_timeouts": {
+                  "FFMPEG_TIMEOUT": 1800,
+                  "WHISPER_TIMEOUT": 3600,
+                  "AUDIO_TIMEOUT_S": 3600,
+                  "PROCESSING_TIMEOUT": 7200
+                },
+                "extended_limits": {
+                  "MAX_VIDEO_LENGTH": 10800,
+                  "MAX_CLIP_LENGTH": 300,
+                  "LONG_FORM_PROCESSING": true
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "1.2",
+          "title": "Pipeline Guard Implementatie",
+          "reason": "Voorkom dat non-production data downstream verwerkt wordt",
+          "file": "tasks/video_processing.py",
+          "location": "Na regel 256 (na transcribe_audio)",
+          "implementation": {
+            "check_condition": "not transcription_result.get('allow_downstream', True)",
+            "actions": [
+              "Log warning: Transcription not production-grade",
+              "Update job status to 'needs_real_transcript'",
+              "Set user_message with helpful guidance",
+              "Commit database changes",
+              "Return structured error response"
+            ],
+            "code_snippet": "tr = transcription_result\nif not tr.get('allow_downstream', True):\n    logger.warning('Transcription not production-grade (mock/degraded). Halting pipeline.')\n    job.status = 'needs_real_transcript'\n    job.user_message = tr.get('user_message') or 'Transcriptie is niet gelukt. Probeer opnieuw met compressie/chunks.'\n    session.commit()\n    return {'success': False, 'stopped_at': 'transcription', 'reason': 'non_production_transcript', 'user_message': job.user_message}"
+          }
+        }
+      ]
+    },
+    {
+      "phase": "2",
+      "title": "UI INTEGRATIE",
+      "timeline": "Week 2",
+      "priority": "high",
+      "color": "yellow",
+      "tasks": [
+        {
+          "id": "2.1",
+          "title": "Virality Score Weergave (MEERTALIG)",
+          "status": "Backend klaar, UI + i18n nodig",
+          "subtasks": [
+            {
+              "id": "2.1.A",
+              "title": "i18n Translations Updates",
+              "files": [
+                {
+                  "path": "ui-v2/src/i18n/locales/nl.json",
+                  "additions": {
+                    "viral": {
+                      "score_label": "Viraliteit Score",
+                      "score_badge": "🔥 {{score}}/100",
+                      "high_potential": "Hoge virale potentie!",
+                      "medium_potential": "Gemiddelde virale potentie",
+                      "low_potential": "Lage virale potentie"
+                    }
+                  }
+                },
+                {
+                  "path": "ui-v2/src/i18n/locales/en.json",
+                  "additions": {
+                    "viral": {
+                      "score_label": "Virality Score",
+                      "score_badge": "🔥 {{score}}/100",
+                      "high_potential": "High viral potential!",
+                      "medium_potential": "Medium viral potential",
+                      "low_potential": "Low viral potential"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "id": "2.1.B",
+              "title": "UI Component Updates",
+              "file": "ui-v2/src/features/analytics/components/job-history.js",
+              "changes": {
+                "renderJobCard_method": "Add viral badge rendering",
+                "new_method": "getViralClass(score) for styling classes"
+              },
+              "viral_classes": {
+                "hot": ">=80",
+                "warm": ">=60",
+                "mild": ">=40",
+                "cold": "<40"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "3",
+      "title": "NIEUWE AGENTS",
+      "timeline": "Week 3-4",
+      "priority": "medium",
+      "color": "green",
+      "tasks": [
+        {
+          "id": "3.1",
+          "title": "Auto-Captions Agent",
+          "new_file": "agents2/content_generation/auto_captions.py",
+          "class": "AutoCaptionsGenerator",
+          "version": "1.0.0",
+          "methods": [
+            {
+              "name": "generate_captions",
+              "input": {
+                "video_path": "string",
+                "segments": "List[{start_time, end_time, text}]"
+              },
+              "output": {
+                "srt_path": "string",
+                "burned_video_path": "string (optional)"
+              }
+            },
+            {
+              "name": "_segments_to_srt",
+              "purpose": "Convert segments to SRT format"
+            },
+            {
+              "name": "_seconds_to_srt_time",
+              "purpose": "Convert seconds to SRT timestamp format"
+            },
+            {
+              "name": "_burn_captions",
+              "purpose": "Burn subtitles into video using ffmpeg",
+              "dependencies": [
+                "ffmpeg"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "3.2",
+          "title": "Social Export Module",
+          "new_file": "api/routes/export.py",
+          "router_prefix": "/export",
+          "endpoints": [
+            {
+              "path": "/tiktok",
+              "method": "POST",
+              "specs": {
+                "format": "9:16",
+                "max_duration": 60,
+                "codec": "h264",
+                "platform": "TikTok Creator Studio"
+              }
+            },
+            {
+              "path": "/instagram",
+              "method": "POST",
+              "specs": {
+                "format": "9:16",
+                "max_duration": 90,
+                "codec": "h264",
+                "platform": "Meta Business Suite"
+              }
+            },
+            {
+              "path": "/youtube",
+              "method": "POST",
+              "specs": {
+                "format": "9:16",
+                "max_duration": 60,
+                "codec": "h264",
+                "platform": "YouTube Studio"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "technical_specs": {
+    "philosophy": "Roadmap stays clean - technical details in separate JSON specs",
+    "enforcement": "AI handover generation MUST read all referenced spec files",
+    "references": {
+      "1.1": {
+        "title": "Audio Chunking Implementatie",
+        "spec_file": "technical_specs/phase_1_audio_chunking.json",
+        "absolute_path": "roadmap/technical_specs/phase_1_audio_chunking.json",
+        "required_reading": true,
+        "contains": [
+          "exact_code_snippets",
+          "environment_variables",
+          "test_commands",
+          "success_criteria"
+        ],
+        "exists": true
+      },
+      "1.2": {
+        "title": "Pipeline Guard Implementatie",
+        "spec_file": "technical_specs/pipeline_guard_spec.json",
+        "absolute_path": "roadmap/technical_specs/pipeline_guard_spec.json",
+        "required_reading": true,
+        "contains": [
+          "exact_code_snippets",
+          "environment_variables",
+          "test_commands",
+          "success_criteria"
+        ],
+        "exists": true
+      }
+    },
+    "total_spec_files": 2
+  },
+  "business_context": {
+    "competitive_advantages": [
+      "3-hour podcast processing geeft significant marktvoordeel over concurrenten die bij 1-2 uur stoppen"
+    ],
+    "market_impacts": [
+      "CRITICAL - Productie blocker voor long-form content (premium market segment)"
+    ],
+    "revenue_potentials": [
+      "Unlocks premium long-form content market segment"
+    ],
+    "business_risks": [
+      "Without this fix, we lose competitive edge and premium content creators"
+    ]
+  },
+  "execution_framework": {
+    "phase_frameworks": [
+      {
+        "spec_title": "KRITIEKE FIXES - Audio Chunking",
+        "framework": {
+          "phase_orchestration": {
+            "total_estimated_duration": "3-4 hours",
+            "complexity": "high",
+            "approach": "sequential_with_validation",
+            "skip_allowed": false,
+            "rollback_on_failure": true
+          },
+          "task_execution_order": [
+            {
+              "sequence": 1,
+              "task_id": "1.0.1",
+              "estimated_minutes": 15,
+              "blocking": true,
+              "skip_policy": "never",
+              "failure_action": "stop_immediately"
+            },
+            {
+              "sequence": 2,
+              "task_id": "1.1.1",
+              "estimated_minutes": 30,
+              "blocking": true,
+              "skip_policy": "never",
+              "failure_action": "rollback_and_stop"
+            },
+            {
+              "sequence": 3,
+              "task_id": "1.1.2",
+              "estimated_minutes": 90,
+              "blocking": true,
+              "skip_policy": "never",
+              "failure_action": "rollback_and_stop"
+            },
+            {
+              "sequence": 3.5,
+              "task_id": "1.1.2b",
+              "estimated_minutes": 15,
+              "blocking": true,
+              "skip_policy": "never",
+              "failure_action": "rollback_and_stop"
+            },
+            {
+              "sequence": 4,
+              "task_id": "1.1.3",
+              "estimated_minutes": 20,
+              "blocking": true,
+              "skip_policy": "never",
+              "failure_action": "rollback_and_stop"
+            },
+            {
+              "sequence": 5,
+              "task_id": "1.1.4",
+              "estimated_minutes": 60,
+              "blocking": true,
+              "skip_policy": "never",
+              "failure_action": "rollback_and_stop"
+            }
+          ],
+          "validation_checkpoints": [
+            {
+              "after_task": "1.1.1",
+              "check": "python -c 'from dotenv import load_dotenv; print(\"Dotenv import works\")'",
+              "expected": "Dotenv import works",
+              "failure_action": "rollback_task_1.1.1"
+            },
+            {
+              "after_task": "1.1.2",
+              "check": "python -m py_compile agents2/audio_processing/audio_transcriber.py",
+              "expected": "No syntax errors",
+              "failure_action": "rollback_task_1.1.2"
+            },
+            {
+              "after_task": "1.1.2b",
+              "check": "grep -n 'SILENCE_DB\\|SILENCE_D' agents2/audio_processing/audio_transcriber.py",
+              "expected": "Environment variables found in silence detection method",
+              "failure_action": "rollback_task_1.1.2b"
+            },
+            {
+              "after_task": "1.1.4",
+              "check": "python -c 'from agents2.audio_processing.audio_transcriber import FastAudioTranscriber; print(\"Import OK\")'",
+              "expected": "Import OK",
+              "failure_action": "rollback_all"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "pre_flight_checks": {
+    "checks_by_spec": [
+      {
+        "spec_title": "KRITIEKE FIXES - Audio Chunking",
+        "system_dependencies": [
+          {
+            "check": "python -c 'import openai, dotenv, subprocess, tempfile, json, os; print(\"Dependencies OK\")'",
+            "expected": "Dependencies OK",
+            "error_action": "STOP - Install missing packages: pip install openai python-dotenv"
+          },
+          {
+            "check": "which ffmpeg && which ffprobe",
+            "expected": "ffmpeg and ffprobe paths",
+            "error_action": "STOP - Install ffmpeg: sudo apt install ffmpeg"
+          },
+          {
+            "check": "ls -la agents2/audio_processing/audio_transcriber.py",
+            "expected": "File exists and readable",
+            "error_action": "STOP - Core audio transcriber file missing"
+          },
+          {
+            "check": "grep -n '_transcribe_with_openai_whisper_timestamped' agents2/audio_processing/audio_transcriber.py",
+            "expected": "Method found at specific line",
+            "error_action": "STOP - Core method missing or renamed"
+          },
+          {
+            "check": "grep -n 'viral_score.*Column' core/database_manager.py",
+            "expected": "viral_score column definition found",
+            "error_action": "STOP - Database schema not ready"
+          }
+        ],
+        "environment_validation": [
+          {
+            "check": "test -f .env && echo 'ENV file exists'",
+            "expected": "ENV file exists",
+            "error_action": "STOP - .env file missing"
+          },
+          {
+            "check": "grep -q OPENAI_API_KEY .env && echo 'OPENAI_API_KEY found'",
+            "expected": "OPENAI_API_KEY found",
+            "error_action": "WARNING - OPENAI_API_KEY missing, will fall back to mock"
+          }
+        ]
+      }
+    ]
+  },
+  "comprehensive_testing": {
+    "test_suites_by_spec": [
+      {
+        "spec_title": "KRITIEKE FIXES - Audio Chunking",
+        "scenarios": [
+          {
+            "scenario": "small_file_direct_processing",
+            "description": "Test <25MB file should process directly without chunking",
+            "setup": "Create or use audio file <20MB",
+            "command": "export $(cat .env | xargs) && python agents2/audio_processing/audio_transcriber.py '{\"audio_path\":\"test_small.wav\",\"method\":\"openai\"}'",
+            "expected": "method_used: openai, success: true, is_mock: false, allow_downstream: true",
+            "critical": true
+          },
+          {
+            "scenario": "medium_file_compression",
+            "description": "Test >25MB file should be compressed then processed",
+            "setup": "Create or use audio file 30-50MB",
+            "command": "export $(cat .env | xargs) && python agents2/audio_processing/audio_transcriber.py '{\"audio_path\":\"test_medium.wav\",\"method\":\"openai\"}'",
+            "expected": "method_used: openai, compression applied if needed, may use chunking if compressed file still ≥25MB",
+            "critical": true
+          },
+          {
+            "scenario": "large_file_chunking",
+            "description": "Test >100MB file should be chunked into 10-minute segments",
+            "setup": "Create or use 3-hour podcast file >100MB",
+            "command": "export $(cat .env | xargs) && python agents2/audio_processing/audio_transcriber.py '{\"audio_path\":\"3hour_podcast.mp3\",\"method\":\"openai\"}'",
+            "expected": "method_used: openai, 18+ chunks processed, merged transcript with timestamps, is_mock: false",
+            "critical": true
+          },
+          {
+            "scenario": "api_fallback_test",
+            "description": "Test fallback to mock when API key missing/invalid",
+            "setup": "Temporarily remove or invalidate OPENAI_API_KEY",
+            "command": "OPENAI_API_KEY='' python agents2/audio_processing/audio_transcriber.py '{\"audio_path\":\"test.wav\",\"method\":\"openai\"}'",
+            "expected": "method_used: mock, is_mock: true, allow_downstream: false, user_message contains guidance",
+            "critical": true
+          },
+          {
+            "scenario": "temp_cleanup_verification",
+            "description": "Test that temporary files are cleaned up after processing",
+            "setup": "Run chunking test and check temp directory",
+            "command": "find /tmp -type f -name '*.mp3' -mmin -5 2>/dev/null | wc -l",
+            "expected": "0 (no orphaned temp files from recent processing)",
+            "critical": true
+          }
+        ],
+        "success_validation": {
+          "must_pass_all": true,
+          "manual_checks": [
+            "Verify 3-hour podcast processes without timeout",
+            "Confirm transcript timestamps are correctly offset across chunks",
+            "Test memory usage stays reasonable during chunking",
+            "Validate that original audio quality is maintained in chunks"
+          ]
+        }
+      }
+    ]
+  },
+  "testing": {
+    "test_suites": [
+      {
+        "name": "Audio Chunking (3-Hour Podcast Support)",
+        "test_cases": [
+          {
+            "name": "Small file test",
+            "file_size": "<25MB",
+            "expected": "method_used: openai, direct processing"
+          },
+          {
+            "name": "Medium file test",
+            "file_size": ">25MB, <100MB",
+            "expected": "method_used: openai, compressed"
+          },
+          {
+            "name": "Large file test",
+            "file_size": ">100MB (3-hour podcast)",
+            "expected": "method_used: openai, chunks based on duration (10-min segments), merged transcript with correct offsets"
+          },
+          {
+            "name": "Fallback test",
+            "condition": "OPENAI_API_KEY empty",
+            "expected": "method_used: local (met chunks)"
+          }
+        ]
+      },
+      {
+        "name": "Virality Score API",
+        "endpoint": "http://localhost:8000/api/job/{job_id}",
+        "expected": "integer 0-100"
+      },
+      {
+        "name": "Captions Generation",
+        "input": "test.mp4 with segments",
+        "expected": "test.mp4.srt file generated"
+      }
+    ]
+  },
+  "success_metrics": [
+    {
+      "metric": "Max audio size",
+      "current": "25MB",
+      "target": "Unlimited",
+      "deadline": "Week 1"
+    },
+    {
+      "metric": "Viral score in UI",
+      "current": false,
+      "target": true,
+      "deadline": "Week 2"
+    },
+    {
+      "metric": "Auto-captions",
+      "current": false,
+      "target": true,
+      "deadline": "Week 3"
+    },
+    {
+      "metric": "Social export",
+      "current": false,
+      "target": true,
+      "deadline": "Week 4"
+    },
+    {
+      "metric": "Mock data handling",
+      "current": "Partial",
+      "target": "Full guard with allow_downstream check",
+      "deadline": "Week 1"
+    }
+  ],
+  "risks_and_mitigations": [
+    {
+      "risk": "Audio chunking memory gebruik",
+      "description": "OOM bij zeer grote files",
+      "mitigation": "Stream processing implementeren + temp file cleanup"
+    },
+    {
+      "risk": "UI framework verschillen",
+      "description": "ui-v2 vs ui-admin-clean inconsistentie",
+      "mitigation": "Focus op één UI (ui-v2)"
+    },
+    {
+      "risk": "FFmpeg dependencies",
+      "description": "Verschillende versies op dev/prod",
+      "mitigation": "Docker container met fixed versie"
+    }
+  ],
+  "execution_order": [
+    {
+      "priority": 1,
+      "task": "Audio chunking + 3-hour podcast support",
+      "reason": "blocker + marktvoordeel",
+      "timeline": "NOW"
+    },
+    {
+      "priority": 2,
+      "task": "Virality UI",
+      "reason": "quick win, backend klaar",
+      "timeline": "WEEK 2"
+    },
+    {
+      "priority": 3,
+      "task": "Auto-captions",
+      "reason": "user value",
+      "timeline": "WEEK 3"
+    },
+    {
+      "priority": 4,
+      "task": "Social export",
+      "reason": "nice-to-have",
+      "timeline": "WEEK 4"
+    }
+  ],
+  "unique_selling_point": {
+    "feature": "3-hour podcast processing",
+    "advantage": "significant marktvoordeel over concurrenten die bij 1-2 uur stoppen",
+    "status": "unlocked"
+  },
+  "validation": {
+    "date": "December 2024",
+    "status": "validated against current codebase",
+    "warnings": []
+  }
+}

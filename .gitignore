@@ -1,0 +1,279 @@
+##########################
+# Python
+##########################
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+##########################
+# Virtual Environment
+##########################
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+##########################
+# Node.js / Frontend
+##########################
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.npm
+.yarn-integrity
+
+# Frontend build artifacts
+ui-v2/dist/
+ui-v2/build/
+ui-admin-clean/dist/
+ui-admin-clean/build/
+
+##########################
+# IDE & Editors
+##########################
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+##########################
+# Logs & Debug Files
+##########################
+logs/
+*.log
+*.log.*
+*.jsonl
+api.log
+celery_beat.log
+frontend.log
+websocket.log
+io.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+##########################
+# Database
+##########################
+*.db
+*.sqlite
+*.sqlite3
+database/postgresql/backups/
+dump.rdb
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+##########################
+# Media & Test Files
+##########################
+# Ignore ALL video files everywhere (generated, downloaded, processed)
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+*.flv
+*.wmv
+*.m4v
+*.mpg
+*.mpeg
+*.3gp
+
+# Ignore ALL audio files
+*.mp3
+*.wav
+*.aac
+*.ogg
+*.wma
+*.flac
+*.m4a
+
+# Ignore image files that are generated/processed
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.webp
+*.svg
+*.ico
+# BUT allow specific important images
+!favicon.ico
+!ui-v2/public/assets/favicon.png
+!ui-v2/public/assets/favicon.svg
+!ui-v2/public/assets/og-image.jpg
+!ui-v2/public/assets/video-placeholder.svg
+
+# Ignore ALL content in io folders (input/output/processing)
+io/downloads/*
+!io/downloads/.gitkeep
+io/uploads/*
+!io/uploads/.gitkeep
+io/output/*
+!io/output/.gitkeep
+io/input/*
+!io/input/.gitkeep
+io/temp/*
+!io/temp/.gitkeep
+
+# Ignore chunks for resumable uploads
+io/uploads/chunks/
+
+# Test media folder - ignore everything
+test_media/
+downloads/
+
+##########################
+# Temporary Files
+##########################
+*.tmp
+*.temp
+.tmp/
+*.cache
+*.pid
+
+##########################
+# OS Files
+##########################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+##########################
+# Backup Files & V5 ENTERPRISE EXCLUSIONS
+##########################
+*.backup
+*.bak
+*backup*
+backups/
+_BACKUP_*
+
+# V5 ENTERPRISE: Exclude development/temp files
+gitignore_report.json
+celerybeat-schedule
+*.pid.lock
+
+# V5 ENTERPRISE: Exclude test data and reports  
+testing/jobs-queue/test_*.html
+testing/test-data/
+script-monitoring/demo_*.py
+endpoint-monitoring/data/*.json
+
+##########################
+# Environment Variables
+##########################
+.env
+.env.*
+.env.local
+.env.production
+.env.development
+.env.test
+
+##########################
+# Testing & Coverage
+##########################
+.coverage
+.coverage.*
+.pytest_cache/
+.hypothesis/
+nosetests.xml
+coverage.xml
+*.cover
+htmlcov/
+.tox/
+
+##########################
+# Documentation V5 ENTERPRISE
+##########################
+docs/_build/
+site/
+
+# Exclude all markdown files by default  
+*.md
+
+# V5 ENTERPRISE: Include only current active documentation
+!TEST.md
+!README.md
+!LICENSE
+!SYSTEM_OVERVIEW.md
+!ENTERPRISE_ARCHITECTURE_SUMMARY.md
+
+# V5 ENTERPRISE: Include only current/ directory docs
+!docs/admin-architecture/current/
+!docs/admin-architecture/current/*.md
+
+# EXCLUDE outdated documentation directories
+docs/admin-architecture/Temp/
+docs/admin-architecture/archive/
+docs/admin-architecture/help/
+docs/admin-architecture/refactorendpointcalls/
+
+# EXCLUDE root-level handover files (outdated)
+/AI-Overdrachtsdocument-*.md
+/V4_*.md
+/JOBS_QUEUE_*.md
+/PROJECT_CONTEXT_*.md
+/UPDATES.md
+/V4_WEBSOCKET_*.md
+
+##########################
+# Monitoring & Analytics
+##########################
+endpoint-monitoring/data/*.json
+endpoint-monitoring/logs/
+monitoring/grafana/data/
+monitoring/prometheus/data/
+
+# Development Tools - lokale development tools (niet voor GitHub)
+code-health-monitor/
+script-monitoring/
+
+##########################
+# Misc
+##########################
+.cache/
+.parcel-cache/
+.nuxt/
+.next/
+.claude/
+*.seed
+*.pid.lock

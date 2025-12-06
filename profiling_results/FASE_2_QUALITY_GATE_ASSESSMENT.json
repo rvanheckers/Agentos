@@ -1,0 +1,508 @@
+{
+  "phase": "FASE 2 - Performance Profiling",
+  "quality_gate": "CONDITIONAL APPROVAL",
+  "assessment_date": "2025-09-30T17:45:00Z",
+  "quality_guardian_verdict": "APPROVED WITH MINOR CONDITIONS",
+
+  "scores": {
+    "context7_methodology_score": 8.7,
+    "agent_self_check_score": 9.0,
+    "quality_guardian_final_score": 8.5,
+    "delta_from_agent": -0.5,
+    "confidence_level": "HIGH"
+  },
+
+  "executive_summary": {
+    "verdict": "Agent heeft uitstekend werk geleverd met moderne profiling tools en data-backed bottleneck analysis. Methodology is sound en Context7-validated. PRIMARY ISSUE: statistisch onvoldoende samples (1 test run waar 3 vereist zijn voor confidence). Bottleneck analysis is accurate maar moet gevalideerd worden met meer samples voordat FASE 3 optimizations beginnen.",
+    "key_strengths": [
+      "Excellent tool selection: py-spy, Scalene, memray (modern, production-safe)",
+      "Accurate CPU vs I/O time measurement (94.4% I/O wait correctly identified)",
+      "Data-backed bottleneck analysis with specific metrics",
+      "Context7-validated methodology BEFORE implementation",
+      "Clear actionable recommendations with code examples",
+      "Proper identification of blocker issues (intelligent_crop failure)"
+    ],
+    "critical_issues": [
+      {
+        "severity": "MEDIUM",
+        "issue": "Insufficient statistical samples: only 1 test run (target: minimum 3 for confidence intervals)",
+        "impact": "Cannot verify bottlenecks are consistent vs measurement artifacts",
+        "required_action": "Run profiling on 2 additional videos (different sizes/types), verify bottlenecks consistent"
+      }
+    ],
+    "approval_conditions": [
+      "Run profiling on 2 more diverse video samples (short <1min, medium 3-5min)",
+      "Verify top 3 bottlenecks (MomentDetector 17s, download 6s, crop failure) consistent across samples",
+      "Update bottleneck_analysis.json with averaged metrics + standard deviation",
+      "Document variance in timing across samples"
+    ]
+  },
+
+  "methodology_assessment": {
+    "score": 8.7,
+    "tools_evaluation": {
+      "tools_used": [
+        "py-spy 0.4.1 (production-safe CPU profiling)",
+        "Scalene 1.5.55 (comprehensive CPU+Memory+GPU)",
+        "memray 1.18.0 (memory leak detection)",
+        "psutil 5.9.8 (resource monitoring)"
+      ],
+      "tool_selection_quality": "EXCELLENT",
+      "context7_validation": true,
+      "tool_correctness": {
+        "py_spy_usage": {
+          "correct": true,
+          "command": "py-spy record --output file.svg --format speedscope --rate 100 --nonblocking -- python script.py",
+          "assessment": "Correct flags: speedscope format (modern), 100Hz sampling (good balance), nonblocking (production-safe <5% overhead)",
+          "context7_verified": true
+        },
+        "scalene_usage": {
+          "correct": true,
+          "command": "scalene --html --outfile report.html --json --profile-all --reduced-profile --cpu-percent-threshold 1 --malloc-threshold 100 script.py",
+          "assessment": "Correct flags: HTML+JSON output, reduced profile (non-zero only), appropriate thresholds",
+          "context7_verified": true
+        },
+        "memray_usage": {
+          "correct": true,
+          "command": "memray run --output file.bin --trace-python-allocators --native script.py",
+          "assessment": "Correct flags: trace-python-allocators (leak detection), native (C/C++ tracking)",
+          "context7_verified": true
+        }
+      }
+    },
+    "measurement_technique": {
+      "cpu_time_measurement": "EXCELLENT - uses psutil cpu_times() for accurate user+system time separation",
+      "wall_time_measurement": "EXCELLENT - uses time.perf_counter() (high-resolution timer)",
+      "memory_tracking": "EXCELLENT - uses psutil memory_info().rss (actual physical memory)",
+      "io_detection": "EXCELLENT - correctly identifies I/O wait as (wall_time - cpu_time) = 29s I/O out of 30.9s total",
+      "overhead_consideration": "GOOD - profiling tools have <5% overhead, minimal impact on results"
+    },
+    "test_conditions": {
+      "environment": "WSL2 Ubuntu 22.04, 20 CPU cores, 15.18GB RAM",
+      "video_sample": "io/input/video_1751932054.mp4 (12 MB)",
+      "test_runs": 1,
+      "target_runs": 3,
+      "sample_diversity": "LOW - only 1 video type tested (need short/medium/long samples)",
+      "statistical_validity": "INSUFFICIENT - need minimum 3 samples for confidence intervals (per pyperf best practices)",
+      "baseline_captured": true,
+      "reproducibility": "UNKNOWN - single sample cannot assess variance"
+    },
+    "context7_consultation": {
+      "performed_before_implementation": true,
+      "documented_in_handover": true,
+      "recommendations_followed": true,
+      "validation_score": 9.2
+    },
+    "strengths": [
+      "Production-safe tools with minimal overhead (<5%)",
+      "Accurate separation of CPU time vs I/O wait time",
+      "Modern tooling (not deprecated tools like cProfile for this use case)",
+      "Comprehensive coverage: CPU, memory, native allocations",
+      "Clear documentation of methodology in scripts"
+    ],
+    "weaknesses": [
+      "Only 1 test sample (statistical best practice: minimum 3 for confidence)",
+      "No variance/standard deviation calculated (cannot assess measurement stability)",
+      "No cross-validation between different video sizes/types",
+      "No baseline comparison file for later regression testing"
+    ]
+  },
+
+  "bottleneck_analysis_quality": {
+    "score": 8.6,
+    "bottlenecks_found": 5,
+    "bottlenecks_validated": [
+      {
+        "name": "MomentDetector API Latency",
+        "priority": "HIGH",
+        "data_quality": "EXCELLENT",
+        "metrics": {
+          "execution_time": "17.09s (55% pipeline)",
+          "cpu_time": "0.97s (user+system)",
+          "io_wait_time": "16.12s (94% task time)",
+          "memory_delta": "17.81 MB"
+        },
+        "root_cause_analysis": "EXCELLENT - correctly identifies synchronous API calls with 16s I/O wait",
+        "evidence_quality": "STRONG - CPU vs wall time delta clearly shows I/O bottleneck",
+        "recommendation_quality": "EXCELLENT - specific code examples (Redis caching, async API, timeout)",
+        "expected_improvement": "60-75% reduction (17s → 4-7s)",
+        "context7_validated": true,
+        "cross_validated": false,
+        "notes": "Need to verify with more samples - could be network latency variation"
+      },
+      {
+        "name": "Download Video I/O Cleanup",
+        "priority": "MEDIUM",
+        "data_quality": "EXCELLENT",
+        "metrics": {
+          "execution_time": "6.25s (20% pipeline)",
+          "cleanup_time": "6.2s (99% task time)",
+          "cpu_time": "0.76s"
+        },
+        "root_cause_analysis": "EXCELLENT - identifies synchronous folder scanning blocking startup",
+        "evidence_quality": "STRONG - profiler output explicitly shows '🧹 IO FOLDER CLEANUP: 6.2s'",
+        "recommendation_quality": "EXCELLENT - move to Celery Beat background task (clear implementation)",
+        "expected_improvement": "92% reduction (6.25s → 0.5s)",
+        "context7_validated": true,
+        "cross_validated": false,
+        "notes": "Quick win - simple architectural change"
+      },
+      {
+        "name": "Intelligent Crop Resolution Detection Failure",
+        "priority": "HIGH (BLOCKER)",
+        "data_quality": "EXCELLENT",
+        "metrics": {
+          "failure_rate": "100%",
+          "error": "Could not determine video resolution",
+          "cascading_failures": 2
+        },
+        "root_cause_analysis": "GOOD - hypothesis about cv2.VideoCapture failure, needs verification",
+        "evidence_quality": "STRONG - error logged in profiling output",
+        "recommendation_quality": "EXCELLENT - video validation function with fallback to 1920x1080",
+        "expected_improvement": "Eliminate 33% pipeline failure rate",
+        "context7_validated": true,
+        "cross_validated": false,
+        "notes": "BLOCKER - must fix before optimizations. Verify error consistent across samples."
+      },
+      {
+        "name": "Cut Videos Cascading Failure",
+        "priority": "HIGH",
+        "data_quality": "EXCELLENT",
+        "metrics": {
+          "failure_rate": "100% (depends on intelligent_crop)",
+          "error": "Video cutting failed"
+        },
+        "root_cause_analysis": "EXCELLENT - correctly identifies cascading failure from upstream task",
+        "evidence_quality": "STRONG - clear dependency chain documented",
+        "recommendation_quality": "EXCELLENT - graceful degradation with fallback to original video",
+        "expected_improvement": "Reduce cascading failures from 100% to <10%",
+        "context7_validated": true,
+        "cross_validated": false,
+        "notes": "Secondary issue - will resolve after intelligent_crop fix"
+      },
+      {
+        "name": "UUID Validation in Profiling",
+        "priority": "LOW",
+        "data_quality": "EXCELLENT",
+        "metrics": {
+          "database_errors": "8+ per run",
+          "error_type": "psycopg2.errors.InvalidTextRepresentation"
+        },
+        "root_cause_analysis": "EXCELLENT - profiling script generates string job_id instead of UUID",
+        "evidence_quality": "STRONG - error logged multiple times in output",
+        "recommendation_quality": "EXCELLENT - use uuid.uuid4() + validation wrapper",
+        "expected_improvement": "Eliminate 8+ database errors per profiling run",
+        "context7_validated": true,
+        "cross_validated": false,
+        "notes": "Low priority - doesn't affect production, only profiling script"
+      }
+    ],
+    "analysis_strengths": [
+      "All bottlenecks have quantified metrics (seconds, %, MB)",
+      "Root causes explained with technical detail",
+      "Recommendations include working code examples",
+      "Expected improvements are realistic based on I/O optimization patterns",
+      "Clear prioritization by impact × effort",
+      "Blocker issues correctly identified"
+    ],
+    "analysis_weaknesses": [
+      "No cross-validation between profiling tools (e.g., py-spy flame graph vs Scalene line profile)",
+      "Single sample cannot distinguish real bottleneck from measurement artifact",
+      "No confidence intervals or variance estimates",
+      "Missing: actual flame graph files for visual bottleneck confirmation"
+    ]
+  },
+
+  "tool_usage_correctness": {
+    "score": 9.0,
+    "py_spy": {
+      "command_correct": true,
+      "flags_appropriate": true,
+      "production_safe": true,
+      "overhead": "<5% (nonblocking mode)",
+      "output_format": "speedscope (modern, interactive)",
+      "issues": "None"
+    },
+    "scalene": {
+      "command_correct": true,
+      "flags_appropriate": true,
+      "features_enabled": ["HTML output", "JSON output", "reduced profile", "CPU+Memory tracking"],
+      "thresholds_reasonable": true,
+      "issues": "None"
+    },
+    "memray": {
+      "command_correct": true,
+      "flags_appropriate": true,
+      "native_tracking": true,
+      "leak_detection": true,
+      "issues": "None"
+    },
+    "psutil": {
+      "usage_correct": true,
+      "metrics_tracked": ["CPU time (user+system)", "memory RSS", "process info"],
+      "accuracy": "HIGH - correct use of perf_counter and cpu_times",
+      "issues": "None"
+    },
+    "overall_assessment": "Tools used correctly per Context7 documentation. No errors in command syntax or flag usage."
+  },
+
+  "statistical_validity_check": {
+    "score": 6.5,
+    "sample_size": {
+      "actual": 1,
+      "target": 3,
+      "context7_recommendation": "pyperf best practices: minimum 3-5 runs for confidence intervals",
+      "sufficient": false,
+      "reasoning": "Single sample cannot provide variance estimate or confidence intervals. Cannot distinguish measurement artifacts from real bottlenecks."
+    },
+    "variance_analysis": {
+      "calculated": false,
+      "standard_deviation": "N/A - need multiple samples",
+      "confidence_intervals": "N/A - need multiple samples",
+      "outlier_detection": "N/A - need multiple samples"
+    },
+    "test_diversity": {
+      "video_types_tested": 1,
+      "recommended_types": ["short (<1min)", "medium (3-5min)", "long (10-15min)"],
+      "content_diversity": ["music", "spoken", "mixed"],
+      "current_coverage": "LOW - only 1 video (12MB, unknown type)"
+    },
+    "reproducibility": {
+      "can_reproduce": true,
+      "variance_known": false,
+      "baseline_established": true,
+      "regression_testing_ready": false
+    },
+    "context7_guidance": "pyperf documentation recommends 3-5 benchmark runs with outlier detection and variance calculation. Single run is insufficient for production decisions.",
+    "critical_concern": "With 1 sample, cannot verify if '17s MomentDetector time' is consistent or a network latency spike. MUST run 2+ more samples before implementing optimizations."
+  },
+
+  "cross_tool_validation": {
+    "score": 5.0,
+    "performed": false,
+    "missing_validations": [
+      "py-spy flame graph NOT generated - cannot visually confirm MomentDetector hot path",
+      "Scalene HTML report NOT generated - cannot verify line-by-line bottlenecks",
+      "memray report NOT generated - cannot verify memory allocation patterns",
+      "No cross-reference between psutil metrics and flame graph data"
+    ],
+    "recommendation": "After running 2 more samples, generate ALL tool outputs (flame graphs, Scalene HTML, memray flamegraph) and verify bottlenecks appear in MULTIPLE tools",
+    "rationale": "Single-tool measurements can have artifacts. Cross-tool validation increases confidence."
+  },
+
+  "documentation_quality": {
+    "score": 9.2,
+    "handover_summary": {
+      "completeness": "EXCELLENT - comprehensive summary with all key findings",
+      "clarity": "EXCELLENT - clear structure with executive summary, details, roadmap",
+      "actionable": "EXCELLENT - specific recommendations with code examples",
+      "context7_scores_included": true
+    },
+    "bottleneck_analysis_json": {
+      "completeness": "EXCELLENT - all required fields present",
+      "structure": "EXCELLENT - machine-readable + human-readable",
+      "metrics_included": true,
+      "recommendations_detailed": true
+    },
+    "profiling_scripts": {
+      "documented": true,
+      "usage_examples": true,
+      "comments_quality": "EXCELLENT - clear explanations of flags and usage"
+    }
+  },
+
+  "context7_validation_results": {
+    "methodology_validation": {
+      "query": "Python profiling best practices with py-spy, Scalene, memray",
+      "result": "VALIDATED - tools match Context7 recommendations for production profiling",
+      "score": 9.2,
+      "notes": "Scalene docs confirm: 'high-performance CPU, GPU, and memory profiler with AI-powered optimization suggestions'. Memray docs confirm: 'fast and accurate memory profiler tracing all allocations including native calls'."
+    },
+    "statistical_requirements": {
+      "query": "Performance benchmarking statistical significance sample size",
+      "result": "INSUFFICIENT SAMPLES - pyperf best practices require 3-5 runs with variance calculation",
+      "score": 6.5,
+      "notes": "pyperf docs state: 'run multiple times to compute mean, median, standard deviation, percentiles, and identify outliers'. Single run provides no statistical confidence."
+    },
+    "tool_correctness": {
+      "query": "py-spy Scalene memray correct usage flags",
+      "result": "VALIDATED - all tool invocations correct per documentation",
+      "score": 9.0,
+      "notes": "Command flags match official docs. Production-safe settings confirmed."
+    }
+  },
+
+  "issues_found": [
+    {
+      "severity": "MEDIUM",
+      "category": "Statistical Validity",
+      "issue": "Only 1 test sample run (target: minimum 3 for statistical confidence)",
+      "file": "profiling workflow",
+      "line": "N/A",
+      "evidence": "pipeline_profile_20250930_171732.json shows single timestamp, bottleneck_analysis.json has no variance data",
+      "impact": "Cannot verify bottlenecks are consistent vs measurement artifacts. Risk: optimizing for a network latency spike instead of real bottleneck.",
+      "required_action": "Run profiling on 2 additional videos: (1) short music video <1min, (2) medium spoken content 3-5min. Verify top 3 bottlenecks consistent across all 3 samples.",
+      "blocking": false,
+      "context7_reference": "pyperf documentation: 'number of runs with values: 40' showing multiple samples required for confidence"
+    },
+    {
+      "severity": "LOW",
+      "category": "Cross-Validation",
+      "issue": "No flame graphs or visual reports generated to cross-validate bottlenecks",
+      "file": "profiling_results/",
+      "line": "N/A",
+      "evidence": "Only pipeline_profile JSON exists. No .svg flame graphs, no Scalene HTML reports, no memray flamegraphs.",
+      "impact": "Cannot visually confirm bottlenecks. Single-tool measurements may have artifacts.",
+      "required_action": "Generate py-spy flamegraph, Scalene HTML report, memray flamegraph. Verify MomentDetector appears as wide bar in ALL tools.",
+      "blocking": false,
+      "context7_reference": "Scalene docs: 'HTML output with visualizations for identifying hotspots'"
+    },
+    {
+      "severity": "LOW",
+      "category": "Test Coverage",
+      "issue": "Only 1 video type tested (12MB, unknown content type)",
+      "file": "profiling workflow",
+      "line": "N/A",
+      "evidence": "test_conditions shows 'video_file: io/input/video_1751932054.mp4' (single file)",
+      "impact": "Bottlenecks may vary with video size, duration, or content type. Short videos may not trigger API latency.",
+      "required_action": "Test with diverse samples: short <1min (music), medium 3-5min (spoken), long 10-15min (mixed). Verify bottlenecks scale with video complexity.",
+      "blocking": false,
+      "context7_reference": "Benchmark best practices: test across representative workload samples"
+    }
+  ],
+
+  "approval_conditions": [
+    {
+      "condition": "Run profiling on 2 additional diverse video samples",
+      "priority": "HIGH",
+      "rationale": "Need minimum 3 samples for statistical confidence per pyperf best practices",
+      "acceptance_criteria": [
+        "Sample 1: Short video (<1min) music content",
+        "Sample 2: Medium video (3-5min) spoken content",
+        "All 3 samples show consistent bottlenecks (variance <20%)",
+        "Update bottleneck_analysis.json with averaged metrics + stddev"
+      ],
+      "estimated_effort": "2 hours"
+    },
+    {
+      "condition": "Generate and review cross-validation reports",
+      "priority": "MEDIUM",
+      "rationale": "Flame graphs provide visual confirmation of bottlenecks from different tool perspectives",
+      "acceptance_criteria": [
+        "py-spy flame graph shows MomentDetector as wide bar",
+        "Scalene HTML report confirms 16s system time in detect_moments",
+        "memray flamegraph shows no memory leaks in MomentDetector",
+        "All tools agree on top 3 bottlenecks"
+      ],
+      "estimated_effort": "1 hour"
+    },
+    {
+      "condition": "Document variance and confidence intervals",
+      "priority": "MEDIUM",
+      "rationale": "Need to know stability of measurements for regression testing",
+      "acceptance_criteria": [
+        "Calculate mean ± stddev for each task execution time",
+        "Identify any outliers (>2 stddev from mean)",
+        "Document variance in bottleneck_analysis.json",
+        "Create baseline file for future comparisons"
+      ],
+      "estimated_effort": "30 minutes"
+    }
+  ],
+
+  "risk_assessment": {
+    "proceeding_without_more_samples": {
+      "risk_level": "MEDIUM",
+      "scenario": "Implement optimizations based on single sample",
+      "potential_consequences": [
+        "Optimize for a network latency spike instead of real bottleneck",
+        "Waste engineering time on non-reproducible issue",
+        "Miss real bottlenecks that only appear with different video types",
+        "No baseline for measuring optimization effectiveness"
+      ],
+      "mitigation": "Run 2 more samples BEFORE starting FASE 3 optimizations (cost: 2 hours vs weeks of wasted optimization)"
+    },
+    "statistical_confidence": {
+      "current": "LOW - single sample provides point estimate only",
+      "target": "HIGH - 3 samples provide mean, variance, and confidence intervals",
+      "gap": "2 additional samples needed"
+    }
+  },
+
+  "recommendations": {
+    "immediate_actions": [
+      "✅ APPROVE methodology and bottleneck analysis structure (excellent quality)",
+      "⚠️ DEFER FASE 3 optimizations until 2 more samples collected",
+      "🔄 Run profiling on short music video (<1min)",
+      "🔄 Run profiling on medium spoken video (3-5min)",
+      "🔄 Generate flame graphs from all 3 samples",
+      "🔄 Calculate mean ± stddev for top 3 bottlenecks",
+      "🔄 Update bottleneck_analysis.json with variance data"
+    ],
+    "before_fase_3": [
+      "Verify MomentDetector 17s ± X seconds consistent across samples",
+      "Verify download_video 6s cleanup consistent",
+      "Verify intelligent_crop failure consistent (or sample-specific)",
+      "Create baseline comparison file for regression testing",
+      "Document expected variance for each task"
+    ],
+    "quality_improvements": [
+      "Add automated profiling script that runs N samples and calculates statistics",
+      "Integrate profiling into CI/CD for regression detection",
+      "Create profiling dashboard showing trends over time",
+      "Add alert thresholds for task execution time regressions"
+    ]
+  },
+
+  "final_verdict": {
+    "decision": "CONDITIONAL APPROVAL",
+    "reasoning": "Agent demonstrated excellent profiling methodology with Context7-validated modern tools. Bottleneck analysis is thorough and well-documented with actionable recommendations. PRIMARY GAP: statistical validity requires minimum 3 samples per benchmarking best practices. Current 1 sample is insufficient to verify bottlenecks are consistent vs measurement artifacts. RISK: implementing optimizations based on single sample could waste engineering time on non-reproducible issues.",
+    "approval_with_conditions": true,
+    "blocking_issues": 0,
+    "required_actions_before_fase_3": [
+      "Run 2 additional profiling samples (diverse videos)",
+      "Verify top 3 bottlenecks consistent (variance <20%)",
+      "Update bottleneck_analysis.json with statistics"
+    ],
+    "proceed_to_fase_3": false,
+    "proceed_to_fase_2_completion": true,
+    "next_step": "Agent should run 2 more samples, then return for final approval"
+  },
+
+  "comparison_with_measure_first_md": {
+    "requirement": "Minimum 3 test samples for statistical significance",
+    "actual": "1 test sample",
+    "compliant": false,
+    "gap": "2 additional samples needed",
+    "severity": "MEDIUM - methodology correct, just need more data"
+  },
+
+  "top_0_1_percent_perspective": {
+    "what_world_class_engineer_would_flag": [
+      "🎯 'Sample size N=1 gives zero statistical power. Need N≥3 for confidence intervals.' (FLAGGED)",
+      "🎯 'No flame graph cross-validation - single-tool measurements can have artifacts.' (FLAGGED)",
+      "🎯 '17s API latency could be network spike. Verify with multiple samples before optimizing.' (FLAGGED)",
+      "✅ 'Excellent tool choice - py-spy/Scalene/memray are industry standard for production profiling.' (APPROVED)",
+      "✅ 'Clear separation of CPU vs I/O time shows deep understanding of performance analysis.' (APPROVED)",
+      "🎯 'Missing: percentile analysis (P50/P95/P99) - important for latency-sensitive systems.' (IMPROVEMENT)",
+      "🎯 'Missing: profiling under load - current test is single-request, not concurrent load.' (FUTURE WORK)"
+    ],
+    "what_agent_did_exceptionally_well": [
+      "Consulted Context7 BEFORE choosing tools (not after)",
+      "Used production-safe profiling (<5% overhead)",
+      "Correctly identified I/O vs CPU bottlenecks (rare skill)",
+      "Provided actionable recommendations with working code",
+      "Clear prioritization by impact × effort",
+      "Identified blocker issues correctly"
+    ],
+    "what_separates_good_from_great": "Great engineers verify variance BEFORE making decisions. Single sample = hypothesis. Three samples = data. Agent has hypothesis, now needs data."
+  },
+
+  "quality_guardian_notes": {
+    "overall_impression": "Agent performance: 9/10 on methodology, 7/10 on statistical rigor. Excellent technical profiling work hampered by insufficient sampling. Easy fix: just run 2 more samples.",
+    "commendation": "Agent showed top-tier engineering judgment by consulting Context7 before implementation and using modern production-safe tools. Bottleneck analysis is thorough and well-documented.",
+    "improvement_area": "Statistical validity is non-negotiable for performance work. Always run multiple samples - variance matters as much as mean.",
+    "learning_moment": "This is exactly why profiling standards require N≥3: to distinguish real bottlenecks from measurement noise. Agent's methodology is sound, just needs more data.",
+    "recommendation_to_team": "Approve agent's methodology and bottleneck framework. Hold FASE 3 optimizations until 2 more samples collected (2 hour investment to avoid weeks of wasted optimization)."
+  }
+}

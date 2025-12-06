@@ -1,0 +1,117 @@
+{
+  "timestamp": "2025-10-13T14:35:03.661896",
+  "video_input": "https://www.youtube.com/watch?v=X1AFgQZW0aA",
+  "job_id": "profile_1760358903",
+  "system_info": {
+    "cpu_count": 20,
+    "cpu_freq_mhz": 1996.2030000000007,
+    "total_memory_gb": 15.18,
+    "available_memory_gb": 12.71,
+    "platform": "linux",
+    "python_version": "3.10.12"
+  },
+  "tasks": {
+    "download_video": {
+      "status": "success",
+      "execution_time_seconds": 4.581,
+      "cpu_time_user_seconds": 0.59,
+      "cpu_time_system_seconds": 0.17,
+      "memory_delta_mb": 34.59,
+      "memory_peak_mb": 88.25,
+      "result_type": "dict",
+      "priority": "LOW",
+      "issue": null
+    },
+    "transcribe_audio": {
+      "status": "success",
+      "execution_time_seconds": 1.054,
+      "cpu_time_user_seconds": 0.11,
+      "cpu_time_system_seconds": 0.05,
+      "memory_delta_mb": 4.38,
+      "memory_peak_mb": 92.62,
+      "result_type": "dict",
+      "priority": "LOW",
+      "issue": null
+    },
+    "detect_moments": {
+      "status": "error",
+      "error": "Video validation failed: Invalid MIME type: text/plain (expected video/*)",
+      "execution_time_seconds": 0,
+      "priority": "HIGH",
+      "issue": "Task failed: Video validation failed: Invalid MIME type: text/plain (expected video/*)"
+    },
+    "detect_faces": {
+      "status": "success",
+      "execution_time_seconds": 7.561,
+      "cpu_time_user_seconds": 1.13,
+      "cpu_time_system_seconds": 2.65,
+      "memory_delta_mb": 259.59,
+      "memory_peak_mb": 357.52,
+      "result_type": "dict",
+      "priority": "LOW",
+      "issue": null
+    },
+    "intelligent_crop": {
+      "status": "error",
+      "error": "Security validation failed: Invalid MIME type: text/plain (expected video/*)",
+      "execution_time_seconds": 0,
+      "priority": "HIGH",
+      "issue": "Task failed: Security validation failed: Invalid MIME type: text/plain (expected video/*)"
+    },
+    "cut_videos": {
+      "status": "error",
+      "error": "Security validation failed: Invalid MIME type: text/plain (expected video/*)",
+      "execution_time_seconds": 0,
+      "priority": "HIGH",
+      "issue": "Task failed: Security validation failed: Invalid MIME type: text/plain (expected video/*)"
+    }
+  },
+  "summary": {
+    "total_pipeline_time_seconds": 16.54,
+    "successful_tasks": 3,
+    "failed_tasks": 3,
+    "slowest_tasks": [
+      {
+        "task": "detect_faces",
+        "time_seconds": 7.56
+      },
+      {
+        "task": "download_video",
+        "time_seconds": 4.58
+      },
+      {
+        "task": "transcribe_audio",
+        "time_seconds": 1.05
+      }
+    ],
+    "memory_heavy_tasks": [
+      {
+        "task": "detect_faces",
+        "memory_delta_mb": 259.59
+      },
+      {
+        "task": "download_video",
+        "memory_delta_mb": 34.59
+      },
+      {
+        "task": "transcribe_audio",
+        "memory_delta_mb": 4.38
+      }
+    ],
+    "high_priority_issues_count": 3,
+    "high_priority_issues": [
+      {
+        "task": "detect_moments",
+        "issue": "Task failed: Video validation failed: Invalid MIME type: text/plain (expected video/*)"
+      },
+      {
+        "task": "intelligent_crop",
+        "issue": "Task failed: Security validation failed: Invalid MIME type: text/plain (expected video/*)"
+      },
+      {
+        "task": "cut_videos",
+        "issue": "Task failed: Security validation failed: Invalid MIME type: text/plain (expected video/*)"
+      }
+    ]
+  }
+}

@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="nl" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="common.app_title">AgentOS VideoProcessor - Intelligente Video Bewerking</title>
+  <meta name="description" data-i18n="common.app_description" content="Maak professionele video clips, hoogtepunten en samenvattingen met AI-technologie">
+  
+  <!-- Preload CSS -->
+  <link rel="preload" href="./public/css/main.css?v=2" as="style">
+  
+  <!-- Critical CSS inline for fastest render -->
+  <style>
+    /* Critical above-the-fold styles */
+    :root {
+      /* Design System Variables */
+      --primary-500: #4C6EF5;
+      --primary-400: #748FFC;
+      --primary-600: #3B5BDB;
+      --success-500: #51CF66;
+      --warning-500: #FFD43B;
+      --danger-500: #FF6B6B;
+      --gray-900: #212529;
+      --gray-700: #495057;
+      --gray-500: #868E96;
+      --gray-300: #DEE2E6;
+      --gray-100: #F8F9FA;
+      --gray-50: #FFFFFF;
+      
+      /* Typography */
+      --font-family-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --text-xs: 0.75rem;
+      --text-sm: 0.875rem;
+      --text-base: 1rem;
+      --text-lg: 1.125rem;
+      --text-xl: 1.25rem;
+      --text-2xl: 1.5rem;
+      --text-3xl: 1.875rem;
+      --text-4xl: 2.25rem;
+      
+      /* Spacing */
+      --space-1: 0.25rem;
+      --space-2: 0.5rem;
+      --space-3: 0.75rem;
+      --space-4: 1rem;
+      --space-6: 1.5rem;
+      --space-8: 2rem;
+      --space-12: 3rem;
+      --space-16: 4rem;
+      --space-20: 5rem;
+      
+      /* Animations */
+      --transition-fast: 0.15s ease;
+      --transition-base: 0.2s ease;
+      --transition-slow: 0.3s ease;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: var(--font-family-primary);
+      font-size: var(--text-base);
+      line-height: 1.6;
+      color: var(--gray-900);
+      background-color: var(--gray-50);
+      overflow-x: hidden;
+    }
+    
+    /* Loading state */
+    .app-loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--gray-50);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--gray-300);
+      border-top: 3px solid var(--primary-500);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Hide content until loaded */
+    .app-content {
+      opacity: 0;
+      transition: opacity var(--transition-slow);
+    }
+    
+    .app-content.loaded {
+      opacity: 1;
+    }
+    
+    /* Progressive Enhancement base styles */
+    .hidden { display: none !important; }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="./public/css/main.css?v=2">
+  <link rel="stylesheet" href="./public/css/visual-rich.css?v=2">
+  <link rel="stylesheet" href="./public/css/results-grid.css?v=2">
+  <link rel="stylesheet" href="./public/css/processing-insights.css?v=1">
+  <link rel="stylesheet" href="./public/css/analytics.css?v=2">
+  <link rel="stylesheet" href="./public/css/clip-settings.css?v=1">
+  <link rel="stylesheet" href="./public/css/processing-timer.css?v=1">
+  
+  <!-- Preconnect to external domains -->
+  <link rel="preconnect" href="http://localhost:8001" crossorigin>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="./public/assets/favicon.svg">
+  <link rel="icon" type="image/png" href="./public/assets/favicon.png">
+  
+  <!-- PWA manifest -->
+  <link rel="manifest" href="./public/manifest.json">
+  <meta name="theme-color" content="#4C6EF5">
+  
+  <!-- Social media meta tags -->
+  <meta property="og:title" data-i18n="common.app_title" content="Video Clipper - AI Video Processing">
+  <meta property="og:description" data-i18n="common.app_description" content="Create viral clips, highlights and summaries from your videos using AI">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="./public/assets/og-image.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+</head>
+
+<body>
+  <!-- Loading Screen -->
+  <div class="app-loading" id="loadingScreen">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <p data-i18n="common.loading" style="margin-top: var(--space-4); color: var(--gray-700);">
+        Laden...
+      </p>
+    </div>
+  </div>
+
+  <!-- Main Application -->
+  <div class="app-content" id="appContent">
+    <!-- Header with Language Switcher -->
+    <header class="app-header">
+      <div class="header-container">
+        <div class="header-left">
+          <div class="logo">
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+              <defs>
+                <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+                </linearGradient>
+              </defs>
+              <rect width="40" height="40" rx="12" fill="url(#logoGradient)"/>
+              <path d="M15 12L27 20L15 28V12Z" fill="white"/>
+              <circle cx="30" cy="10" r="4" fill="#10b981" opacity="0.8"/>
+            </svg>
+            <span class="logo-text" data-i18n="common.app_name">AgentOS VideoProcessor</span>
+          </div>
+          
+          <!-- Clean Header - No Duplicate Text -->
+          <nav class="main-nav">
+            <!-- Navigation simplified to avoid duplication with logo -->
+          </nav>
+        </div>
+        
+        <div class="header-right">
+          <!-- Language Switcher -->
+          <div class="language-switcher">
+            <select id="languageSelect" 
+                    class="language-select"
+                    aria-label="Select language">
+              <option value="nl">🇳🇱 Nederlands</option>
+              <option value="en">🇬🇧 English</option>
+              <option value="de">🇩🇪 Deutsch</option>
+              <option value="fr">🇫🇷 Français</option>
+            </select>
+          </div>
+          
+          <!-- Admin Dashboard Link -->
+          <a href="http://localhost:8003/" class="admin-link" title="Admin Dashboard" target="_blank">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+            </svg>
+          </a>
+          
+          <!-- Help Button -->
+          <button class="help-button" 
+                  id="helpButton"
+                  data-i18n-title="common.help">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM8.94 6.94a.75.75 0 11-1.061-1.061C8.735 4.017 9.61 3.75 10.25 3.75s1.515.267 2.371 1.129c.87.876 1.129 1.996 1.129 2.621 0 .76-.316 1.569-1.128 2.628l-.372.486c-.17.22-.299.457-.299.696v.142a.75.75 0 01-1.5 0v-.142c0-.81.414-1.514.832-2.069l.348-.454c.477-.625.668-1.036.668-1.287 0-.296-.113-.66-.398-.944a.653.653 0 00-.478-.199c-.266 0-.398.126-.478.199-.085.078-.172.15-.248.298a.75.75 0 11-1.28-.781c.093-.146.230-.296.398-.476zM10 15a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="app-main" id="appMain">
+      
+      <!-- Content Views -->
+      <div class="content-view active" id="processorView">
+      
+      <!-- Step 1: Intent Selection (Initial View) -->
+      <section class="step step-intent active" id="stepIntent">
+        <div class="step-container">
+          <div class="step-header">
+            <h1 class="step-title" data-i18n="intent.title">
+              Wat wil je met je video doen?
+            </h1>
+            <p class="step-subtitle" data-i18n="intent.subtitle">
+              Kies wat je wilt maken van je video
+            </p>
+          </div>
+          
+          <div class="intent-grid" id="intentGrid">
+            <!-- Visual Clips - Smart social media clips -->
+            <div class="intent-card" data-intent="visual_clips" tabindex="0" role="button">
+              <div class="intent-icon">
+                <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+                  <defs>
+                    <linearGradient id="shortGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+                      <stop offset="100%" style="stop-color:#1d4ed8;stop-opacity:1" />
+                    </linearGradient>
+                  </defs>
+                  <circle cx="32" cy="32" r="30" fill="url(#shortGradient)" opacity="0.1"/>
+                  <rect x="12" y="12" width="40" height="40" rx="8" fill="url(#shortGradient)"/>
+                  <path d="M24 20L40 32L24 44V20Z" fill="white"/>
+                  <circle cx="50" cy="14" r="6" fill="#10b981"/>
+                  <path d="M47 11L53 14L47 17V11Z" fill="white"/>
+                </svg>
+              </div>
+              <div class="intent-content">
+                <h3 class="intent-title" data-i18n="intent.visual_clips.title">
+                  Visuele Clips 📹
+                </h3>
+                <p class="intent-description" data-i18n="intent.visual_clips.description">
+                  Slimme clips met gezichtsherkenning & 9:16 cropping
+                </p>
+                <div class="intent-features">
+                  <span class="feature-tag">AI Gezichtsdetectie</span>
+                  <span class="feature-tag">Smart Cropping</span>
+                  <span class="feature-tag">TikTok/Reels Ready</span>
+                </div>
+              </div>
+              <div class="intent-arrow">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+            </div>
+            
+            <!-- Key Moments Mode -->
+            <div class="intent-card" data-intent="key_moments" tabindex="0" role="button">
+              <div class="intent-icon">
+                <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+                  <defs>
+                    <linearGradient id="keyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+                      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+                    </linearGradient>
+                  </defs>
+                  <circle cx="32" cy="32" r="30" fill="url(#keyGradient)" opacity="0.1"/>
+                  <path d="M32 16L37.09 26.26L48 27.27L40 35.54L42.18 46.41L32 41.1L21.82 46.41L24 35.54L16 27.27L26.91 26.26L32 16Z" fill="url(#keyGradient)"/>
+                  <circle cx="50" cy="14" r="6" fill="#ef4444"/>
+                  <path d="M47 11L50 14L53 11L50 17Z" fill="white"/>
+                </svg>
+              </div>
+              <div class="intent-content">
+                <h3 class="intent-title" data-i18n="intent.key_moments.title">
+                  Hoogtepunten ⭐
+                </h3>
+                <p class="intent-description" data-i18n="intent.key_moments.description">
+                  Snelle extractie van beste momenten zonder bewerking
+                </p>
+                <div class="intent-features">
+                  <span class="feature-tag">Minimale Processing</span>
+                  <span class="feature-tag">Origineel Formaat</span>
+                  <span class="feature-tag">Snel Resultaat</span>
+                </div>
+              </div>
+              <div class="intent-arrow">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+            </div>
+            
+            <!-- Smart Content - AI-generated scripts -->
+            <div class="intent-card" data-intent="smart_content" tabindex="0" role="button">
+              <div class="intent-icon">
+                <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+                  <defs>
+                    <linearGradient id="summaryGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+                      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+                    </linearGradient>
+                  </defs>
+                  <circle cx="32" cy="32" r="30" fill="url(#summaryGradient)" opacity="0.1"/>
+                  <rect x="12" y="12" width="40" height="40" rx="8" fill="url(#summaryGradient)"/>
+                  <path d="M20 22H44M20 28H44M20 34H36" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                  <circle cx="50" cy="14" r="6" fill="#3b82f6"/>
+                  <path d="M47 11L50 14L53 11" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="intent-content">
+                <h3 class="intent-title" data-i18n="intent.smart_content.title">
+                  Slimme Content 🤖
+                </h3>
+                <p class="intent-description" data-i18n="intent.smart_content.description">
+                  AI-gegenereerde scripts, captions & social posts
+                </p>
+                <div class="intent-features">
+                  <span class="feature-tag">AI Scripts</span>
+                  <span class="feature-tag">Auto Captions</span>
+                  <span class="feature-tag">Social Posts</span>
+                </div>
+              </div>
+              <div class="intent-arrow">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 2: Smart Upload (Hidden initially) -->
+      <section class="step step-upload hidden" id="stepUpload">
+        <div class="step-container">
+          <div class="step-header">
+            <button class="back-button" id="backToIntent">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/>
+              </svg>
+              <span data-i18n="common.back">Terug</span>
+            </button>
+            
+            <h2 class="step-title">
+              <span data-i18n="upload.title_prefix">Upload je video</span>
+              <span class="intent-highlight" id="selectedIntentTitle"></span>
+            </h2>
+            <p class="step-subtitle" id="uploadTip">
+              💡 Tip: Langere video's werken beter
+            </p>
+          </div>
+
+          <!-- Clip Settings Section -->
+          <section id="clip-settings" class="clip-settings-section">
+            <div class="settings-card">
+              <fieldset class="clip-length-fieldset">
+                <legend class="settings-legend" data-i18n="clip_settings.legend">📏 Clip lengte</legend>
+                <div class="radio-group">
+                  <label class="radio-label" for="clip_len_30">
+                    <input type="radio" id="clip_len_30" name="clip_length" value="30" checked>
+                    <span class="radio-custom"></span>
+                    <span class="radio-text" data-i18n="clip_settings.options.30s">30 seconden</span>
+                    <span class="radio-badge" data-i18n="clip_settings.recommended">Aanbevolen</span>
+                  </label>
+
+                  <label class="radio-label" for="clip_len_45">
+                    <input type="radio" id="clip_len_45" name="clip_length" value="45">
+                    <span class="radio-custom"></span>
+                    <span class="radio-text" data-i18n="clip_settings.options.45s">45 seconden</span>
+                  </label>
+
+                  <label class="radio-label" for="clip_len_60">
+                    <input type="radio" id="clip_len_60" name="clip_length" value="60">
+                    <span class="radio-custom"></span>
+                    <span class="radio-text" data-i18n="clip_settings.options.60s">60 seconden</span>
+                  </label>
+                </div>
+              </fieldset>
+
+              <button type="button" id="advanced_toggle" class="advanced-toggle" aria-controls="advanced_panel" aria-expanded="false">
+                <svg class="toggle-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+                </svg>
+                <span data-i18n="clip_settings.advanced.toggle">Geavanceerde instellingen</span>
+              </button>
+
+              <div id="advanced_panel" class="advanced-panel" hidden>
+                <div class="advanced-grid">
+                  <div class="form-group">
+                    <label for="adv_max_moments" class="form-label form-label-with-info">
+                      <span data-i18n="clip_settings.advanced.max_moments.label">Maximum clips</span>
+                      <button type="button" class="info-icon" data-tooltip-key="clip_settings.advanced.max_moments.tooltip" aria-label="Info">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                        </svg>
+                      </button>
+                    </label>
+                    <input id="adv_max_moments" type="number" min="3" max="12" step="1" value="6" class="form-input">
+                    <span class="form-helper" data-i18n="clip_settings.advanced.max_moments.helper">Optimaal: 6 clips (balans kwaliteit/keuze)</span>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="adv_min_gap" class="form-label form-label-with-info">
+                      <span data-i18n="clip_settings.advanced.min_gap.label">Minimale afstand (sec)</span>
+                      <button type="button" class="info-icon" data-tooltip-key="clip_settings.advanced.min_gap.tooltip" aria-label="Info">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                        </svg>
+                      </button>
+                    </label>
+                    <input id="adv_min_gap" type="number" min="0" max="3" step="0.1" value="1.0" class="form-input">
+                    <span class="form-helper" data-i18n="clip_settings.advanced.min_gap.helper">Optimaal: 1.0s (voorkomt overlap)</span>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="adv_quality" class="form-label form-label-with-info">
+                      <span data-i18n="clip_settings.advanced.quality.label">Kwaliteit prioriteit</span>
+                      <button type="button" class="info-icon" data-tooltip-key="clip_settings.advanced.quality.tooltip" aria-label="Info">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                        </svg>
+                      </button>
+                    </label>
+                    <select id="adv_quality" class="form-input">
+                      <option value="fast" data-i18n="clip_settings.advanced.quality.options.fast">Snel (minder precies)</option>
+                      <option value="balanced" selected data-i18n="clip_settings.advanced.quality.options.balanced">Gebalanceerd (aanbevolen)</option>
+                      <option value="precise" data-i18n="clip_settings.advanced.quality.options.precise">Precies (langzamer)</option>
+                    </select>
+                    <span class="form-helper" data-i18n="clip_settings.advanced.quality.helper">Balanceert snelheid vs kwaliteit</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Job Success/Error Messages -->
+            <div id="job_success" class="job-feedback success-feedback" role="status" hidden>
+              <div class="feedback-content">
+                <svg class="feedback-icon" width="20" height="20" fill="currentColor">
+                  <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
+                </svg>
+                <span class="feedback-text" data-i18n="clip_settings.feedback.job_started">Job gestart!</span>
+              </div>
+            </div>
+
+            <div id="job_error" class="job-feedback error-feedback" role="alert" hidden>
+              <div class="feedback-content">
+                <svg class="feedback-icon" width="20" height="20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                </svg>
+                <span class="feedback-text" data-i18n="clip_settings.feedback.validation_error">Fout bij starten job</span>
+              </div>
+            </div>
+          </section>
+
+          <div class="upload-experience">
+            <!-- File Upload Zone -->
+            <div class="upload-zone" id="uploadZone">
+              <div class="upload-content">
+                <div class="upload-icon">
+                  <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+                    <path d="M32 8V40M32 8L24 16M32 8L40 16" stroke="var(--gray-400)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M8 48V52C8 54.2091 9.79086 56 12 56H52C54.2091 56 56 54.2091 56 52V48" stroke="var(--gray-400)" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <h3 class="upload-title" data-i18n="upload.drop_zone">
+                  Sleep je video hierheen
+                </h3>
+                <p class="upload-subtitle" data-i18n="upload.click_to_select">
+                  Of klik om een bestand te kiezen
+                </p>
+                <div class="supported-formats">
+                  <span class="format-tag">MP4</span>
+                  <span class="format-tag">MOV</span>
+                  <span class="format-tag">AVI</span>
+                  <span class="format-tag">WebM</span>
+                </div>
+              </div>
+              <input type="file" 
+                     id="fileInput" 
+                     accept="video/*"
+                     multiple="false"
+                     class="upload-input"
+                     hidden>
+            </div>
+            
+            <!-- URL Input Alternative -->
+            <div class="upload-divider">
+              <span class="divider-text" data-i18n="upload.or">of</span>
+            </div>
+            
+            <div class="url-section">
+              <div class="url-input-wrapper">
+                <svg class="url-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd"/>
+                </svg>
+                <input type="url" 
+                       id="urlInput"
+                       class="url-input"
+                       placeholder=""
+                       data-i18n-placeholder="upload.url_placeholder">
+                <button class="url-submit" id="urlSubmit" type="button">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="url-suggestions">
+                <span class="suggestion-tag">YouTube</span>
+                <span class="suggestion-tag">Vimeo</span>
+                <span class="suggestion-tag">Twitch</span>
+                <span class="suggestion-tag">Direct link</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 3: Processing (Hidden initially) -->
+      <section class="step step-processing hidden" id="stepProcessing">
+        <div class="step-container">
+          <div class="step-header">
+            <h2 class="step-title">
+              <span data-i18n="processing.title_prefix">AI-verwerking actief:</span>
+              <span class="intent-highlight" id="processingIntentTitle">video analyse</span>
+            </h2>
+            <p class="step-subtitle" data-i18n="processing.subtitle">
+              Intelligente content-analyse voor optimale resultaten
+            </p>
+          </div>
+          
+          <div class="processing-visual">
+            <div class="video-preview">
+              <img id="videoThumbnail"
+                   src=""
+                   alt="Video preview"
+                   class="thumbnail">
+              <!-- Elegant Processing Overlay -->
+              <div class="video-processing-overlay">
+                <div class="processing-indicator">
+                  <div class="pulse-ring"></div>
+                  <div class="pulse-ring pulse-ring-2"></div>
+                  <div class="pulse-ring pulse-ring-3"></div>
+                  <div class="processing-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2L22 12L12 22L2 12L12 2Z" fill="currentColor" opacity="0.8"/>
+                      <path d="M12 8L16 12L12 16L8 12L12 8Z" fill="currentColor"/>
+                    </svg>
+                  </div>
+                </div>
+                <div class="processing-status-text" id="videoProcessingStatus" data-i18n="processing.analyzing_video">
+                  Analyzing video content...
+                </div>
+              </div>
+            </div>
+
+            <!-- Elegant Processing Visualization -->
+            <div class="processing-insights">
+              <div class="insights-header">
+                <h3 class="insights-title" data-i18n="processing.insights_title">AI Video Analysis</h3>
+                <span class="insights-subtitle" data-i18n="processing.insights_subtitle">Real-time processing insights</span>
+              </div>
+
+              <div class="insights-metrics">
+                <div class="metric-item">
+                  <div class="metric-icon">💎</div>
+                  <div class="metric-content">
+                    <span class="metric-label">Gouden momenten</span>
+                    <span class="metric-value" id="momentsCount">Analyzing...</span>
+                  </div>
+                </div>
+
+                <div class="metric-item">
+                  <div class="metric-icon">📊</div>
+                  <div class="metric-content">
+                    <span class="metric-label">Viral potential</span>
+                    <span class="metric-value" id="audioQuality">92%</span>
+                  </div>
+                </div>
+
+                <div class="metric-item">
+                  <div class="metric-icon">🔥</div>
+                  <div class="metric-content">
+                    <span class="metric-label">Social media status</span>
+                    <span class="metric-value" id="engagementScore">Ready voor domination!</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Elegant Wave Animation -->
+              <div class="processing-waves">
+                <div class="wave wave-1"></div>
+                <div class="wave wave-2"></div>
+                <div class="wave wave-3"></div>
+                <div class="wave-center">
+                  <div class="pulse-dot"></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+          
+          <!-- Async Processing Status Panel -->
+          <div class="async-processing-panel" id="asyncProcessingPanel">
+            <div class="processing-status-header">
+              <div class="status-indicator">
+                <span id="processingStatus" class="processing-status status-queued">In Queue</span>
+                <div id="queueStatus" class="queue-status">
+                  <span class="status-indicator">🟢</span>
+                  <span>Queue System Online</span>
+                </div>
+              </div>
+              <div class="processing-controls">
+                <button id="cancelProcessing" class="btn btn-secondary">
+                  🛑 Cancel
+                </button>
+                <button id="retryProcessing" class="btn btn-primary" style="display: none;">
+                  🔄 Retry
+                </button>
+              </div>
+            </div>
+            
+            <!-- Chique Processing Indicator -->
+            <div class="chic-processor" id="chicProcessor">
+              <div class="processing-orb"></div>
+              <div class="trevor-message" id="trevorMessage">
+                Even geduld, we doen de magie...
+              </div>
+              <div class="processing-subtitle" id="processingSubtitle">
+                AI is bezig met de analyse
+              </div>
+              <div class="processing-dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+              </div>
+            </div>
+
+            <!-- Expert Processing Timer Container -->
+            <div class="processing-timer-container" id="processingTimer">
+              <!-- Expert timer will be initialized here by ProcessingTimer.js -->
+            </div>
+            
+            <!-- Clips Results (shown when completed) -->
+            <div id="processingClips" class="processing-clips" style="display: none;">
+              <!-- Dynamic clips will be inserted here -->
+            </div>
+            
+            <div class="download-controls" style="display: none;">
+              <button id="downloadAllClipsProcessing" class="btn btn-primary">
+                📦 Download All Clips
+              </button>
+            </div>
+          </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 4: Results (Hidden initially) -->
+      <section class="step step-results hidden" id="stepResults">
+        <div class="step-container">
+          <div class="step-header">
+            <h2 id="verwerking-voltooid" class="step-title">
+              <span data-i18n="results.title_prefix">Verwerking voltooid!</span>
+              <span class="intent-highlight" id="resultsIntentTitle">Resultaten</span>
+              <span data-i18n="results.title_suffix">beschikbaar 🎯</span>
+            </h2>
+            <p class="step-subtitle">
+              <span data-i18n="results.subtitle_prefix">AI-analyse heeft</span>
+              <span class="clip-count" id="clipCount">3</span>
+              <span data-i18n="results.subtitle_suffix">optimale segmenten geïdentificeerd</span>
+            </p>
+          </div>
+          
+          <div class="results-content" id="resultsContent">
+            <!-- Results will be populated by JavaScript -->
+          </div>
+          
+          <div class="results-actions">
+            <button class="btn-primary-lg" id="downloadAllClips">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+              </svg>
+              <span data-i18n="results.actions.download_all">Alle segmenten downloaden</span>
+            </button>
+            <button class="btn-secondary-lg" id="createNewClips">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+              </svg>
+              <span data-i18n="results.actions.new_video">Nieuwe verwerking</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      </div>
+
+    </main>
+
+    <!-- Error Notification System -->
+    <div class="notification-container" id="notificationContainer">
+      <!-- Notifications will be inserted here -->
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal-overlay hidden" id="helpModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 data-i18n="common.help">Help</h3>
+          <button class="modal-close" id="closeHelpModal">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body" id="helpContent">
+          <!-- Help content will be loaded here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <!-- External dependencies -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  
+  <!-- Load i18n first -->
+  <script type="module" src="./src/i18n/utils/i18n.js"></script>
+
+  <!-- UI Components -->
+  <script src="./public/js/tooltip-manager.js"></script>
+  <script src="./src/components/ProcessingTimer.js"></script>
+
+  <!-- Core application scripts -->
+  <script type="module" src="./src/infrastructure/config/environment.js"></script>
+  <script type="module" src="./src/infrastructure/state/app-store.js"></script>
+  <script type="module" src="./src/adapters/api/api-client.js"></script>
+  
+  <!-- Main application entry point -->
+  <script type="module" src="./src/main.js"></script>
+  
+  <!-- Progressive Enhancement -->
+  <script>
+    // Critical JavaScript for immediate interactivity
+    document.addEventListener('DOMContentLoaded', function() {
+      // Hide loading screen
+      const loadingScreen = document.getElementById('loadingScreen');
+      const appContent = document.getElementById('appContent');
+      
+      // Debug: log when DOM is ready
+      console.log('🔍 DOM Ready, waiting for i18n...');
+      
+      setTimeout(() => {
+        loadingScreen.style.display = 'none';
+        appContent.classList.add('loaded');
+        
+        // Debug: check i18n status after load
+        setTimeout(() => {
+          console.log('🔍 After load check:', {
+            i18nLoaded: window.i18n ? true : false,
+            currentLocale: window.i18n ? window.i18n.currentLocale : 'not loaded',
+            hasTranslations: window.i18n ? window.i18n.translations.size : 0,
+            sampleText: document.querySelector('[data-i18n="intent.title"]')?.textContent
+          });
+        }, 1000);
+      }, 500);
+      
+      // Basic keyboard navigation
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          // Close modals
+          const modals = document.querySelectorAll('.modal-overlay:not(.hidden)');
+          modals.forEach(modal => modal.classList.add('hidden'));
+        }
+      });
+      
+      // Basic accessibility enhancements
+      const focusableElements = document.querySelectorAll('[tabindex="0"], button, input, select');
+      focusableElements.forEach(element => {
+        element.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            if (this.tagName !== 'INPUT' && this.tagName !== 'SELECT') {
+              e.preventDefault();
+              this.click();
+            }
+          }
+        });
+      });
+      
+      // Auto-scroll to results when they appear
+      const observer = new MutationObserver(() => {
+        const resultsStep = document.getElementById("stepResults");
+        const resultsHeader = document.getElementById("verwerking-voltooid");
+        
+        if (resultsStep && resultsStep.classList.contains('active') && resultsHeader) {
+          setTimeout(() => {
+            // Calculate header height for offset
+            const header = document.querySelector('.app-header');
+            const headerHeight = header ? header.offsetHeight : 80;
+            const elementPosition = resultsHeader.getBoundingClientRect().top + window.pageYOffset;
+            const offsetPosition = elementPosition - headerHeight - 16; // 16px extra breathing room
+            
+            window.scrollTo({
+              top: offsetPosition,
+              behavior: "smooth"
+            });
+          }, 300); // Small delay to ensure step transition is complete
+          observer.disconnect();
+        }
+      });
+      
+      observer.observe(document.body, { 
+        childList: true, 
+        subtree: true, 
+        attributes: true, 
+        attributeFilter: ['class'] 
+      });
+    });
+  </script>
+</body>
+</html>

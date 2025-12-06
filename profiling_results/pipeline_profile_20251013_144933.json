@@ -1,0 +1,133 @@
+{
+  "timestamp": "2025-10-13T14:48:24.625967",
+  "video_input": "/mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/vibecoder-agentos/io/downloads/video_1751933560.mp4",
+  "job_id": "profile_1760359704",
+  "system_info": {
+    "cpu_count": 20,
+    "cpu_freq_mhz": 1996.2030000000007,
+    "total_memory_gb": 15.18,
+    "available_memory_gb": 12.58,
+    "platform": "linux",
+    "python_version": "3.10.12"
+  },
+  "tasks": {
+    "download_video": {
+      "status": "success",
+      "execution_time_seconds": 3.473,
+      "cpu_time_user_seconds": 0.15,
+      "cpu_time_system_seconds": 0.23,
+      "memory_delta_mb": 18.48,
+      "memory_peak_mb": 71.94,
+      "result_type": "dict",
+      "priority": "LOW",
+      "issue": null
+    },
+    "transcribe_audio": {
+      "status": "success",
+      "execution_time_seconds": 3.731,
+      "cpu_time_user_seconds": 0.1,
+      "cpu_time_system_seconds": 0.08,
+      "memory_delta_mb": 7.03,
+      "memory_peak_mb": 78.97,
+      "result_type": "dict",
+      "priority": "LOW",
+      "issue": null
+    },
+    "detect_moments": {
+      "status": "success",
+      "execution_time_seconds": 7.746,
+      "cpu_time_user_seconds": 0.3,
+      "cpu_time_system_seconds": 0.31,
+      "memory_delta_mb": 15.66,
+      "memory_peak_mb": 94.63,
+      "result_type": "dict",
+      "priority": "LOW",
+      "issue": null
+    },
+    "detect_faces": {
+      "status": "success",
+      "execution_time_seconds": 14.498,
+      "cpu_time_user_seconds": 17.07,
+      "cpu_time_system_seconds": 6.39,
+      "memory_delta_mb": 314.89,
+      "memory_peak_mb": 409.52,
+      "result_type": "dict",
+      "priority": "LOW",
+      "issue": null
+    },
+    "intelligent_crop": {
+      "status": "success",
+      "execution_time_seconds": 8.869,
+      "cpu_time_user_seconds": 15.32,
+      "cpu_time_system_seconds": 2.22,
+      "memory_delta_mb": 19.39,
+      "memory_peak_mb": 428.91,
+      "result_type": "dict",
+      "priority": "LOW",
+      "issue": null
+    },
+    "cut_videos": {
+      "status": "error",
+      "error": "Invalid input data",
+      "execution_time_seconds": 0,
+      "priority": "HIGH",
+      "issue": "Task failed: Invalid input data"
+    }
+  },
+  "summary": {
+    "total_pipeline_time_seconds": 75.68,
+    "successful_tasks": 5,
+    "failed_tasks": 1,
+    "slowest_tasks": [
+      {
+        "task": "detect_faces",
+        "time_seconds": 14.5
+      },
+      {
+        "task": "intelligent_crop",
+        "time_seconds": 8.87
+      },
+      {
+        "task": "detect_moments",
+        "time_seconds": 7.75
+      },
+      {
+        "task": "transcribe_audio",
+        "time_seconds": 3.73
+      },
+      {
+        "task": "download_video",
+        "time_seconds": 3.47
+      }
+    ],
+    "memory_heavy_tasks": [
+      {
+        "task": "detect_faces",
+        "memory_delta_mb": 314.89
+      },
+      {
+        "task": "intelligent_crop",
+        "memory_delta_mb": 19.39
+      },
+      {
+        "task": "download_video",
+        "memory_delta_mb": 18.48
+      },
+      {
+        "task": "detect_moments",
+        "memory_delta_mb": 15.66
+      },
+      {
+        "task": "transcribe_audio",
+        "memory_delta_mb": 7.03
+      }
+    ],
+    "high_priority_issues_count": 1,
+    "high_priority_issues": [
+      {
+        "task": "cut_videos",
+        "issue": "Task failed: Invalid input data"
+      }
+    ]
+  }
+}

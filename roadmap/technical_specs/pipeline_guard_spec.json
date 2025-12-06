@@ -1,0 +1,98 @@
+{
+  "spec_metadata": {
+    "id": "pipeline_guard_1_2",
+    "title": "Pipeline Guard Implementation",
+    "parent_phase": "phase_1",
+    "priority": "high",
+    "blocking": true,
+    "related_file": "../ROADMAP_VALIDATED.md#12-pipeline-guard-implementatie"
+  },
+  "problem_definition": {
+    "core_issue": "Non-production transcription data (mock/degraded) wordt downstream verwerkt",
+    "business_impact": "Pipeline verwerkt mock data wat tot foutieve clips leidt",
+    "current_behavior": "Mock transcriptions worden doorgestuurd naar detect_moments en video cutting",
+    "desired_behavior": "Pipeline stopt bij non-production transcript en informeert gebruiker"
+  },
+  "technical_requirements": {
+    "target_file": "tasks/video_processing.py",
+    "insertion_point": "After line 256 (na transcribe_audio call)",
+    "detection_logic": "Check transcription_result.get('allow_downstream', True)",
+    "response_fields_to_check": [
+      "allow_downstream",
+      "is_mock",
+      "quality_tier",
+      "user_message"
+    ]
+  },
+  "implementation_specification": {
+    "guard_logic": {
+      "condition": "not transcription_result.get('allow_downstream', True)",
+      "actions": [
+        "Log warning about non-production transcript",
+        "Update job.status to 'needs_real_transcript'",
+        "Set job.user_message with helpful guidance",
+        "Commit database session",
+        "Return structured error response"
+      ]
+    },
+    "exact_code_snippet": "# Pipeline Guard - Stop on non-production transcripts\ntr = transcription_result\nif not tr.get('allow_downstream', True):\n    logger.warning('Transcription not production-grade (mock/degraded). Halting pipeline.')\n    job.status = 'needs_real_transcript'\n    job.user_message = tr.get('user_message') or 'Transcriptie is niet gelukt. Probeer opnieuw met compressie/chunks.'\n    session.commit()\n    return {\n        'success': False,\n        'stopped_at': 'transcription',\n        'reason': 'non_production_transcript',\n        'user_message': job.user_message\n    }",
+    "imports_needed": [
+      "import logging",
+      "logger = logging.getLogger(__name__)"
+    ]
+  },
+  "testing_specifications": {
+    "test_cases": [
+      {
+        "name": "Mock transcription detection",
+        "setup": "Force transcription to return allow_downstream: false",
+        "expected": "Pipeline stops, job.status = 'needs_real_transcript'"
+      },
+      {
+        "name": "Production transcription passthrough",
+        "setup": "Normal transcription with allow_downstream: true",
+        "expected": "Pipeline continues to detect_moments"
+      },
+      {
+        "name": "Missing allow_downstream field",
+        "setup": "Transcription response without allow_downstream field",
+        "expected": "Pipeline continues (defaults to True)"
+      }
+    ],
+    "validation_commands": [
+      "grep -A 10 'allow_downstream' tasks/video_processing.py",
+      "python -c \"from tasks.video_processing import process_job; print('Pipeline guard loaded')\"",
+      "grep 'non_production_transcript' logs/agentos.log | tail -5 || echo 'No recent pipeline stops'"
+    ]
+  },
+  "integration_points": {
+    "database_fields": [
+      "job.status",
+      "job.user_message"
+    ],
+    "log_messages": [
+      "Transcription not production-grade (mock/degraded). Halting pipeline.",
+      "Pipeline stopped at transcription step"
+    ],
+    "api_response_format": {
+      "success": false,
+      "stopped_at": "transcription",
+      "reason": "non_production_transcript",
+      "user_message": "Transcriptie is niet gelukt. Probeer opnieuw met compressie/chunks."
+    }
+  },
+  "success_criteria": {
+    "must_achieve": [
+      "Mock data detection prevents downstream processing",
+      "User receives helpful error message",
+      "Job status correctly updated in database",
+      "Pipeline gracefully stops without errors"
+    ],
+    "verification_commands": [
+      "Test with mock transcription: should stop at transcription",
+      "Test with real transcription: should continue to detect_moments",
+      "Check database for correct job.status updates",
+      "Verify log entries for pipeline stops"
+    ]
+  }
+}

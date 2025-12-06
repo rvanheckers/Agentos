@@ -1,0 +1,368 @@
+{
+  "handover_metadata": {
+    "title": "AgentOS Missing Metadata & Transcription Fix",
+    "created": "2025-09-22",
+    "urgency": "HIGH",
+    "language": "nl",
+    "estimated_duration": "2-3 hours",
+    "complexity": "medium-high"
+  },
+
+  "system_context": {
+    "project_name": "AgentOS",
+    "working_directory": "/mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/AgentOS",
+    "git_repo": false,
+    "platform": "WSL2 Linux",
+    "ports": {
+      "api_backend": 8001,
+      "user_frontend": 8000,
+      "websocket": 8765,
+      "postgresql": 5432,
+      "redis": 6379
+    },
+    "database": {
+      "type": "PostgreSQL",
+      "host": "localhost:5432",
+      "database": "agentos_production",
+      "user": "agentos_user",
+      "password": "secure_agentos_2024",
+      "connection_url": "postgresql://agentos_user:secure_agentos_2024@localhost:5432/agentos_production"
+    },
+    "critical_files": [
+      "/mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/AgentOS/.claude/CLAUDE.md",
+      "/mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/AgentOS/.env",
+      "/mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/AgentOS/docs/CHANGELOG_2025-09-21.md",
+      "/mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/AgentOS/ui-v2/docs/UI_V2_ENDPOINTS.md"
+    ]
+  },
+
+  "problem_statement": {
+    "primary_issue": "Mehdi video toont nog steeds music metadata ondanks database correctie naar spoken content",
+    "root_causes": [
+      "Transcription pipeline genereert geen keywords/viral_scores",
+      "Clip descriptions niet geüpdatet bij content_type wijzigingen",
+      "Marketing insights tabel heeft viral_score = 0 voor alle records",
+      "Video processing pipeline mist transcript-based metadata generation"
+    ],
+    "evidence": {
+      "database_query": "SELECT content_type, analysis_mode, viral_score, keywords FROM jobs WHERE youtube_title LIKE '%Mehdi%'",
+      "expected_result": "content_type='spoken', viral_score>0, keywords populated",
+      "actual_result": "content_type='spoken', viral_score=0, keywords=[]",
+      "api_endpoint": "GET /api/jobs/{job_id}/complete-metadata",
+      "ui_path": "http://localhost:8000/ui-v2/"
+    }
+  },
+
+  "prerequisites": {
+    "blocking": true,
+    "skip_allowed": false,
+    "must_read_files": [
+      {
+        "file": "/mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/AgentOS/.claude/CLAUDE.md",
+        "purpose": "Project instructions en guidelines"
+      },
+      {
+        "file": "/mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/AgentOS/tasks/video_processing.py",
+        "purpose": "Video processing pipeline analyze"
+      },
+      {
+        "file": "/mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/AgentOS/agents2/moment_detection/moment_detector.py",
+        "purpose": "Moment detection en content analysis"
+      },
+      {
+        "file": "/mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/AgentOS/docs/CHANGELOG_2025-09-21.md",
+        "purpose": "Recent database changes en verwachtingen"
+      }
+    ],
+    "pre_checks": [
+      {
+        "command": "psql postgresql://agentos_user:secure_agentos_2024@localhost:5432/agentos_production -c 'SELECT 1'",
+        "expected_output": "1",
+        "error_action": "STOP - Database connection required"
+      },
+      {
+        "command": "curl -s http://localhost:8001/api/health || echo 'API DOWN'",
+        "expected_contains": "ok",
+        "error_action": "STOP - API server must be running on port 8001"
+      },
+      {
+        "command": "ls /mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/AgentOS/.env",
+        "expected_output": "/mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/AgentOS/.env",
+        "error_action": "STOP - Environment file required"
+      }
+    ]
+  },
+
+  "execution_phases": [
+    {
+      "phase": 1,
+      "title": "Diagnose Transcription Pipeline",
+      "blocking": true,
+      "tasks": [
+        {
+          "id": "1.1",
+          "action": "ANALYZE_TRANSCRIPTION_FLOW",
+          "description": "Onderzoek waarom transcription geen keywords/viral_scores genereert",
+          "files_to_examine": [
+            "tasks/video_processing.py",
+            "agents2/moment_detection/moment_detector.py"
+          ],
+          "specific_functions": [
+            "transcribe_audio",
+            "_detect_viral_moments",
+            "_analyze_with_claude"
+          ],
+          "validation": "Identificeer waar keywords en viral_scores zouden moeten worden gegenereerd"
+        },
+        {
+          "id": "1.2",
+          "action": "CHECK_OPENAI_TRANSCRIPTION",
+          "description": "Verifieer of OpenAI Whisper API correct werkt en transcript genereert",
+          "test_command": "python -c \"from tasks.video_processing import transcribe_audio; print('OpenAI key:', os.getenv('OPENAI_API_KEY')[:10] + '...')\"",
+          "validation": "OpenAI API key is geldig en transcription werkt"
+        },
+        {
+          "id": "1.3",
+          "action": "CHECK_CLAUDE_ANALYSIS",
+          "description": "Verifieer of Claude API gebruikt wordt voor keyword extraction en viral scoring",
+          "test_command": "python -c \"import os; print('Claude key:', os.getenv('ANTHROPIC_API_KEY')[:10] + '...')\"",
+          "validation": "Claude API key is geldig en wordt gebruikt voor content analysis"
+        }
+      ]
+    },
+
+    {
+      "phase": 2,
+      "title": "Fix Missing Transcript Processing",
+      "blocking": true,
+      "depends_on": ["1.1", "1.2", "1.3"],
+      "tasks": [
+        {
+          "id": "2.1",
+          "action": "IMPLEMENT_KEYWORD_EXTRACTION",
+          "description": "Zorg dat transcript analysis keywords genereert en opslaat in database",
+          "target_files": [
+            "agents2/moment_detection/moment_detector.py"
+          ],
+          "requirements": [
+            "Extract 5-10 relevante keywords uit transcript",
+            "Sla keywords op in jobs.keywords kolom als TEXT[]",
+            "Gebruik Claude API voor intelligente keyword extraction"
+          ],
+          "validation": "psql -c \"SELECT keywords FROM jobs WHERE youtube_title LIKE '%Mehdi%' AND keywords IS NOT NULL\""
+        },
+        {
+          "id": "2.2",
+          "action": "IMPLEMENT_VIRAL_SCORE_CALCULATION",
+          "description": "Implementeer viral score berekening gebaseerd op transcript content",
+          "algorithm": [
+            "Analyseer transcript voor viral indicators (humor, controversy, emotions)",
+            "Bereken score 0-100 gebaseerd op content quality",
+            "Sla viral_score op in jobs.viral_score kolom",
+            "Update content_insights tabel met zelfde score"
+          ],
+          "validation": "psql -c \"SELECT viral_score FROM jobs WHERE youtube_title LIKE '%Mehdi%' AND viral_score > 0\""
+        },
+        {
+          "id": "2.3",
+          "action": "FIX_CLIP_DESCRIPTIONS",
+          "description": "Update clip descriptions wanneer content_type wijzigt van music naar spoken",
+          "logic": [
+            "Als content_type='spoken' EN clip.description bevat 'Music'",
+            "Dan update naar spoken-appropriate descriptions",
+            "Gebruik transcript excerpts voor clip titles waar mogelijk"
+          ],
+          "validation": "psql -c \"SELECT description FROM clips JOIN jobs ON clips.job_id = jobs.id WHERE jobs.youtube_title LIKE '%Mehdi%'\""
+        }
+      ]
+    },
+
+    {
+      "phase": 3,
+      "title": "Test & Validate Complete Pipeline",
+      "blocking": true,
+      "depends_on": ["2.1", "2.2", "2.3"],
+      "tasks": [
+        {
+          "id": "3.1",
+          "action": "TEST_WITH_MEHDI_VIDEO",
+          "description": "Re-process Mehdi video om nieuwe metadata te genereren",
+          "steps": [
+            "Haal Mehdi video job op: job_id waar youtube_title LIKE '%Mehdi%'",
+            "Trigger re-processing van transcript analysis",
+            "Verifieer dat keywords, viral_score en clip descriptions worden geüpdatet"
+          ],
+          "validation": "curl -s http://localhost:8001/api/jobs/{mehdi_job_id}/complete-metadata | jq '.content.viral_score, .keywords'"
+        },
+        {
+          "id": "3.2",
+          "action": "VERIFY_UI_DISPLAY",
+          "description": "Check dat UI correct metadata toont voor speech content",
+          "verification_steps": [
+            "Open http://localhost:8000/ui-v2/",
+            "Zoek Mehdi video in results",
+            "Verifieer metadata toont: Analysis Method: AI Viral Analysis (niet AI Song Lyrics)",
+            "Verifieer viral score > 0 wordt getoond",
+            "Verifieer keywords worden getoond"
+          ],
+          "validation": "UI toont correcte spoken metadata ipv music metadata"
+        },
+        {
+          "id": "3.3",
+          "action": "UPDATE_CONTENT_INSIGHTS",
+          "description": "Zorg dat marketing insights correct worden gevuld",
+          "requirements": [
+            "content_insights.viral_score moet > 0 zijn voor verwerkte content",
+            "detected_trends moet keywords bevatten",
+            "content_category moet 'spoken' zijn voor speech content"
+          ],
+          "validation": "psql -c \"SELECT viral_score, detected_trends FROM content_insights WHERE viral_score > 0 LIMIT 5\""
+        }
+      ]
+    },
+
+    {
+      "phase": 4,
+      "title": "Future-Proof Implementation",
+      "blocking": false,
+      "depends_on": ["3.1", "3.2", "3.3"],
+      "tasks": [
+        {
+          "id": "4.1",
+          "action": "CREATE_REPROCESSING_SCRIPT",
+          "description": "Maak script om bestaande jobs met missing metadata te reprocessen",
+          "script_requirements": [
+            "Zoek jobs met viral_score = 0 of keywords = []",
+            "Re-run transcript analysis voor deze jobs",
+            "Update database met nieuwe metadata",
+            "Log progress en resultaten"
+          ],
+          "file_path": "/mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/AgentOS/scripts/reprocess_missing_metadata.py"
+        },
+        {
+          "id": "4.2",
+          "action": "ADD_METADATA_VALIDATION",
+          "description": "Voeg validatie toe aan video processing pipeline",
+          "validation_checks": [
+            "Transcript moet > 50 characters zijn voor keyword extraction",
+            "Viral score moet tussen 0-100 liggen",
+            "Keywords array mag niet leeg zijn voor speech content",
+            "Content_insights record moet worden aangemaakt"
+          ],
+          "implementation": "In moment_detector.py add validation functions"
+        }
+      ]
+    }
+  ],
+
+  "rollback_procedures": {
+    "phase_1_rollback": "Geen changes - alleen analysis",
+    "phase_2_rollback": [
+      "git checkout HEAD -- agents2/moment_detection/moment_detector.py",
+      "psql -c \"UPDATE jobs SET keywords = NULL, viral_score = 0 WHERE updated_at > NOW() - INTERVAL '1 hour'\""
+    ],
+    "phase_3_rollback": [
+      "Revert UI changes indien aangebracht",
+      "psql -c \"DELETE FROM content_insights WHERE created_at > NOW() - INTERVAL '1 hour'\""
+    ],
+    "emergency_stop": "pkill -f video_processing; systemctl restart postgresql"
+  },
+
+  "success_criteria": {
+    "must_achieve": [
+      "Mehdi video toont Analysis Method: AI Viral Analysis in UI",
+      "Viral score > 0 voor Mehdi video in database",
+      "Keywords array bevat 3+ relevante woorden",
+      "Clip descriptions bevatten geen music references voor spoken content",
+      "API endpoint /complete-metadata geeft volledige metadata terug"
+    ],
+    "verification_commands": [
+      "psql -c \"SELECT content_type, viral_score, array_length(keywords,1) FROM jobs WHERE youtube_title LIKE '%Mehdi%'\"",
+      "curl -s http://localhost:8001/api/jobs/{mehdi_job_id}/complete-metadata | jq '.content.viral_score'",
+      "psql -c \"SELECT COUNT(*) FROM content_insights WHERE viral_score > 0\""
+    ]
+  },
+
+  "context_preservation": {
+    "ui_frontend": {
+      "path": "/mnt/c/Users/rober/OneDrive/Bureaublad/Projecten/01_Active_Development/AgentOS/ui-v2/",
+      "port": 8000,
+      "critical_files": [
+        "src/features/processing/components/processing-panel.js",
+        "src/features/results/components/results-grid.js",
+        "src/adapters/api/api-client.js"
+      ],
+      "note": "UI already uses complete-metadata endpoint correctly - problem is backend data"
+    },
+    "api_backend": {
+      "port": 8001,
+      "main_file": "api/main.py",
+      "key_endpoints": [
+        "GET /api/jobs/{job_id}/complete-metadata",
+        "POST /api/jobs (creates new processing jobs)",
+        "GET /api/privacy/status"
+      ]
+    },
+    "database_schema": {
+      "jobs_table": {
+        "viral_score": "INTEGER (currently 0 for most records)",
+        "keywords": "TEXT[] (currently [] for most records)",
+        "content_type": "VARCHAR(20) ('spoken' or 'music')",
+        "analysis_mode": "VARCHAR(50) ('ai_viral_analysis' or 'ai_song_lyrics')",
+        "total_moments": "INTEGER (working correctly)",
+        "video_duration": "NUMERIC(10,2) (working correctly)"
+      },
+      "content_insights_table": {
+        "viral_score": "INTEGER (currently 0 for all 41 records)",
+        "detected_trends": "TEXT[] (populated but not meaningful)",
+        "content_category": "VARCHAR(50) (working correctly)"
+      }
+    },
+    "recent_fixes": [
+      "SmartContentDetector works correctly - Mehdi video classified as 'spoken'",
+      "Database records corrected from music to spoken for Mehdi videos",
+      "UI CSS metadata layout improved for better user experience",
+      "API endpoints working - complete-metadata returns correct structure"
+    ]
+  },
+
+  "debugging_context": {
+    "test_video": {
+      "title": "Mehdi CALLS OUT Israel to 12,000 People: 'You Can't Bomb The Truth Away'",
+      "url": "https://www.youtube.com/watch?v=X1AFgQZW0aA",
+      "job_ids": [
+        "f48ab26e-a304-4ad0-93ea-9f6994a4ac85",
+        "efe34228-0bd3-49bc-a72b-64092d327ab5",
+        "a62b41c6-6642-432d-904f-156ac8c61952",
+        "ba355ea6-13aa-467f-ac0e-9b8b57f3abd0"
+      ],
+      "expected_metadata": {
+        "content_type": "spoken",
+        "analysis_mode": "ai_viral_analysis",
+        "viral_score": "> 0",
+        "keywords": "[\"israel\", \"truth\", \"politics\", \"speech\", \"mehdi\"]"
+      }
+    },
+    "api_test_commands": [
+      "curl -s http://localhost:8001/api/jobs/f48ab26e-a304-4ad0-93ea-9f6994a4ac85/complete-metadata | jq '.'",
+      "psql postgresql://agentos_user:secure_agentos_2024@localhost:5432/agentos_production -c \"SELECT * FROM jobs WHERE id = 'f48ab26e-a304-4ad0-93ea-9f6994a4ac85'\"",
+      "curl -s http://localhost:8001/api/health"
+    ]
+  },
+
+  "critical_instructions": {
+    "language": "PRAAT NEDERLANDS - alle communicatie in het Nederlands",
+    "approach": "Top 0.1% developer approach - stel verduidelijkende vragen totdat je 95% zeker bent",
+    "validation": "Test elke wijziging direct met de Mehdi video als test case",
+    "safety": "Maak backups voordat je database wijzigingen aanbrengt",
+    "focus": "Focus op transcript processing pipeline - UI en API endpoints werken al correct",
+    "completion": "Markeer elke task als completed zodra gevalideerd",
+    "communication": "Geef korte, directe updates - geen lange uitleg tenzij gevraagd"
+  },
+
+  "final_validation": {
+    "user_acceptance_test": "Gebruiker kan Mehdi video bekijken op http://localhost:8000/ui-v2/ en ziet correct speech metadata ipv music metadata",
+    "technical_validation": "curl commando's tonen viral_score > 0 en gevulde keywords array",
+    "database_validation": "PostgreSQL queries bevestigen correcte metadata in beide jobs en content_insights tabellen"
+  }
+}"

@@ -1,0 +1,39 @@
+/**
+ * AgentOS Admin - Clean CSS Architecture
+ * Single entry point for all styles - IMPORTS ONLY
+ */
+
+/* Base styles - Foundation layer */
+@import './base/variables.css';
+@import './base/reset.css';
+
+/* Layout components - Structure layer */
+@import './layout/header.css';
+@import './layout/sidebar.css';
+@import './layout/main.css';
+
+/* UI components - Component layer */
+@import './components/buttons.css';
+@import './components/metric-card.css';
+@import './components/smart-filter.css';
+@import './components/database-selector.css';
+@import './components/connection-status.css';
+@import './components/notifications.css';
+@import './components/status-legend.css';
+@import './components/help-panel.css';
+
+/* View-specific styles - Page layer */
+@import './views/dashboard.css';
+@import './views/agents.css';
+@import './views/agents-workers.css';
+@import './views/queue.css';
+@import './views/system-controls.css';
+@import './views/workers.css';
+@import './views/job-history.css';
+@import './views/system-logs.css';
+@import './views/analytics.css';
+@import './views/configuration.css';
+@import './views/managers.css';
+
+/* DevTools inspection mode fixes */
+@import './devtools-fix.css';

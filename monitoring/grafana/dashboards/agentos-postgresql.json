@@ -1,0 +1,88 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "AgentOS PostgreSQL Performance",
+    "tags": ["agentos", "postgresql", "migration"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Database Connections",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "pg_stat_activity_count",
+            "legendFormat": "Active Connections"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Query Performance",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(pg_stat_database_tup_inserted[5m])",
+            "legendFormat": "Inserts/sec"
+          },
+          {
+            "expr": "rate(pg_stat_database_tup_updated[5m])",
+            "legendFormat": "Updates/sec"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "AgentOS Jobs by Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "agentos_jobs_by_status_count",
+            "legendFormat": "{{status}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Agent Processing Performance",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "agentos_processing_performance_avg_duration",
+            "legendFormat": "{{agent_name}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16}
+      },
+      {
+        "id": 5,
+        "title": "Database Size",
+        "type": "singlestat",
+        "targets": [
+          {
+            "expr": "pg_database_size_bytes",
+            "legendFormat": "Size"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 12, "x": 0, "y": 24}
+      },
+      {
+        "id": 6,
+        "title": "Lock Contention",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "pg_locks_count",
+            "legendFormat": "{{mode}}"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 12, "x": 12, "y": 24}
+      }
+    ],
+    "time": {"from": "now-1h", "to": "now"},
+    "refresh": "30s"
+  }
+}
